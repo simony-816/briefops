@@ -2,33 +2,63 @@
 
 BriefOps is a local-first, token-aware skill and briefing layer for AI coding agents.
 
-It helps turn repeated explanations into compact, reusable task briefs for tools like Codex and Claude Code.
+It helps you turn repeated instructions, project facts, lessons, and review rules into compact task briefs for tools like Codex and Claude Code.
 
 BriefOps does not run agents. BriefOps prepares better instructions for agents.
 
-BriefOps can also generate Codex-favored mission prompts with evidence gates, completion promises, and repo-local `AGENTS.md` guidance.
+BriefOps also includes a Codex-favored prompt pack: mission prompts, evidence gates, completion promises, and repo-local `AGENTS.md` guidance.
 
-## What It Solves
+## Why BriefOps
 
-AI coding sessions often start with the same repeated setup: project facts, review rules, prior lessons, constraints, and the exact shape of the current task. BriefOps stores that durable context as small local files, then compiles only the useful pieces into a compact task brief.
+AI coding sessions often begin with the same setup:
 
-The core workflow is:
+- what the project is
+- what rules the agent must follow
+- what previous lessons matter
+- what the current task actually asks for
+- how the agent should prove it is done
+
+BriefOps stores that durable context as local files, then compiles only the relevant pieces into a token-aware brief.
 
 ```text
 Skill + Project Context + Relevant Memory + Task
-  -> Compact token-aware Brief
+  -> Token-aware Brief
   -> Codex / Claude Code / ChatGPT
   -> Work Log
   -> Human-approved Skill Patch
+  -> Better future briefs
 ```
 
-## What It Is Not
+## What BriefOps Is
+
+BriefOps is:
+
+- a local CLI
+- a reusable skill and project context registry
+- a curated memory store
+- a token-aware brief compiler
+- a Codex mission prompt generator
+- a work log and learning loop
+- a deterministic checklist eval runner
+- a worker profile system built from skill bundles
+
+## What BriefOps Is Not
 
 BriefOps v1.x is intentionally scoped.
 
-It is not an agent runtime, an LLM client, a vector database, a dashboard, a cloud sync product, or a multi-agent orchestration system.
+It is not:
 
-## Installation
+- an agent runtime
+- a Codex replacement
+- an LLM client
+- a vector database
+- a SaaS product
+- a dashboard
+- a multi-agent orchestration system
+
+BriefOps prepares the context. Codex or another coding agent still performs the work.
+
+## Install
 
 From this repository:
 
@@ -38,32 +68,257 @@ npm run build
 npm link
 ```
 
-You can also run the CLI during development:
+Run during development without linking:
 
 ```bash
-npm run dev -- init
+npm run dev -- --help
 ```
 
-## Quickstart
+Check the installed CLI:
+
+```bash
+briefops --version
+briefops --help
+```
+
+## 5-Minute Codex Quickstart
+
+This is the recommended first flow if you want BriefOps to feel Codex-native.
+
+### 1. Initialize BriefOps
 
 ```bash
 briefops init
+```
 
+This creates a local `.briefops/` workspace.
+
+### 2. Install Codex guidance
+
+```bash
+briefops codex install
+```
+
+This creates or updates `AGENTS.md` with BriefOps guidance and creates `.briefops/codex/prompts/`.
+
+### 3. Create a skill
+
+```bash
 briefops skill create risk-review \
   --description "Review changes for risk and governance violations" \
   --tags "review,risk,governance"
+```
 
+A skill is a short reusable working protocol.
+
+### 4. Create project context
+
+```bash
 briefops project create atlas-q \
   --description "Rule-based non-ML quantitative trading system" \
   --tags "quant,trading"
+```
 
+A project stores durable facts and constraints.
+
+### 5. Add useful memory
+
+```bash
 briefops memory add \
   --type lessons \
   --project atlas-q \
   --skill risk-review \
   --content "Always verify turnover warning threshold when rebalance logic changes." \
   --tags "rebalance,turnover,risk"
+```
 
+Memory is curated operational knowledge, not raw chat history.
+
+### 6. Create a worker profile
+
+```bash
+briefops worker create quant-reviewer \
+  --project atlas-q \
+  --skills "risk-review" \
+  --style "governance-first,no strategy drift without approval"
+```
+
+A worker is a skill bundle with a default project, style notes, and recent work history.
+
+### 7. Generate a Codex mission
+
+```bash
+briefops codex mission \
+  --worker quant-reviewer \
+  --task "Review this PR for risk policy violations." \
+  --mode loop \
+  --completion-promise "Deliver verified findings and no unresolved blocking risk." \
+  --save
+```
+
+Paste the generated mission prompt into Codex.
+
+The mission includes:
+
+- Codex operating contract
+- evidence gates
+- completion promise
+- completion signal
+- token-aware BriefOps brief
+
+### 8. Log the result after Codex finishes
+
+```bash
+briefops log add \
+  --project atlas-q \
+  --skill risk-review \
+  --worker quant-reviewer \
+  --task "Review this PR for risk policy violations." \
+  --result "Found missing turnover warning check." \
+  --lesson "Verify turnover warning threshold when rebalance logic changes." \
+  --commands "npm test,npm run build"
+```
+
+### 9. Propose a skill improvement
+
+```bash
+briefops skill propose-patch --skill risk-review --from-log latest
+```
+
+BriefOps proposes a patch. It does not auto-apply skill changes.
+
+Apply only after review:
+
+```bash
+briefops skill apply-patch risk-review --patch <patch-id>
+```
+
+## Core Concepts
+
+| Concept | What it is | Stored at |
+|---|---|---|
+| Skill | Reusable task protocol | `.briefops/skills/*.skill.md` |
+| Project | Durable project facts and constraints | `.briefops/projects/*.project.md` |
+| Memory | Curated facts, decisions, lessons, incidents | `.briefops/memory/*.yaml` |
+| Brief | Compiled task instructions | `.briefops/briefs/*.md` |
+| Codex Mission | Codex-favored execution prompt | `.briefops/codex/prompts/*.md` |
+| Worker | Skill bundle plus default project and style | `.briefops/workers/*.worker.yaml` |
+| Work Log | Completed task record | `.briefops/logs/*.yaml` |
+| Skill Patch | Human-approved skill improvement proposal | `.briefops/patches/*.patch.yaml` |
+| Eval | Deterministic checklist case | `.briefops/evals/*.eval.yaml` |
+
+## Recommended Operating Loop
+
+Use this loop for repeated Codex work:
+
+```text
+1. Update Skill, Project, or Memory if durable context changed.
+2. Generate a Codex plan when the work is ambiguous.
+3. Generate a Codex mission when the work is ready.
+4. Paste the mission into Codex.
+5. Let Codex inspect, act, and verify.
+6. Save a work log.
+7. Propose a skill patch from lessons.
+8. Run evals for important skills.
+```
+
+The goal is not to maximize context. The goal is to minimize repeated explanation.
+
+## Codex-Favored Mode
+
+Codex-favored mode is the main "wow point" of BriefOps.
+
+It gives Codex a stronger mission wrapper than a plain brief, while keeping BriefOps local and simple.
+
+### Install the Codex prompt pack
+
+```bash
+briefops codex install
+```
+
+This writes BriefOps guidance into `AGENTS.md` and creates prompt templates under `.briefops/codex/prompts/`.
+
+If `AGENTS.md` already exists:
+
+```bash
+briefops codex install --force
+```
+
+### Generate a planning prompt
+
+Use this before implementation when the task is still fuzzy.
+
+```bash
+briefops codex plan \
+  --project atlas-q \
+  --idea "Add a release-readiness worker profile." \
+  --save
+```
+
+The plan prompt tells Codex:
+
+- plan only
+- do not edit product code
+- identify assumptions
+- identify codebase areas to inspect
+- produce implementation and verification checklists
+
+### Generate an execution mission
+
+Use this when the task is ready to run.
+
+```bash
+briefops codex mission \
+  --worker quant-reviewer \
+  --task "Review the latest PR for governance drift." \
+  --mode loop \
+  --budget 2500 \
+  --save
+```
+
+Modes:
+
+| Mode | Use when |
+|---|---|
+| `loop` | Codex should inspect, act, verify, and continue if verification fails |
+| `execute` | Codex should execute directly with concise verification |
+| `plan` | Codex should produce a plan and avoid product-code edits |
+
+### Completion signal
+
+Codex missions include:
+
+```text
+<briefops-complete>DONE</briefops-complete>
+```
+
+Codex should only emit this after the evidence gates pass.
+
+### Evidence gates
+
+A mission asks Codex to finish with evidence:
+
+- context gate: files or docs inspected
+- change gate: smallest useful change set
+- verification gate: command output or manual QA evidence
+- risk gate: unverified or deferred items
+
+## Generate a Plain Brief
+
+If you do not need a full Codex mission, generate a plain brief:
+
+```bash
+briefops brief generate \
+  --skill risk-review \
+  --project atlas-q \
+  --task "Review recent rebalance logic changes." \
+  --budget 2000 \
+  --adapter codex
+```
+
+Save it:
+
+```bash
 briefops brief generate \
   --skill risk-review \
   --project atlas-q \
@@ -71,31 +326,336 @@ briefops brief generate \
   --budget 2000 \
   --adapter codex \
   --save
+```
 
+Generate from a worker:
+
+```bash
+briefops brief generate \
+  --worker quant-reviewer \
+  --task "Review this PR for risk policy violations." \
+  --budget 2500 \
+  --adapter codex
+```
+
+Available adapters:
+
+- `codex`
+- `claude-code`
+- `generic`
+
+## Skills
+
+Create:
+
+```bash
+briefops skill create risk-review \
+  --description "Review changes for risk and governance violations" \
+  --tags "review,risk,governance" \
+  --max-tokens 700
+```
+
+List:
+
+```bash
+briefops skill list
+```
+
+Show:
+
+```bash
+briefops skill show risk-review
+```
+
+Patch from a work log:
+
+```bash
+briefops skill propose-patch --skill risk-review --from-log latest
+briefops skill patch-list
+briefops skill patch-show <patch-id>
+briefops skill apply-patch risk-review --patch <patch-id>
+```
+
+Reject a patch:
+
+```bash
+briefops skill reject-patch <patch-id>
+```
+
+Show skill history:
+
+```bash
+briefops skill history risk-review
+```
+
+## Projects
+
+Create:
+
+```bash
+briefops project create atlas-q \
+  --description "Rule-based non-ML quantitative trading system" \
+  --tags "quant,trading,governance" \
+  --max-tokens 500
+```
+
+List and show:
+
+```bash
+briefops project list
+briefops project show atlas-q
+```
+
+Edit the generated `.briefops/projects/atlas-q.project.md` file to add:
+
+- active facts
+- active constraints
+- read-if-needed source files
+
+## Memory
+
+Add memory:
+
+```bash
+briefops memory add \
+  --type lessons \
+  --project atlas-q \
+  --skill risk-review \
+  --content "Always verify turnover warning threshold when rebalance logic changes." \
+  --tags "rebalance,turnover,risk"
+```
+
+Memory types:
+
+- `facts`
+- `decisions`
+- `lessons`
+- `incidents`
+- `deprecated`
+
+List memory:
+
+```bash
+briefops memory list
+briefops memory list --project atlas-q
+briefops memory list --skill risk-review --status active
+briefops memory list --tag turnover
+```
+
+Show and update status:
+
+```bash
+briefops memory show <memory-id>
+briefops memory update-status <memory-id> --status archived
+```
+
+Statuses:
+
+- `active`
+- `stale`
+- `deprecated`
+- `superseded`
+- `archived`
+
+## Workers
+
+Create:
+
+```bash
+briefops worker create quant-reviewer \
+  --description "Risk-focused quantitative strategy reviewer." \
+  --project atlas-q \
+  --skills "risk-review,backtest-validation,rebalance-review" \
+  --style "skeptical,governance-first,no strategy drift without approval" \
+  --max-tokens 300
+```
+
+List and show:
+
+```bash
+briefops worker list
+briefops worker show quant-reviewer
+```
+
+Summarize worker history from logs:
+
+```bash
+briefops worker summary quant-reviewer
+```
+
+Use a worker in a brief or Codex mission:
+
+```bash
+briefops brief generate --worker quant-reviewer --task "Review this PR." --adapter codex
+briefops codex mission --worker quant-reviewer --task "Review this PR." --mode loop
+```
+
+## Work Logs
+
+After a task finishes, add a structured log:
+
+```bash
 briefops log add \
   --project atlas-q \
   --skill risk-review \
-  --task "Review recent rebalance logic changes." \
-  --result "Found missing turnover warning check." \
-  --lesson "Verify turnover warning threshold when rebalance logic changes."
-
-briefops skill propose-patch --skill risk-review --from-log latest
-
-briefops codex install
-
-briefops worker create quant-reviewer \
-  --project atlas-q \
-  --skills "risk-review" \
-  --style "governance-first"
-
-briefops codex mission \
   --worker quant-reviewer \
-  --task "Review this PR for risk policy violations." \
-  --mode loop \
-  --save
+  --task "Review rebalance logic changes." \
+  --result "Found missing turnover warning check." \
+  --lesson "Add turnover warning verification to the review checklist." \
+  --files "src/rebalance.ts,tests/rebalance.test.ts" \
+  --commands "npm test,npm run build"
 ```
 
-## Commands
+List logs:
+
+```bash
+briefops log list
+briefops log list --project atlas-q
+briefops log list --skill risk-review --limit 5
+```
+
+Show a log:
+
+```bash
+briefops log show latest
+briefops log show <log-id>
+```
+
+## Evals
+
+BriefOps evals are deterministic checklist checks. They do not call an LLM judge.
+
+Create an eval case:
+
+```bash
+briefops eval create turnover-missing-case \
+  --skill risk-review \
+  --project atlas-q \
+  --input "Review rebalance logic." \
+  --expected "turnover warning threshold" \
+  --expected "blocking issue" \
+  --pass-threshold 1
+```
+
+Run evals:
+
+```bash
+briefops eval run --skill risk-review --project atlas-q
+```
+
+List and show:
+
+```bash
+briefops eval list
+briefops eval show turnover-missing-case
+```
+
+## Inspect and Doctor
+
+Check workspace structure:
+
+```bash
+briefops doctor
+```
+
+Inspect token usage before generating a full brief:
+
+```bash
+briefops inspect tokens \
+  --skill risk-review \
+  --project atlas-q \
+  --task "Review recent rebalance logic changes." \
+  --budget 2000
+```
+
+Inspect worker-based token usage:
+
+```bash
+briefops inspect tokens \
+  --worker quant-reviewer \
+  --task "Review this PR." \
+  --budget 2500
+```
+
+Inspect workspace and memory:
+
+```bash
+briefops inspect workspace
+briefops inspect memory
+briefops inspect memory --project atlas-q
+```
+
+## Saved Briefs and Prompts
+
+List saved briefs:
+
+```bash
+briefops brief list
+```
+
+Show or inspect a saved brief:
+
+```bash
+briefops brief show latest
+briefops brief inspect latest
+```
+
+Codex mission and plan prompts are saved under:
+
+```text
+.briefops/codex/prompts/
+```
+
+## Token Budget Philosophy
+
+BriefOps uses a simple deterministic estimate:
+
+```text
+estimated_tokens = ceil(character_count / 4)
+```
+
+This is approximate by design.
+
+When a generated brief is too large, BriefOps trims in this order:
+
+```text
+memory -> worker history -> project context -> skill content
+```
+
+The task itself is never removed.
+
+## File Structure
+
+`briefops init` creates:
+
+```text
+.briefops/
++-- config.yaml
++-- skills/
++-- projects/
++-- memory/
+|   +-- facts.yaml
+|   +-- decisions.yaml
+|   +-- lessons.yaml
+|   +-- incidents.yaml
+|   +-- deprecated.yaml
++-- workers/
++-- logs/
++-- briefs/
++-- codex/
+|   +-- prompts/
++-- evals/
+|   +-- results/
++-- patches/
++-- templates/
+    +-- brief.generic.md
+    +-- brief.codex.md
+    +-- brief.claude-code.md
+```
+
+By default `.briefops/` is ignored by git in this repository. This keeps local operational memory out of public commits unless you intentionally choose otherwise.
+
+## Command Reference
 
 ```bash
 briefops init
@@ -121,8 +681,8 @@ briefops memory list
 briefops memory show <id>
 briefops memory update-status <id> --status <status>
 
-briefops brief generate --skill <name> --project <name> --task "<task>" --budget 2000 --adapter codex
-briefops brief generate --worker <name> --task "<task>" --budget 2500
+briefops brief generate --skill <name> --project <name> --task "<task>" --adapter codex
+briefops brief generate --worker <name> --task "<task>" --adapter codex
 briefops brief list
 briefops brief show <id|latest>
 briefops brief inspect <id|latest>
@@ -145,143 +705,121 @@ briefops worker list
 briefops worker show <name>
 briefops worker summary <name>
 
-briefops inspect tokens --skill <name> --project <name> --task "<task>" --budget 2000
-briefops inspect tokens --worker <name> --task "<task>" --budget 2500
+briefops inspect tokens
 briefops inspect workspace
 briefops inspect memory
 ```
 
-## File Structure
-
-`briefops init` creates a local workspace in the current repository:
-
-```text
-.briefops/
-├─ skills/
-├─ projects/
-├─ memory/
-│  ├─ facts.yaml
-│  ├─ decisions.yaml
-│  ├─ lessons.yaml
-│  ├─ incidents.yaml
-│  └─ deprecated.yaml
-├─ workers/
-├─ logs/
-├─ briefs/
-├─ codex/
-│  └─ prompts/
-├─ evals/
-│  └─ results/
-├─ patches/
-├─ templates/
-│  ├─ brief.generic.md
-│  ├─ brief.codex.md
-│  └─ brief.claude-code.md
-└─ config.yaml
-```
-
-Skill files live at `.briefops/skills/<name>.skill.md`. Project files live at `.briefops/projects/<name>.project.md`. Memory is stored in YAML files by category. Worker, eval, patch, and adapter template files are also local YAML or Markdown files under `.briefops`.
-
-## Token Budget Philosophy
-
-BriefOps uses a simple deterministic estimate:
-
-```text
-estimated_tokens = ceil(character_count / 4)
-```
-
-This is approximate by design. The goal is not perfect tokenizer accounting. The goal is to make budget tradeoffs visible and prevent every task brief from becoming a context dump.
-
-When a generated brief is too large, BriefOps trims memory first, then worker history, then project context, then skill content down to a minimum floor. It never removes the task entirely.
-
-## Example Workflow
-
-1. Create a reusable skill such as `risk-review`.
-2. Create a project context such as `atlas-q`.
-3. Add curated lessons or facts as memory.
-4. Generate a brief for the task at hand.
-5. Paste the generated brief into Codex, Claude Code, or ChatGPT.
-6. Add a work log after the task is complete.
-7. Propose a skill patch from the work log lesson.
-8. Run checklist evals to verify the brief still carries expected operational checks.
-
-## Codex-Favored Mode
-
-BriefOps can prepare a lightweight Codex harness without becoming an agent runtime.
-
-```bash
-briefops codex install
-```
-
-This adds BriefOps guidance to `AGENTS.md` and creates `.briefops/codex/prompts/`.
-
-For execution, generate a mission prompt:
+## Example: PR Review With Codex
 
 ```bash
 briefops codex mission \
   --worker quant-reviewer \
-  --task "Review this PR for risk policy violations." \
+  --task "Review the latest PR for governance drift, missing tests, and risk policy violations." \
   --mode loop \
-  --completion-promise "Deliver verified findings and no unresolved blocking risk." \
+  --completion-promise "Return blocking findings, required fixes, verification evidence, and merge recommendation." \
   --save
 ```
 
-The mission prompt includes:
+Paste the generated prompt into Codex.
 
-- Codex operating contract
-- evidence gates
-- completion signal
-- token-aware BriefOps brief
-
-For planning without edits:
+After Codex finishes:
 
 ```bash
-briefops codex plan \
+briefops log add \
   --project atlas-q \
-  --idea "Add a release-readiness worker profile." \
-  --save
-```
-
-## Worker Profiles
-
-Workers are skill bundles, not autonomous agents. A worker can provide default skills, a default project, style notes, and a short recent work history summary from logs.
-
-```bash
-briefops worker create quant-reviewer \
-  --project atlas-q \
-  --skills "risk-review,release-review" \
-  --style "governance-first,no strategy drift without approval"
-
-briefops brief generate \
-  --worker quant-reviewer \
-  --task "Review this PR for risk policy violations." \
-  --budget 2500 \
-  --adapter codex
-```
-
-## Checklist Evals
-
-BriefOps v1.x uses deterministic checklist evals. It does not call an LLM judge by default.
-
-```bash
-briefops eval create turnover-missing-case \
   --skill risk-review \
-  --project atlas-q \
-  --input "Review rebalance logic." \
-  --expected "turnover warning threshold" \
-  --expected "blocking issue"
-
-briefops eval run --skill risk-review --project atlas-q
+  --worker quant-reviewer \
+  --task "Review the latest PR for governance drift, missing tests, and risk policy violations." \
+  --result "<what Codex found>" \
+  --lesson "<what should be remembered next time>" \
+  --commands "<commands Codex ran>"
 ```
 
-## v1.x Scope
+Then:
 
-BriefOps v1.x includes a local CLI, file-based storage, skill/project/memory management, worker profiles, adapter templates, Codex mission prompts, brief generation, token inspection, work logs, human-approved skill patch proposals, checklist evals, and tests.
+```bash
+briefops skill propose-patch --skill risk-review --from-log latest
+```
 
-It deliberately excludes agent execution, LLM API calls, vector search, web dashboards, cloud sync, and plugin architecture.
+## Troubleshooting
+
+Workspace not found:
+
+```bash
+briefops init
+```
+
+Check missing workspace pieces:
+
+```bash
+briefops doctor
+```
+
+Brief is too long:
+
+```bash
+briefops inspect tokens --worker <worker> --task "<task>" --budget 2500
+```
+
+Then reduce memory, project, worker, or skill token budgets.
+
+`AGENTS.md` already exists:
+
+```bash
+briefops codex install --force
+```
+
+No memory appears in a brief:
+
+```bash
+briefops memory list --project <project> --skill <skill> --status active
+```
+
+Eval fails:
+
+```bash
+briefops eval show <case-id>
+briefops brief generate --skill <skill> --project <project> --task "<eval input>" --adapter codex
+```
+
+Check whether the expected phrases are actually present in the generated brief.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Run the CLI in development:
+
+```bash
+npm run dev -- --help
+```
 
 ## Roadmap
 
-Future versions may add optional LLM-based patch suggestions, optional LLM eval judges, better tokenizer integrations, Git diff-aware briefs, PR review mode, and external integrations.
+Future versions may add:
 
-The long-term direction is a persistent worker layer for human-led AI coding workflows, but v1.x stays focused on one useful job: compile compact, reusable briefs within a visible token budget.
+- optional LLM-based patch suggestions
+- optional LLM eval judges
+- better tokenizer integrations
+- Git diff-aware briefs
+- PR review mode
+- external integrations
+
+The long-term direction is a persistent worker layer for human-led AI coding workflows, while v1.x stays focused on one useful job: compile compact, reusable briefs and Codex missions within a visible token budget.
