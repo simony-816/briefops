@@ -1,5 +1,6 @@
 import path from "node:path";
 import { generateBrief } from "./brief.js";
+import { generateCodexResumeFromHandoff } from "./handoff.js";
 import { BriefOpsError } from "./errors.js";
 import { readProject } from "./project.js";
 import { readWorker } from "./worker.js";
@@ -34,6 +35,16 @@ export type CodexPlanOptions = {
   project?: string;
   worker?: string;
   idea: string;
+  save?: boolean;
+  outputPath?: string;
+};
+
+export type CodexResumeOptions = {
+  cwd?: string;
+  worker?: string;
+  project?: string;
+  task: string;
+  budget?: number;
   save?: boolean;
   outputPath?: string;
 };
@@ -334,5 +345,24 @@ export async function generateCodexPlan(options: CodexPlanOptions): Promise<Code
     content,
     tokens: estimateTokens(content),
     savedPath
+  };
+}
+
+export async function generateCodexResume(options: CodexResumeOptions): Promise<CodexPromptResult> {
+  const result = await generateCodexResumeFromHandoff({
+    cwd: options.cwd,
+    worker: options.worker,
+    project: options.project,
+    task: options.task,
+    budget: options.budget ?? 3000,
+    adapter: "codex",
+    save: options.save,
+    outputPath: options.outputPath
+  });
+
+  return {
+    content: result.content,
+    tokens: result.tokens,
+    savedPath: result.savedPath
   };
 }

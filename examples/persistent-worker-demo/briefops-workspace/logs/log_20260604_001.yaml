@@ -1,0 +1,14 @@
+id: log_20260604_001
+created_at: "2026-06-04T00:00:00.000Z"
+project: atlas-q
+skill: risk-review
+worker: quant-reviewer
+task: Review rebalance logic.
+result: Found missing turnover warning check.
+lessons:
+  - Always verify turnover warning threshold when rebalance logic changes.
+files_changed:
+  - src/risk/turnover.ts
+commands_run:
+  - npm test
+notes: "decision: Keep rebalance warning thresholds centralized."

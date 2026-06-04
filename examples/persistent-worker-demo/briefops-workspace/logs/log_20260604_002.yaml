@@ -1,0 +1,12 @@
+id: log_20260604_002
+created_at: "2026-06-04T01:00:00.000Z"
+project: atlas-q
+skill: backtest-validation
+worker: quant-reviewer
+task: Review slippage assumptions.
+result: Requested explicit slippage test.
+lessons:
+  - Always check slippage and fee assumptions before approving backtest changes.
+files_changed: []
+commands_run: []
+notes: ""

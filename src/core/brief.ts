@@ -219,6 +219,8 @@ async function selectMemoryForSkills(options: {
   cwd: string;
   project: string;
   skills: string[];
+  worker?: string;
+  task: string;
   maxTokens: number;
 }): Promise<{ items: MemoryItem[]; text: string; tokens: number; omitted: number }> {
   const selections = await Promise.all(
@@ -227,6 +229,15 @@ async function selectMemoryForSkills(options: {
         cwd: options.cwd,
         project: options.project,
         skill,
+        worker: options.worker,
+        task: options.task,
+        quotas: {
+          decisions: 2,
+          lessons: 3,
+          incidents: 1,
+          facts: 2,
+          deprecated: 0
+        },
         maxTokens: options.maxTokens
       })
     )
@@ -305,6 +316,8 @@ async function buildParts(
     cwd: options.cwd,
     project: options.project,
     skills: options.skills,
+    worker: options.worker,
+    task: options.task,
     maxTokens: state.memoryBudget
   });
   const workerResult = options.worker

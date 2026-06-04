@@ -1,6 +1,6 @@
 {
   "name": "briefops",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.0",
   "description": "Local-first, token-aware skill and briefing layer for AI coding agents.",
   "type": "module",
   "bin": {

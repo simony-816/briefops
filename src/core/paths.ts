@@ -31,8 +31,11 @@ export function workspacePaths(cwd = process.cwd()) {
     skills: path.join(root, "skills"),
     projects: path.join(root, "projects"),
     memory: path.join(root, "memory"),
+    memoryProposals: path.join(root, "memory-proposals"),
     workers: path.join(root, "workers"),
+    workerSummaries: path.join(root, "workers", "summaries"),
     logs: path.join(root, "logs"),
+    handoffs: path.join(root, "handoffs"),
     briefs: path.join(root, "briefs"),
     codex: path.join(root, "codex"),
     codexPrompts: path.join(root, "codex", "prompts"),
@@ -55,8 +58,19 @@ export function memoryFilePath(cwd: string, category: MemoryCategory): string {
   return path.join(workspacePaths(cwd).memory, `${category}.yaml`);
 }
 
+export function memoryProposalFilePath(cwd: string, id: string): string {
+  return path.join(
+    workspacePaths(cwd).memoryProposals,
+    `${normalizeName(id)}.memory-proposal.yaml`
+  );
+}
+
 export function workerFilePath(cwd: string, name: string): string {
   return path.join(workspacePaths(cwd).workers, `${normalizeName(name)}.worker.yaml`);
+}
+
+export function workerSummaryFilePath(cwd: string, name: string): string {
+  return path.join(workspacePaths(cwd).workerSummaries, `${normalizeName(name)}.summary.md`);
 }
 
 export function evalCaseFilePath(cwd: string, name: string): string {

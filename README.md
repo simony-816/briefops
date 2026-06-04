@@ -1,12 +1,13 @@
 # BriefOps
 
-BriefOps is an alpha-stage, local-first, token-aware skill and briefing CLI for AI coding agents.
+Stop dumping context. Compile it.
 
-It helps you turn repeated instructions, project facts, lessons, and review rules into compact task briefs for tools like Codex and Claude Code.
+BriefOps is a local-first, token-aware persistent work history layer for AI coding agents.
 
-BriefOps does not run agents. BriefOps prepares better instructions for agents.
+It turns project rules, skills, decisions, lessons, and work history into compact task and handoff briefs for Codex, Claude Code, and similar tools.
 
-BriefOps also includes a Codex-favored prompt pack: mission prompts, evidence gates, completion promises, and repo-local `AGENTS.md` guidance.
+BriefOps does not run agents.
+BriefOps prepares better continuity for them.
 
 ## Why BriefOps
 
@@ -18,16 +19,28 @@ AI coding sessions often begin with the same setup:
 - what the current task actually asks for
 - how the agent should prove it is done
 
-BriefOps stores that durable context as local files, then compiles only the relevant pieces into a token-aware brief.
+BriefOps stores durable context as local files, then compiles only the relevant pieces into token-aware briefs, handoffs, and Codex resume missions.
 
 ```text
-Skill + Project Context + Relevant Memory + Task
+Skill + Project Context + Relevant Memory + Worker + Task
   -> Token-aware Brief
-  -> Codex / Claude Code / ChatGPT
   -> Work Log
-  -> Human-approved Skill Patch
-  -> Better future briefs
+  -> Human-approved Memory / Skill Proposal
+  -> Worker Summary
+  -> Handoff / Codex Resume Prompt
+  -> Better future threads
 ```
+
+Before:
+A new Codex thread starts from zero. The user pastes repeated project context and prior decisions.
+
+After:
+
+```bash
+briefops codex resume --worker reviewer --task "Continue auth refactor"
+```
+
+The result is a compact continuity prompt with prior decisions, active lessons, recent work, evidence gates, and after-completion logging commands.
 
 ## What BriefOps Is
 
@@ -40,7 +53,7 @@ BriefOps is:
 - a Codex mission prompt generator
 - a work log and learning loop
 - a deterministic checklist eval runner
-- a worker profile system built from skill bundles
+- a persistent worker profile system with summaries, handoffs, and task-aware memory retrieval
 
 ## What BriefOps Is Not
 
@@ -181,6 +194,31 @@ briefops log add \
 
 ### 9. Propose a skill improvement
 
+First promote log lessons into curated memory:
+
+```bash
+briefops memory propose-from-log latest
+briefops memory proposal-list
+briefops memory apply-proposal <proposal-id>
+```
+
+Refresh the worker and prepare a fresh-thread handoff:
+
+```bash
+briefops worker refresh-summary quant-reviewer
+briefops handoff generate \
+  --worker quant-reviewer \
+  --task "Continue reviewing rebalance policy changes." \
+  --adapter codex \
+  --save
+briefops codex resume \
+  --worker quant-reviewer \
+  --task "Continue the rebalance review and identify remaining risks." \
+  --save
+```
+
+Then propose any skill protocol improvement:
+
 ```bash
 briefops skill propose-patch --skill risk-review --from-log latest
 ```
@@ -200,9 +238,12 @@ briefops skill apply-patch risk-review --patch <patch-id>
 | Skill | Reusable task protocol | `.briefops/skills/*.skill.md` |
 | Project | Durable project facts and constraints | `.briefops/projects/*.project.md` |
 | Memory | Curated facts, decisions, lessons, incidents | `.briefops/memory/*.yaml` |
+| Memory Proposal | Human-approved promotion candidate from logs | `.briefops/memory-proposals/*.yaml` |
 | Brief | Compiled task instructions | `.briefops/briefs/*.md` |
+| Handoff | Fresh-thread continuity brief | `.briefops/handoffs/*.md` |
 | Codex Mission | Codex-favored execution prompt | `.briefops/codex/prompts/*.md` |
 | Worker | Skill bundle plus default project and style | `.briefops/workers/*.worker.yaml` |
+| Worker Summary | Persistent worker intelligence summary | `.briefops/workers/summaries/*.summary.md` |
 | Work Log | Completed task record | `.briefops/logs/*.yaml` |
 | Skill Patch | Human-approved skill improvement proposal | `.briefops/patches/*.patch.yaml` |
 | Eval | Deterministic checklist case | `.briefops/evals/*.eval.yaml` |
@@ -218,8 +259,11 @@ Use this loop for repeated Codex work:
 4. Paste the mission into Codex.
 5. Let Codex inspect, act, and verify.
 6. Save a work log.
-7. Propose a skill patch from lessons.
-8. Run evals for important skills.
+7. Propose memory from the latest log and apply only after review.
+8. Refresh the worker summary.
+9. Generate handoff or Codex resume prompts for the next thread.
+10. Propose skill patches from lessons when the working protocol should change.
+11. Run evals for important skills.
 ```
 
 The goal is not to maximize context. The goal is to minimize repeated explanation.

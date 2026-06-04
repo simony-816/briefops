@@ -4,6 +4,7 @@ import { registerCodexCommands } from "./commands/codex.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerEvalCommands } from "./commands/eval.js";
 import { registerInitCommand } from "./commands/init.js";
+import { registerHandoffCommands } from "./commands/handoff.js";
 import { registerInspectCommands } from "./commands/inspect.js";
 import { registerLogCommands } from "./commands/log.js";
 import { registerMemoryCommands } from "./commands/memory.js";
@@ -17,7 +18,7 @@ export function buildProgram(): Command {
   program
     .name("briefops")
     .description("Local-first, token-aware brief compiler for AI coding workflows.")
-    .version("0.1.0");
+    .version("0.2.0-alpha.0");
 
   registerInitCommand(program);
   registerDoctorCommand(program);
@@ -25,6 +26,7 @@ export function buildProgram(): Command {
   registerProjectCommands(program);
   registerMemoryCommands(program);
   registerBriefCommands(program);
+  registerHandoffCommands(program);
   registerCodexCommands(program);
   registerLogCommands(program);
   registerEvalCommands(program);

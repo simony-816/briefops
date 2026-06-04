@@ -1,10 +1,94 @@
 import type { Command } from "commander";
 import { addMemory, listMemory, showMemory, updateMemoryStatus } from "../core/memory.js";
+import {
+  applyMemoryProposal,
+  listMemoryProposals,
+  proposeMemoryFromLog,
+  readMemoryProposal,
+  rejectMemoryProposal
+} from "../core/memoryProposal.js";
 import { parseCommaList } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
 export function registerMemoryCommands(program: Command): void {
   const memory = program.command("memory").description("Manage curated operational memory.");
+
+  memory
+    .command("propose-from-log <log>")
+    .description("Create curated memory proposals from a work log id or latest.")
+    .action(async (log: string) => {
+      const result = await proposeMemoryFromLog({ fromLog: log });
+      console.log(`Created memory proposal: ${result.proposal.id}`);
+      console.log(result.path);
+    });
+
+  memory
+    .command("proposal-list")
+    .description("List memory proposals.")
+    .option("--status <status>", "proposed|applied|rejected")
+    .option("--project <project>", "Filter by project.")
+    .option("--skill <skill>", "Filter by skill.")
+    .action(async (options: Record<string, unknown>) => {
+      const proposals = await listMemoryProposals({
+        status: options.status as string | undefined,
+        project: options.project as string | undefined,
+        skill: options.skill as string | undefined
+      });
+      if (proposals.length === 0) {
+        console.log("No memory proposals found.");
+        return;
+      }
+
+      printTable([
+        ["ID", "Status", "Project", "Skill", "Worker", "Items"],
+        ...proposals.map((proposal) => [
+          proposal.id,
+          proposal.status,
+          proposal.project ?? "",
+          proposal.skill ?? "",
+          proposal.worker ?? "",
+          String(proposal.proposals.length)
+        ])
+      ]);
+    });
+
+  memory
+    .command("proposal-show <id>")
+    .description("Show a memory proposal.")
+    .action(async (id: string) => {
+      const proposal = await readMemoryProposal(process.cwd(), id);
+      console.log(`ID: ${proposal.id}`);
+      console.log(`Status: ${proposal.status}`);
+      console.log(`From log: ${proposal.from_log}`);
+      console.log(`Project: ${proposal.project ?? ""}`);
+      console.log(`Skill: ${proposal.skill ?? ""}`);
+      console.log(`Worker: ${proposal.worker ?? ""}`);
+      console.log("");
+      for (const item of proposal.proposals) {
+        console.log(`- [${item.type}] ${item.content}`);
+        if (item.rationale) {
+          console.log(`  rationale: ${item.rationale}`);
+        }
+      }
+    });
+
+  memory
+    .command("apply-proposal <id>")
+    .description("Apply a memory proposal into curated memory.")
+    .action(async (id: string) => {
+      const result = await applyMemoryProposal({ id });
+      console.log(`Applied memory proposal: ${result.proposal.id}`);
+      console.log(`Created: ${result.created}`);
+      console.log(`Skipped duplicates: ${result.skipped}`);
+    });
+
+  memory
+    .command("reject-proposal <id>")
+    .description("Reject a memory proposal without mutating memory.")
+    .action(async (id: string) => {
+      const proposal = await rejectMemoryProposal({ id });
+      console.log(`Rejected memory proposal: ${proposal.id}`);
+    });
 
   memory
     .command("add")

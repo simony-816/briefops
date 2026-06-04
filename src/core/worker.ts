@@ -1,10 +1,13 @@
 import { BriefOpsError } from "./errors.js";
 import { listWorkLogs } from "./log.js";
-import { normalizeName, workerFilePath, workspacePaths } from "./paths.js";
+import { listMemory } from "./memory.js";
+import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
+import { normalizeName, workerFilePath, workerSummaryFilePath, workspacePaths } from "./paths.js";
 import {
   listFilesBySuffix,
   parseCommaList,
   readTextFile,
+  writeTextFile,
   writeYamlFile
 } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
@@ -158,8 +161,125 @@ export async function summarizeWorker(cwd: string, name: string, limit = 5): Pro
     .join("\n");
 }
 
+export async function refreshWorkerSummary(options: {
+  cwd?: string;
+  name: string;
+  limit?: number;
+}): Promise<{ path: string; content: string; tokens: number }> {
+  const cwd = options.cwd ?? process.cwd();
+  const worker = await readWorker(cwd, options.name);
+  const limit = options.limit ?? 20;
+  const logs = await listWorkLogs({ cwd, worker: worker.name, limit });
+  const skillLogs =
+    logs.length > 0 || worker.default_skills.length === 0
+      ? []
+      : (
+          await Promise.all(
+            worker.default_skills.map((skill) => listWorkLogs({ cwd, skill, limit }))
+          )
+        ).flat();
+  const recentLogs = [...logs, ...skillLogs]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, limit);
+  const skillSet = new Set(worker.default_skills);
+  const memories = await listMemory({
+    cwd,
+    project: worker.project,
+    status: "active"
+  });
+  const workerMemories = memories.filter(
+    (item) => !item.skill || skillSet.size === 0 || skillSet.has(item.skill)
+  );
+  const lessons = workerMemories
+    .filter((item) => item.type === "lesson")
+    .map((item) => item.content)
+    .slice(0, 10);
+  const incidents = workerMemories
+    .filter((item) => item.type === "incident")
+    .map((item) => item.content)
+    .slice(0, 8);
+  const rules = [
+    ...worker.style.map((style) => `Apply operating style: ${style}.`),
+    ...lessons.slice(0, 5).map((lesson) => `Use lesson: ${lesson}`)
+  ];
+  const content = [
+    `# Worker Summary: ${worker.name}`,
+    "",
+    "## Identity",
+    "",
+    worker.description || "No worker description recorded.",
+    "",
+    "## Default Project",
+    "",
+    worker.project ?? "No default project recorded.",
+    "",
+    "## Default Skills",
+    "",
+    worker.default_skills.length > 0
+      ? worker.default_skills.map((skill) => `- ${skill}`).join("\n")
+      : "- No default skills recorded.",
+    "",
+    "## Operating Style",
+    "",
+    worker.style.length > 0
+      ? worker.style.map((style) => `- ${style}`).join("\n")
+      : "- No operating style recorded.",
+    "",
+    "## Recent Work",
+    "",
+    recentLogs.length > 0
+      ? recentLogs
+          .map((log) => `- ${log.created_at.slice(0, 10)}: ${log.task}; ${log.result}`)
+          .join("\n")
+      : "- No recent work recorded.",
+    "",
+    "## Accumulated Lessons",
+    "",
+    lessons.length > 0 ? lessons.map((lesson) => `- ${lesson}`).join("\n") : "- No active lessons recorded.",
+    "",
+    "## Known Failure Patterns",
+    "",
+    incidents.length > 0
+      ? incidents.map((incident) => `- ${incident}`).join("\n")
+      : "- No active incidents recorded.",
+    "",
+    "## Active Judgment Rules",
+    "",
+    rules.length > 0 ? rules.map((rule) => `- ${rule}`).join("\n") : "- Verify before completion.",
+    "",
+    "## Last Refreshed",
+    "",
+    new Date().toISOString(),
+    ""
+  ].join("\n");
+  const filePath = workerSummaryFilePath(cwd, worker.name);
+  await writeTextFile(filePath, content, { force: true });
+
+  return {
+    path: filePath,
+    content,
+    tokens: estimateTokens(content)
+  };
+}
+
+export async function readWorkerSummary(cwd: string, name: string): Promise<string | undefined> {
+  try {
+    return await readTextFile(workerSummaryFilePath(cwd, name));
+  } catch (error) {
+    if (error instanceof BriefOpsError && error.message.startsWith("File not found")) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export async function formatWorkerForBrief(cwd: string, name: string): Promise<string> {
   const worker = await readWorker(cwd, name);
+  const summary = await readWorkerSummary(cwd, name);
+  if (summary) {
+    return truncateToTokenBudget(summary, worker.max_tokens).text;
+  }
+
   const sections = [
     `Name: ${worker.name}`,
     worker.description ? `Description: ${worker.description}` : undefined,

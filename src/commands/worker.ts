@@ -1,10 +1,31 @@
 import type { Command } from "commander";
-import { createWorker, listWorkers, showWorker, summarizeWorker } from "../core/worker.js";
+import {
+  createWorker,
+  listWorkers,
+  readWorkerSummary,
+  refreshWorkerSummary,
+  showWorker,
+  summarizeWorker
+} from "../core/worker.js";
 import { parseCommaList } from "../core/storage.js";
 import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerWorkerCommands(program: Command): void {
   const worker = program.command("worker").description("Manage worker profiles as skill bundles.");
+
+  worker
+    .command("refresh-summary <name>")
+    .description("Refresh a persistent worker intelligence summary.")
+    .option("--limit <limit>", "Maximum logs to summarize.", parsePositiveInt, 20)
+    .action(async (name: string, options: Record<string, unknown>) => {
+      const result = await refreshWorkerSummary({
+        name,
+        limit: options.limit as number
+      });
+      console.log(`Refreshed worker summary: ${name}`);
+      console.log(result.path);
+      console.log(`Estimated tokens: ${result.tokens}`);
+    });
 
   worker
     .command("create <name>")
@@ -63,9 +84,25 @@ export function registerWorkerCommands(program: Command): void {
 
   worker
     .command("summary <name>")
-    .description("Summarize worker history from logs.")
+    .description("Print a persistent worker summary, falling back to log history.")
     .option("--limit <limit>", "Maximum logs to summarize.", parsePositiveInt, 5)
     .action(async (name: string, options: Record<string, unknown>) => {
-      console.log(await summarizeWorker(process.cwd(), name, options.limit as number));
+      const summary = await readWorkerSummary(process.cwd(), name);
+      console.log(summary ?? (await summarizeWorker(process.cwd(), name, options.limit as number)));
+    });
+
+  worker
+    .command("inspect <name>")
+    .description("Inspect worker profile and summary state.")
+    .action(async (name: string) => {
+      const profile = await showWorker(process.cwd(), name);
+      const summary = await readWorkerSummary(process.cwd(), name);
+      console.log("## Worker Profile");
+      console.log("");
+      console.log(profile.trim());
+      console.log("");
+      console.log("## Summary");
+      console.log("");
+      console.log(summary ? "present" : "missing; run `briefops worker refresh-summary <worker>`");
     });
 }

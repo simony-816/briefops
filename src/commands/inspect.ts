@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { inspectBriefTokens } from "../core/brief.js";
-import { listMemory } from "../core/memory.js";
+import { formatMemoryItem, listMemory, selectRelevantMemory } from "../core/memory.js";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
 import { pathExists } from "../core/storage.js";
 import { parsePositiveInt, printTable } from "./shared.js";
@@ -77,10 +77,47 @@ export function registerInspectCommands(program: Command): void {
 
   inspect
     .command("memory")
-    .description("Inspect memory counts by category and status.")
+    .description("Inspect memory counts or task-aware selection.")
     .option("--project <project>", "Filter by project.")
     .option("--skill <skill>", "Filter by skill.")
+    .option("--worker <worker>", "Worker profile name.")
+    .option("--task <task>", "Task text for relevance scoring.")
+    .option("--budget <tokens>", "Memory token budget.", parsePositiveInt, 500)
     .action(async (options: Record<string, unknown>) => {
+      if (options.task) {
+        const selected = await selectRelevantMemory({
+          cwd: process.cwd(),
+          project: options.project as string | undefined,
+          skill: options.skill as string | undefined,
+          worker: options.worker as string | undefined,
+          task: options.task as string,
+          maxTokens: options.budget as number,
+          includeDeprecated: true
+        });
+        console.log("Selected memory:");
+        if (selected.selections.length === 0) {
+          console.log("No memory selected.");
+        } else {
+          selected.selections.forEach((selection, index) => {
+            console.log(
+              `${index + 1}. ${formatMemoryItem(selection.item)} score=${selection.score} reason=${selection.reason}`
+            );
+          });
+        }
+        console.log("");
+        console.log("Omitted:");
+        if (selected.omittedSelections.length === 0) {
+          console.log("No matching memory omitted.");
+        } else {
+          selected.omittedSelections.forEach((selection) => {
+            console.log(
+              `- ${selection.item.id} score=${selection.score} reason=${selection.reason}`
+            );
+          });
+        }
+        return;
+      }
+
       const rows = await Promise.all(
         memoryCategories.map(async (category) => {
           const items = await listMemory({
