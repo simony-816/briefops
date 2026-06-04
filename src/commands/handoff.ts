@@ -19,7 +19,7 @@ export function registerHandoffCommands(program: Command): void {
     .option("--project <project>", "Project name.")
     .option("--worker <worker>", "Worker profile name.")
     .option("--task <task>", "Optional next task.")
-    .option("--budget <tokens>", "Overall token budget.", parsePositiveInt, 3000)
+    .option("--budget <tokens>", "Overall token budget.", parsePositiveInt, 2500)
     .option("--adapter <adapter>", "generic|codex|claude-code", "generic")
     .option("--save", "Save to .briefops/handoffs.")
     .option("--output <path>", "Write the handoff to a specific path.")

@@ -14,6 +14,6 @@ After work finishes, log the result and promote only useful lessons:
 ```bash
 briefops log add --project atlas-q --skill risk-review --worker quant-reviewer --task "Review rebalance" --result "Found missing turnover warning check." --lesson "Always verify turnover warning threshold."
 briefops memory propose-from-log latest
-briefops memory apply-proposal <proposal-id>
+briefops memory proposal-apply <proposal-id>
 briefops worker refresh-summary quant-reviewer
 ```

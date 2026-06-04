@@ -15,6 +15,10 @@ export type AddWorkLogOptions = {
   task: string;
   result: string;
   lessons?: string[];
+  openRisks?: string[];
+  nextSteps?: string[];
+  decisions?: string[];
+  incidents?: string[];
   files?: string;
   commands?: string;
   notes?: string;
@@ -47,6 +51,10 @@ export async function addWorkLog(options: AddWorkLogOptions): Promise<{ path: st
     task: options.task.trim(),
     result: options.result.trim(),
     lessons: options.lessons ?? [],
+    open_risks: options.openRisks ?? [],
+    next_steps: options.nextSteps ?? [],
+    decisions: options.decisions ?? [],
+    incidents: options.incidents ?? [],
     files_changed: parseCommaList(options.files),
     commands_run: parseCommaList(options.commands),
     notes: options.notes ?? ""
@@ -106,4 +114,28 @@ export async function readWorkLog(cwd: string, idOrLatest: string): Promise<Work
   }
 
   return match;
+}
+
+export async function summarizeRecentLogs(options: {
+  cwd?: string;
+  project?: string;
+  skill?: string;
+  worker?: string;
+  limit?: number;
+  budget?: number;
+}): Promise<string> {
+  const logs = await listWorkLogs(options);
+  if (logs.length === 0) {
+    return "No recent work logs found.";
+  }
+
+  const lines = logs.map((log) => {
+    const details = [
+      log.result,
+      ...log.open_risks.map((risk) => `open risk: ${risk}`),
+      ...log.next_steps.map((step) => `next: ${step}`)
+    ].join("; ");
+    return `- ${log.created_at.slice(0, 10)}: ${log.task}; ${details}`;
+  });
+  return lines.join("\n");
 }

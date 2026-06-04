@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import {
   createWorker,
+  generateWorkerIntelligence,
   listWorkers,
   readWorkerSummary,
   refreshWorkerSummary,
@@ -12,6 +13,19 @@ import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerWorkerCommands(program: Command): void {
   const worker = program.command("worker").description("Manage worker profiles as skill bundles.");
+
+  worker
+    .command("intelligence <name>")
+    .description("Print deterministic worker intelligence for continuity handoffs.")
+    .option("--budget <tokens>", "Maximum tokens.", parsePositiveInt, 800)
+    .action(async (name: string, options: Record<string, unknown>) => {
+      const result = await generateWorkerIntelligence({
+        name,
+        budget: options.budget as number
+      });
+      console.log(result.content);
+      console.error(`Estimated tokens: ${result.tokens}`);
+    });
 
   worker
     .command("refresh-summary <name>")

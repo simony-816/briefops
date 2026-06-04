@@ -55,7 +55,7 @@ describe("persistent worker continuity", () => {
       });
 
       const proposed = await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
-      expect(proposed.proposal.proposals.map((item) => item.type)).toEqual([
+      expect(proposed.proposal.items.map((item) => item.type)).toEqual([
         "lesson",
         "decision",
         "fact",
@@ -183,7 +183,8 @@ describe("persistent worker continuity", () => {
         adapter: "codex",
         save: true
       });
-      expect(handoff.content).toContain("## Recent Work History");
+      expect(handoff.content).toContain("# BriefOps Continuity Handoff");
+      expect(handoff.content).toContain("## Recent Work");
       expect(handoff.content).toContain("## Active Decisions");
       expect(handoff.content).toContain("Missing universe >20%");
       expect(handoff.content).toContain("Always verify turnover");
@@ -212,9 +213,68 @@ describe("persistent worker continuity", () => {
       });
 
       expect(resume.content).toContain("# BriefOps Codex Resume Mission");
-      expect(resume.content).toContain("## Handoff Brief");
+      expect(resume.content).toContain("## Handoff");
+      expect(resume.content).toContain("## Worker Intelligence");
       expect(resume.content).toContain("Continuity Contract");
-      expect(resume.content).toContain("Memory gate");
+      expect(resume.content).toContain("Risk gate");
+      expect(resume.content).toContain("<briefops-complete>DONE</briefops-complete>");
+      expect(resume.savedPath).toBeTruthy();
+    });
+  });
+
+  it("closes the continuity loop from log to memory to handoff to resume", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance logic for risk policy violations.",
+        result: "Found missing turnover warning check and unverified slippage assumptions.",
+        lessons: ["Always verify turnover warning threshold when rebalance logic changes."],
+        openRisks: ["Slippage assumptions were not verified against the project risk policy."],
+        nextSteps: ["Inspect risk policy and add slippage verification to the review checklist."],
+        commands: "npm test,npm run build"
+      });
+
+      const proposal = await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      expect(proposal.proposal.items.map((item) => item.type)).toContain("lesson");
+      expect(proposal.proposal.items.map((item) => item.type)).toContain("incident");
+      expect(proposal.proposal.items.map((item) => item.type)).toContain("decision");
+      await applyMemoryProposal({ cwd: dir, id: "latest" });
+
+      const handoff = await generateHandoff({
+        cwd: dir,
+        project: "atlas-q",
+        worker: "quant-reviewer",
+        task: "Continue the previous review and finish unresolved slippage checks.",
+        budget: 2500,
+        save: true
+      });
+      expect(handoff.content).toContain("quant-reviewer");
+      expect(handoff.content).toContain("Rule-based quantitative trading system");
+      expect(handoff.content).toContain("Found missing turnover warning check");
+      expect(handoff.content).toContain("Always verify turnover warning threshold");
+      expect(handoff.content).toContain("Slippage assumptions were not verified");
+      expect(handoff.content).toContain("Suggested Next Actions");
+      expect(handoff.content).toContain("Token Budget Report");
+
+      const resume = await generateCodexResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue the previous review and finish unresolved slippage checks.",
+        fromHandoff: "latest",
+        budget: 2500,
+        mode: "loop",
+        save: true
+      });
+      expect(resume.content).toContain("Continue work as quant-reviewer");
+      expect(resume.content).toContain("## Current Task");
+      expect(resume.content).toContain("## Handoff");
+      expect(resume.content).toContain("## Worker Intelligence");
+      expect(resume.content).toContain("Evidence Gates");
+      expect(resume.content).toContain("Token Budget Report");
       expect(resume.content).toContain("<briefops-complete>DONE</briefops-complete>");
       expect(resume.savedPath).toBeTruthy();
     });

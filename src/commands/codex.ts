@@ -32,7 +32,10 @@ export function registerCodexCommands(program: Command): void {
     .option("--worker <worker>", "Worker profile name.")
     .option("--project <project>", "Project name.")
     .requiredOption("--task <task>", "Task description.")
+    .option("--from-handoff <id>", "Saved handoff id or latest.")
     .option("--budget <tokens>", "Resume token budget.", parsePositiveInt, 3000)
+    .option("--mode <mode>", "loop|execute|plan", "loop")
+    .option("--completion-promise <text>", "Concrete completion promise.")
     .option("--save", "Save to .briefops/codex/prompts.")
     .option("--output <path>", "Write the prompt to a specific path.")
     .action(async (options: Record<string, unknown>) => {
@@ -40,7 +43,10 @@ export function registerCodexCommands(program: Command): void {
         worker: options.worker as string | undefined,
         project: options.project as string | undefined,
         task: options.task as string,
+        fromHandoff: options.fromHandoff as string | undefined,
         budget: options.budget as number,
+        mode: options.mode as string | undefined,
+        completionPromise: options.completionPromise as string | undefined,
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)

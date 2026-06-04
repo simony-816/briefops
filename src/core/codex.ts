@@ -44,7 +44,10 @@ export type CodexResumeOptions = {
   worker?: string;
   project?: string;
   task: string;
+  fromHandoff?: string;
   budget?: number;
+  mode?: string;
+  completionPromise?: string;
   save?: boolean;
   outputPath?: string;
 };
@@ -354,7 +357,10 @@ export async function generateCodexResume(options: CodexResumeOptions): Promise<
     worker: options.worker,
     project: options.project,
     task: options.task,
+    fromHandoff: options.fromHandoff,
     budget: options.budget ?? 3000,
+    mode: options.mode,
+    completionPromise: options.completionPromise,
     adapter: "codex",
     save: options.save,
     outputPath: options.outputPath

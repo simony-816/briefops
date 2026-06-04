@@ -199,7 +199,7 @@ First promote log lessons into curated memory:
 ```bash
 briefops memory propose-from-log latest
 briefops memory proposal-list
-briefops memory apply-proposal <proposal-id>
+briefops memory proposal-apply <proposal-id>
 ```
 
 Refresh the worker and prepare a fresh-thread handoff:

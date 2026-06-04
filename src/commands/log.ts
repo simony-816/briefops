@@ -14,6 +14,10 @@ export function registerLogCommands(program: Command): void {
     .requiredOption("--task <task>", "Task description.")
     .requiredOption("--result <result>", "Work result.")
     .option("--lesson <lesson>", "Lesson learned. Can be repeated.", collectRepeated, [])
+    .option("--open-risk <text>", "Unresolved risk. Can be repeated.", collectRepeated, [])
+    .option("--next-step <text>", "Suggested next step. Can be repeated.", collectRepeated, [])
+    .option("--decision <text>", "Decision made. Can be repeated.", collectRepeated, [])
+    .option("--incident <text>", "Incident or failure pattern. Can be repeated.", collectRepeated, [])
     .option("--files <files>", "Comma-separated files changed.")
     .option("--commands <commands>", "Comma-separated commands run.")
     .option("--notes <notes>", "Additional notes.")
@@ -25,6 +29,10 @@ export function registerLogCommands(program: Command): void {
         task: options.task as string,
         result: options.result as string,
         lessons: options.lesson as string[] | undefined,
+        openRisks: options.openRisk as string[] | undefined,
+        nextSteps: options.nextStep as string[] | undefined,
+        decisions: options.decision as string[] | undefined,
+        incidents: options.incident as string[] | undefined,
         files: options.files as string | undefined,
         commands: options.commands as string | undefined,
         notes: options.notes as string | undefined
@@ -81,6 +89,10 @@ export function registerLogCommands(program: Command): void {
         ["Task", item.task],
         ["Result", item.result],
         ["Lessons", item.lessons.join(" | ")],
+        ["Open Risks", item.open_risks.join(" | ")],
+        ["Next Steps", item.next_steps.join(" | ")],
+        ["Decisions", item.decisions.join(" | ")],
+        ["Incidents", item.incidents.join(" | ")],
         ["Files Changed", item.files_changed.join(",")],
         ["Commands Run", item.commands_run.join(",")],
         ["Notes", item.notes]

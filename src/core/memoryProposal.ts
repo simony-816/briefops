@@ -2,7 +2,7 @@ import path from "node:path";
 import { BriefOpsError } from "./errors.js";
 import { readWorkLog } from "./log.js";
 import { addMemoryIfMissing } from "./memory.js";
-import { formatDateStamp, memoryProposalFilePath, normalizeName, workspacePaths } from "./paths.js";
+import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { listFilesBySuffix, readTextFile, writeYamlFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
 import {
@@ -29,12 +29,24 @@ function proposalId(date = new Date()): string {
   return `memprop_${formatDateStamp(date)}`;
 }
 
+const tagKeywords = [
+  "turnover",
+  "slippage",
+  "risk",
+  "rebalance",
+  "policy",
+  "test",
+  "release",
+  "billing",
+  "localization",
+  "security",
+  "performance",
+  "migration"
+] as const;
+
 function tagsFromText(value: string): string[] {
-  const tags = value
-    .toLowerCase()
-    .split(/[^a-z0-9가-힣]+/i)
-    .filter((word) => word.length >= 4)
-    .slice(0, 6);
+  const lower = value.toLowerCase();
+  const tags = tagKeywords.filter((tag) => lower.includes(tag));
   return [...new Set(tags)];
 }
 
@@ -46,6 +58,7 @@ function extractPrefixedNotes(notes: string, prefix: "decision" | "fact"): Memor
     .map((line) => line.slice(prefix.length + 1).trim())
     .filter(Boolean)
     .map((content) => ({
+      category: prefix === "decision" ? "decisions" as const : "facts" as const,
       type: prefix,
       status: "active" as const,
       content,
@@ -55,11 +68,44 @@ function extractPrefixedNotes(notes: string, prefix: "decision" | "fact"): Memor
 }
 
 function isIncidentCandidate(result: string): boolean {
-  return /\b(missed|failed|blocked|bug|risk|missing|failure|error)\b/i.test(result);
+  return /\b(missing|missed|failed|blocked|unverified|risk|violation|regression|incident|error|bug|failure)\b/i.test(result);
+}
+
+function isNormativeNextStep(value: string): boolean {
+  return /\b(must|always|never|require|requires|required|policy|verify|check)\b/i.test(value);
+}
+
+function entry(options: {
+  type: MemoryProposalEntry["type"];
+  content: string;
+  source: string;
+  rationale: string;
+}): MemoryProposalEntry {
+  const category = ({
+    fact: "facts",
+    decision: "decisions",
+    lesson: "lessons",
+    incident: "incidents",
+    deprecated: "deprecated"
+  } as const)[options.type];
+  return {
+    category,
+    type: options.type,
+    status: "active",
+    content: options.content.trim(),
+    source: options.source,
+    tags: tagsFromText(options.content),
+    rationale: options.rationale
+  };
 }
 
 async function writeProposal(cwd: string, proposal: MemoryProposal): Promise<string> {
-  const filePath = memoryProposalFilePath(cwd, proposal.id);
+  const filePath = path.join(
+    workspacePaths(cwd).memoryProposals,
+    `${proposal.id}-${slugForFilename(proposal.project ?? "global")}-${slugForFilename(
+      proposal.worker ?? proposal.skill ?? "memory"
+    )}.memory-proposal.yaml`
+  );
   await writeYamlFile(filePath, proposal);
   return filePath;
 }
@@ -72,25 +118,59 @@ export async function proposeMemoryFromLog(
   const log = await readWorkLog(cwd, options.fromLog);
   const createdAt = new Date().toISOString();
   const proposals: MemoryProposalEntry[] = [
-    ...log.lessons.map((lesson) => ({
-      type: "lesson" as const,
-      status: "active" as const,
-      content: lesson.trim(),
-      tags: tagsFromText(lesson),
-      rationale: "Extracted from work log lesson."
-    })),
+    ...log.lessons.map((lesson) =>
+      entry({
+        type: "lesson",
+        content: lesson,
+        source: log.id,
+        rationale: "Extracted from work log lesson."
+      })
+    ),
+    ...log.open_risks.map((risk) =>
+      entry({
+        type: "incident",
+        content: risk,
+        source: log.id,
+        rationale: "Extracted from work log open risk."
+      })
+    ),
+    ...log.decisions.map((decision) =>
+      entry({
+        type: "decision",
+        content: decision,
+        source: log.id,
+        rationale: "Extracted from work log decision."
+      })
+    ),
+    ...log.incidents.map((incident) =>
+      entry({
+        type: "incident",
+        content: incident,
+        source: log.id,
+        rationale: "Extracted from work log incident."
+      })
+    ),
+    ...log.next_steps
+      .filter(isNormativeNextStep)
+      .map((step) =>
+        entry({
+          type: "decision",
+          content: step,
+          source: log.id,
+          rationale: "Extracted from normative work log next step."
+        })
+      ),
     ...extractPrefixedNotes(log.notes, "decision"),
     ...extractPrefixedNotes(log.notes, "fact")
   ];
 
   if (isIncidentCandidate(log.result)) {
-    proposals.push({
+    proposals.push(entry({
       type: "incident",
-      status: "active",
-      content: log.result.trim(),
-      tags: tagsFromText(log.result),
+      content: log.result,
+      source: log.id,
       rationale: "Extracted from work log result because it contains failure/risk language."
-    });
+    }));
   }
 
   if (proposals.length === 0) {
@@ -105,7 +185,7 @@ export async function proposeMemoryFromLog(
     project: log.project,
     skill: log.skill,
     worker: log.worker,
-    proposals
+    items: proposals
   });
   return {
     path: await writeProposal(cwd, proposal),
@@ -115,9 +195,16 @@ export async function proposeMemoryFromLog(
 
 export async function readMemoryProposal(cwd: string, id: string): Promise<MemoryProposal> {
   await requireWorkspace(cwd);
-  const normalized = normalizeName(id);
-  const filePath = memoryProposalFilePath(cwd, normalized);
+  const normalized = id.trim().toLowerCase();
   try {
+    const files = await listFilesBySuffix(workspacePaths(cwd).memoryProposals, ".memory-proposal.yaml");
+    const filePath =
+      normalized === "latest"
+        ? [...files].sort().at(-1)
+        : files.find((file) => path.basename(file).startsWith(normalizeName(id)));
+    if (!filePath) {
+      throw new BriefOpsError(`Memory proposal not found: ${id}`);
+    }
     const parsed = YAML.parse(await readTextFile(filePath));
     const result = memoryProposalSchema.safeParse(parsed);
     if (!result.success) {
@@ -141,7 +228,14 @@ export async function listMemoryProposals(
   const skill = filters.skill ? normalizeName(filters.skill) : undefined;
   const files = await listFilesBySuffix(workspacePaths(cwd).memoryProposals, ".memory-proposal.yaml");
   const proposals = await Promise.all(
-    files.map(async (filePath) => readMemoryProposal(cwd, path.basename(filePath, ".memory-proposal.yaml")))
+    files.map(async (filePath) => {
+      const parsed = YAML.parse(await readTextFile(filePath));
+      const result = memoryProposalSchema.safeParse(parsed);
+      if (!result.success) {
+        throw new BriefOpsError(`Invalid memory proposal ${filePath}: ${result.error.message}`);
+      }
+      return result.data;
+    })
   );
 
   return proposals
@@ -163,7 +257,7 @@ export async function applyMemoryProposal(options: {
 
   let created = 0;
   let skipped = 0;
-  for (const entry of proposal.proposals) {
+  for (const entry of proposal.items) {
     const result = await addMemoryIfMissing({
       cwd,
       type: entry.type,
@@ -172,7 +266,7 @@ export async function applyMemoryProposal(options: {
       content: entry.content,
       status: entry.status,
       tags: entry.tags,
-      source: `proposal:${proposal.id}`
+      source: entry.source ?? proposal.from_log
     });
     if (result.created) {
       created += 1;

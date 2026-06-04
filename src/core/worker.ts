@@ -262,6 +262,83 @@ export async function refreshWorkerSummary(options: {
   };
 }
 
+export async function generateWorkerIntelligence(options: {
+  cwd?: string;
+  name: string;
+  budget?: number;
+}): Promise<{ content: string; tokens: number }> {
+  const cwd = options.cwd ?? process.cwd();
+  const worker = await readWorker(cwd, options.name);
+  const skillSet = new Set(worker.default_skills);
+  const memories = await listMemory({
+    cwd,
+    project: worker.project,
+    status: "active"
+  });
+  const workerMemories = memories.filter(
+    (item) => !item.skill || skillSet.size === 0 || skillSet.has(item.skill)
+  );
+  const logs = await listWorkLogs({ cwd, worker: worker.name, limit: 5 });
+  const byType = (type: string, limit: number) =>
+    workerMemories
+      .filter((item) => item.type === type)
+      .map((item) => `- ${item.content}`)
+      .slice(0, limit)
+      .join("\n") || "- No items found yet.";
+  const style = worker.style.length > 0
+    ? worker.style.map((item) => `- ${item}`).join("\n")
+    : "- Verify before completion.";
+  const recent = logs.length > 0
+    ? logs.map((log) => `- ${log.created_at.slice(0, 10)}: ${log.result}`).join("\n")
+    : "- No items found yet.";
+  const content = [
+    `# Worker Intelligence: ${worker.name}`,
+    "",
+    "## Identity",
+    "",
+    worker.description || "No worker description recorded.",
+    "",
+    "## Default Operating Style",
+    "",
+    style,
+    "",
+    "## Skill Bundle",
+    "",
+    worker.default_skills.length > 0
+      ? worker.default_skills.map((skill) => `- ${skill}`).join("\n")
+      : "- No default skills recorded.",
+    "",
+    "## Judgment Profile",
+    "",
+    "- Prefers explicit verification before merge recommendation.",
+    "- Treats unverified risk assumptions as blocking.",
+    "- Prioritizes project governance over short-term speed.",
+    "",
+    "## Accumulated Lessons",
+    "",
+    byType("lesson", 8),
+    "",
+    "## Known Failure Patterns",
+    "",
+    byType("incident", 6),
+    "",
+    "## Recent Work",
+    "",
+    recent,
+    "",
+    "## Active Decisions",
+    "",
+    byType("decision", 6),
+    ""
+  ].join("\n");
+  const budget = options.budget ?? 800;
+  const trimmed = truncateToTokenBudget(content, budget).text;
+  return {
+    content: trimmed,
+    tokens: estimateTokens(trimmed)
+  };
+}
+
 export async function readWorkerSummary(cwd: string, name: string): Promise<string | undefined> {
   try {
     return await readTextFile(workerSummaryFilePath(cwd, name));

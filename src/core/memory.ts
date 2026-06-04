@@ -57,6 +57,7 @@ export type SelectRelevantMemoryOptions = {
   cwd: string;
   project?: string;
   skill?: string;
+  skills?: string[];
   worker?: string;
   task?: string;
   types?: string[];
@@ -240,11 +241,11 @@ export function formatMemoryItem(item: MemoryItem): string {
 }
 
 const typeWeights: Record<MemoryItem["type"], number> = {
-  decision: 30,
-  lesson: 25,
-  incident: 20,
-  fact: 15,
-  deprecated: -10
+  decision: 12,
+  lesson: 10,
+  incident: 8,
+  fact: 6,
+  deprecated: -100
 };
 
 const itemTypeToCategory: Record<MemoryItem["type"], MemoryCategory> = {
@@ -255,13 +256,37 @@ const itemTypeToCategory: Record<MemoryItem["type"], MemoryCategory> = {
   deprecated: "deprecated"
 };
 
-function keywords(value?: string): Set<string> {
+const stopwords = new Set([
+  "this",
+  "that",
+  "with",
+  "from",
+  "into",
+  "about",
+  "should",
+  "would",
+  "could",
+  "previous",
+  "latest",
+  "recent",
+  "review",
+  "task",
+  "change",
+  "changes",
+  "continue",
+  "finish",
+  "update"
+]);
+
+export function taskKeywords(value?: string): Set<string> {
   return new Set(
     (value ?? "")
       .toLowerCase()
-      .split(/[^a-z0-9가-힣]+/i)
+      .split(/[^a-z0-9가-힣_-]+/i)
+      .flatMap((word) => word.split(/[-_]+/))
       .map((word) => word.trim())
-      .filter((word) => word.length >= 3)
+      .filter((word) => word.length >= 4)
+      .filter((word) => !stopwords.has(word))
   );
 }
 
@@ -273,10 +298,7 @@ function freshnessScore(createdAt: string): number {
 
   const ageDays = (Date.now() - created) / 86_400_000;
   if (ageDays <= 30) {
-    return 10;
-  }
-  if (ageDays <= 90) {
-    return 5;
+    return 4;
   }
   return 0;
 }
@@ -285,42 +307,48 @@ export function scoreMemoryItem(options: {
   item: MemoryItem;
   project?: string;
   skill?: string;
+  skills?: string[];
   worker?: string;
   task?: string;
 }): MemorySelection {
   const project = options.project ? normalizeName(options.project) : undefined;
   const skill = options.skill ? normalizeName(options.skill) : undefined;
+  const skills = new Set([
+    ...(skill ? [skill] : []),
+    ...(options.skills ?? []).map(normalizeName)
+  ]);
   const reasons: string[] = [];
   let score = 0;
   let tier = 0;
 
-  if (project && skill && options.item.project === project && options.item.skill === skill) {
-    score += 100;
+  const skillMatches = options.item.skill ? skills.has(options.item.skill) : false;
+  if (project && options.item.project === project && skillMatches) {
+    score += 50;
     tier = 3;
     reasons.push("project+skill");
   } else {
     if (project && options.item.project === project) {
-      score += 50;
+      score += 35;
       tier = Math.max(tier, 2);
       reasons.push("project");
     }
-    if (skill && options.item.skill === skill) {
-      score += 40;
+    if (skillMatches) {
+      score += 30;
       tier = Math.max(tier, 1);
       reasons.push("skill");
     }
   }
 
-  if (options.worker && skill && options.item.skill === skill) {
+  if (options.worker && (skillMatches || options.item.source?.includes(options.worker))) {
     score += 20;
-    reasons.push("worker skill");
+    reasons.push("worker-related");
   }
 
-  const taskWords = keywords(options.task);
-  const itemWords = keywords(`${options.item.content} ${options.item.tags.join(" ")}`);
+  const taskWords = taskKeywords(options.task);
+  const itemWords = taskKeywords(`${options.item.content} ${options.item.tags.join(" ")}`);
   const overlap = [...taskWords].filter((word) => itemWords.has(word));
   if (overlap.length > 0) {
-    score += overlap.length * 10;
+    score += overlap.length * 8;
     reasons.push(`task match: ${overlap.join("/")}`);
   }
 
@@ -332,7 +360,7 @@ export function scoreMemoryItem(options: {
     reasons.push(fresh === 10 ? "recent 30d" : "recent 90d");
   }
   if (options.item.status === "deprecated" || options.item.type === "deprecated") {
-    score -= 25;
+    score -= 100;
     reasons.push("deprecated penalty");
   }
 
@@ -365,6 +393,7 @@ export async function selectRelevantMemory(
         item,
         project: options.project,
         skill: options.skill,
+        skills: options.skills,
         worker: options.worker,
         task: options.task
       })
@@ -409,4 +438,25 @@ export async function selectRelevantMemory(
     selections,
     omittedSelections: ordered.filter((selection) => !selected.some((item) => item.id === selection.item.id))
   };
+}
+
+export async function selectContinuityContext(options: SelectRelevantMemoryOptions): Promise<{
+  items: MemoryItem[];
+  text: string;
+  tokens: number;
+  omitted: number;
+  selections: MemorySelection[];
+  omittedSelections: MemorySelection[];
+}> {
+  return selectRelevantMemory({
+    ...options,
+    includeDeprecated: options.includeDeprecated ?? false,
+    quotas: options.quotas ?? {
+      facts: 3,
+      decisions: 4,
+      lessons: 5,
+      incidents: 3,
+      deprecated: 0
+    }
+  });
 }

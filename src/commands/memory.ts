@@ -47,7 +47,7 @@ export function registerMemoryCommands(program: Command): void {
           proposal.project ?? "",
           proposal.skill ?? "",
           proposal.worker ?? "",
-          String(proposal.proposals.length)
+          String(proposal.items.length)
         ])
       ]);
     });
@@ -64,7 +64,7 @@ export function registerMemoryCommands(program: Command): void {
       console.log(`Skill: ${proposal.skill ?? ""}`);
       console.log(`Worker: ${proposal.worker ?? ""}`);
       console.log("");
-      for (const item of proposal.proposals) {
+      for (const item of proposal.items) {
         console.log(`- [${item.type}] ${item.content}`);
         if (item.rationale) {
           console.log(`  rationale: ${item.rationale}`);
@@ -73,7 +73,7 @@ export function registerMemoryCommands(program: Command): void {
     });
 
   memory
-    .command("apply-proposal <id>")
+    .command("proposal-apply <id>")
     .description("Apply a memory proposal into curated memory.")
     .action(async (id: string) => {
       const result = await applyMemoryProposal({ id });
@@ -83,8 +83,26 @@ export function registerMemoryCommands(program: Command): void {
     });
 
   memory
-    .command("reject-proposal <id>")
+    .command("proposal-reject <id>")
     .description("Reject a memory proposal without mutating memory.")
+    .action(async (id: string) => {
+      const proposal = await rejectMemoryProposal({ id });
+      console.log(`Rejected memory proposal: ${proposal.id}`);
+    });
+
+  memory
+    .command("apply-proposal <id>")
+    .description("Alias for proposal-apply.")
+    .action(async (id: string) => {
+      const result = await applyMemoryProposal({ id });
+      console.log(`Applied memory proposal: ${result.proposal.id}`);
+      console.log(`Created: ${result.created}`);
+      console.log(`Skipped duplicates: ${result.skipped}`);
+    });
+
+  memory
+    .command("reject-proposal <id>")
+    .description("Alias for proposal-reject.")
     .action(async (id: string) => {
       const proposal = await rejectMemoryProposal({ id });
       console.log(`Rejected memory proposal: ${proposal.id}`);

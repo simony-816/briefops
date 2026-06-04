@@ -1,9 +1,8 @@
 import path from "node:path";
 import { normalizeBriefAdapter, type BriefAdapter } from "./adapter.js";
-import { generateBrief } from "./brief.js";
 import { BriefOpsError } from "./errors.js";
-import { listWorkLogs } from "./log.js";
-import { formatMemoryItem, selectRelevantMemory } from "./memory.js";
+import { listWorkLogs, summarizeRecentLogs } from "./log.js";
+import { formatMemoryItem, selectContinuityContext } from "./memory.js";
 import { readProject } from "./project.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import {
@@ -14,20 +13,20 @@ import {
   writeTextFile
 } from "./storage.js";
 import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
-import { readWorker, readWorkerSummary, refreshWorkerSummary } from "./worker.js";
+import { generateWorkerIntelligence, readWorker } from "./worker.js";
 import { requireWorkspace } from "./workspace.js";
 import { handoffSchema, type HandoffMetadata } from "../schemas/handoff.js";
 import type { TokenReportLine } from "../schemas/brief.js";
 
 const defaultPolicy = {
-  max_total_tokens: 3000,
-  project: 500,
-  worker: 400,
-  recent_logs: 500,
-  decisions: 450,
-  lessons: 450,
-  incidents: 350,
-  deprecated: 150,
+  max_total_tokens: 2500,
+  project: 450,
+  worker: 350,
+  recent_logs: 450,
+  decisions: 350,
+  lessons: 350,
+  incidents: 250,
+  open_risks: 250,
   task: 150,
   template: 300
 };
@@ -39,6 +38,9 @@ export type GenerateHandoffOptions = {
   task?: string;
   budget?: number;
   adapter?: string;
+  fromHandoff?: string;
+  mode?: string;
+  completionPromise?: string;
   save?: boolean;
   outputPath?: string;
 };
@@ -66,19 +68,6 @@ function renderTokenReport(lines: TokenReportLine[], total: number, budget: numb
     ...lines.map((line) => `- ${line.label}: ${line.used} / ${line.budget}`),
     `- Total: ${total} / ${budget}`
   ].join("\n");
-}
-
-function formatLogs(logs: Awaited<ReturnType<typeof listWorkLogs>>): string {
-  if (logs.length === 0) {
-    return "No recent work logs found.";
-  }
-
-  return logs
-    .map((log) => {
-      const scope = [log.project, log.skill, log.worker].filter(Boolean).join("/");
-      return `- ${log.created_at.slice(0, 10)}${scope ? ` (${scope})` : ""}: ${log.task}; ${log.result}`;
-    })
-    .join("\n");
 }
 
 function formatMemory(items: ReturnType<typeof formatMemoryItem>[]): string {
@@ -122,79 +111,105 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
     ? truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
     : "No project selected.";
   const workerSummary = context.worker
-    ? ((await readWorkerSummary(context.cwd, context.worker)) ??
-      (await refreshWorkerSummary({ cwd: context.cwd, name: context.worker, limit: 20 })).content)
+    ? (await generateWorkerIntelligence({
+        cwd: context.cwd,
+        name: context.worker,
+        budget: defaultPolicy.worker
+      })).content
     : "No worker selected.";
   const workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
+  const logsText = truncateToTokenBudget(await summarizeRecentLogs({
+    cwd: context.cwd,
+    project: context.project,
+    worker: context.worker,
+    limit: 5
+  }), defaultPolicy.recent_logs).text;
   const logs = await listWorkLogs({
     cwd: context.cwd,
     project: context.project,
     worker: context.worker,
-    limit: 8
+    limit: 5
   });
-  const logsText = truncateToTokenBudget(formatLogs(logs), defaultPolicy.recent_logs).text;
-  const skill = context.skills[0];
-  const memory = await selectRelevantMemory({
+  const memory = await selectContinuityContext({
     cwd: context.cwd,
     project: context.project,
-    skill,
+    skill: context.skills[0],
+    skills: context.skills,
     worker: context.worker,
     task: context.task,
-    includeDeprecated: true,
     maxTokens:
       defaultPolicy.decisions +
       defaultPolicy.lessons +
-      defaultPolicy.incidents +
-      defaultPolicy.deprecated,
+      defaultPolicy.incidents,
     quotas: {
       decisions: 5,
-      lessons: 5,
-      incidents: 3,
-      facts: 4,
-      deprecated: 2
+      lessons: 6,
+      incidents: 4,
+      facts: 3,
+      deprecated: 0
     }
   });
   const byType = (type: string) =>
     memory.items.filter((item) => item.type === type).map(formatMemoryItem);
   const taskText = truncateToTokenBudget(context.task ?? "No next task provided.", defaultPolicy.task).text;
+  const openRisks = logs.flatMap((log) => log.open_risks);
+  const nextSteps = logs.flatMap((log) => log.next_steps);
   const warnings = [
     memory.omitted > 0 ? `${memory.omitted} memory item(s) were omitted by handoff budget or quotas.` : undefined
   ].filter((warning): warning is string => Boolean(warning));
   const sections = [
     ["Project", projectText, defaultPolicy.project] as const,
     ["Worker", workerText, defaultPolicy.worker] as const,
-    ["Recent Work History", logsText, defaultPolicy.recent_logs] as const,
+    ["Recent Work", logsText, defaultPolicy.recent_logs] as const,
     ["Active Decisions", formatMemory(byType("decision")), defaultPolicy.decisions] as const,
     ["Active Lessons", formatMemory(byType("lesson")), defaultPolicy.lessons] as const,
-    ["Known Incidents / Failure Patterns", formatMemory(byType("incident")), defaultPolicy.incidents] as const,
-    ["Deprecated / Avoid", formatMemory(byType("deprecated")), defaultPolicy.deprecated] as const,
+    ["Recent Incidents / Risks", formatMemory(byType("incident")), defaultPolicy.incidents] as const,
+    ["Open Risks", openRisks.length > 0 ? openRisks.map((risk) => `- ${risk}`).join("\n") : "No unresolved open risks found.", defaultPolicy.open_risks] as const,
     ["Current Task", taskText, defaultPolicy.task] as const
   ];
   const report = sections.map(([label, text, budget]) => sectionReport(label, text, budget));
   const body = [
-    "# BriefOps Handoff Brief",
+    "# BriefOps Continuity Handoff",
     "",
     "## Purpose",
     "",
-    "This handoff prepares a fresh AI coding thread to continue work without restarting from zero.",
+    "This handoff lets a new AI coding thread continue work without requiring the user to repeat project history, worker judgment, and recent task context.",
     "",
-    ...sections.flatMap(([label, text]) => [`## ${label}`, "", text, ""]),
-    "## Recommended Start",
+    "## Project",
     "",
-    "1. Inspect listed source files.",
-    "2. Validate assumptions against current repo state.",
-    "3. Keep changes scoped.",
-    "4. Apply worker-specific checks.",
-    "5. End with log-ready summary.",
+    projectText,
     "",
-    "## After Completion",
+    "## Worker",
     "",
-    "```bash",
-    `briefops log add --project ${context.project ?? "<project>"} --worker ${context.worker ?? "<worker>"} --task "<task>" --result "<result>" --lesson "<lesson>"`,
-    "briefops memory propose-from-log latest",
-    skill ? `briefops skill propose-patch --skill ${skill} --from-log latest` : "briefops skill propose-patch --skill <skill> --from-log latest",
-    context.worker ? `briefops worker refresh-summary ${context.worker}` : "briefops worker refresh-summary <worker>",
-    "```",
+    workerText,
+    "",
+    "## Current Task",
+    "",
+    taskText,
+    "",
+    "## Recent Work",
+    "",
+    logsText,
+    "",
+    "## Active Decisions",
+    "",
+    formatMemory(byType("decision")),
+    "",
+    "## Active Lessons",
+    "",
+    formatMemory(byType("lesson")),
+    "",
+    "## Recent Incidents / Risks",
+    "",
+    formatMemory(byType("incident")),
+    "",
+    "## Open Risks",
+    "",
+    openRisks.length > 0 ? openRisks.map((risk) => `- ${risk}`).join("\n") : "No unresolved open risks found.",
+    "",
+    "## Suggested Next Actions",
+    "",
+    nextSteps.length > 0 ? nextSteps.map((step) => `- ${step}`).join("\n") : `- ${taskText}`,
     "",
     "## Read If Needed",
     "",
@@ -336,79 +351,69 @@ export async function inspectSavedHandoff(cwd: string, idOrLatest: string): Prom
 
 export async function generateCodexResumeFromHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
-  const handoff = await generateHandoff({
-    ...options,
-    cwd: context.cwd,
-    save: false,
-    adapter: "codex"
-  });
-  const taskBrief =
-    context.project && context.skills[0]
-      ? (
-          await generateBrief({
-            cwd: context.cwd,
-            project: context.project,
-            skill: context.skills[0],
-            worker: context.worker,
-            task: context.task ?? "Continue prior work.",
-            budget: Math.max(800, Math.floor(context.budget * 0.35)),
-            adapter: "codex"
-          })
-        ).content
-      : "Task brief unavailable because project/skill context is incomplete.";
+  const handoff = options.fromHandoff
+    ? await showSavedHandoff(context.cwd, options.fromHandoff)
+    : (await generateHandoff({
+        ...options,
+        cwd: context.cwd,
+        save: false,
+        adapter: "codex"
+      })).content;
+  const workerIntelligence = context.worker
+    ? (await generateWorkerIntelligence({
+        cwd: context.cwd,
+        name: context.worker,
+        budget: 800
+      })).content
+    : "No worker selected.";
   const content = [
     "# BriefOps Codex Resume Mission",
     "",
     "## Mission",
     "",
-    context.task ?? "Continue prior BriefOps work.",
-    "",
-    "## Why This Is a Resume",
-    "",
-    "This prompt prepares a fresh Codex thread to continue from prior BriefOps work history.",
+    `Continue work as ${context.worker ?? "the selected BriefOps worker"}.`,
     "",
     "## Continuity Contract",
     "",
-    "1. Read the handoff before making changes.",
-    "2. Treat active decisions as constraints.",
-    "3. Apply worker judgment rules.",
-    "4. Avoid repeating known failure patterns.",
-    "5. If repository state contradicts memory, report the conflict before acting.",
+    "You are starting in a new thread. Do not assume the user will repeat prior context.",
+    "",
+    "Before acting:",
+    "1. Read the handoff.",
+    "2. Restate what is already known.",
+    "3. Identify unresolved risks.",
+    "4. Execute only the current task.",
+    "5. Verify before claiming completion.",
+    "",
+    "## Current Task",
+    "",
+    context.task ?? "Continue prior BriefOps work.",
+    "",
+    "## Handoff",
+    "",
+    handoff.trim(),
+    "",
+    "## Worker Intelligence",
+    "",
+    workerIntelligence.trim(),
     "",
     "## Evidence Gates",
     "",
-    "- Context gate: list files/docs inspected.",
-    "- Continuity gate: mention which prior decision/lesson influenced the work.",
+    "- Context gate: name the project files, docs, memory items, or logs used.",
+    "- Continuity gate: state which previous result or lesson you are continuing from.",
     "- Change gate: summarize smallest useful change set.",
     "- Verification gate: include commands or manual checks.",
-    "- Memory gate: state what should be logged or promoted after completion.",
-    "",
-    "## Handoff Brief",
-    "",
-    handoff.content.trim(),
-    "",
-    "## Task Brief",
-    "",
-    taskBrief.trim(),
+    "- Risk gate: call out unresolved or deferred risks.",
+    options.completionPromise ? `- Completion promise: ${options.completionPromise}` : undefined,
     "",
     "## Completion Signal",
+    "",
+    "Only after all gates pass, end with:",
     "",
     "```text",
     "<briefops-complete>DONE</briefops-complete>",
     "```",
-    "",
-    "## After Completion",
-    "",
-    "Prepare these commands with filled values:",
-    "",
-    "```bash",
-    "briefops log add ...",
-    "briefops memory propose-from-log latest",
-    "briefops skill propose-patch --skill <skill> --from-log latest",
-    "briefops worker refresh-summary <worker>",
-    "```",
     ""
-  ].join("\n");
+  ].filter((line): line is string => line !== undefined).join("\n");
   const tokens = estimateTokens(content);
   const warnings = tokens > context.budget
     ? [`Rendered Codex resume exceeds token budget by ${tokens - context.budget} estimated tokens.`]
@@ -446,7 +451,7 @@ async function writeResumePrompt(options: {
     options.outputPath ??
     path.join(
       workspacePaths(options.cwd).codexPrompts,
-      `${options.id}-codex-resume-${slugForFilename(options.worker ?? "worker")}.md`
+      `${options.id}-resume-${slugForFilename(options.worker ?? "worker")}.md`
     );
   await writeTextFile(targetPath, options.content, { force: true });
   return targetPath;
