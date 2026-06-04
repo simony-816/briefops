@@ -126,6 +126,33 @@ const defaultBriefTemplates: Record<string, string> = {
   ].join("\n")
 };
 
+const defaultCodexPrompts: Record<string, string> = {
+  "mission.md": [
+    "# BriefOps Codex Mission",
+    "",
+    "Use this prompt when Codex should execute a task with a clear completion promise and evidence gates.",
+    "",
+    "Recommended command:",
+    "",
+    "```bash",
+    "briefops codex mission --worker <worker> --task \"<task>\" --adapter codex --save",
+    "```",
+    ""
+  ].join("\n"),
+  "plan.md": [
+    "# BriefOps Codex Plan",
+    "",
+    "Use this prompt when Codex should produce a decision-complete plan before editing product code.",
+    "",
+    "Recommended command:",
+    "",
+    "```bash",
+    "briefops codex plan --project <project> --idea \"<what to build>\" --save",
+    "```",
+    ""
+  ].join("\n")
+};
+
 export async function requireWorkspace(cwd = process.cwd()): Promise<void> {
   const paths = workspacePaths(cwd);
   if (!(await pathExists(paths.root))) {
@@ -146,6 +173,8 @@ export async function initWorkspace(cwd = process.cwd()): Promise<InitResult> {
     paths.workers,
     paths.logs,
     paths.briefs,
+    paths.codex,
+    paths.codexPrompts,
     paths.evals,
     paths.evalResults,
     paths.patches,
@@ -162,7 +191,7 @@ export async function initWorkspace(cwd = process.cwd()): Promise<InitResult> {
   const configCreated = await writeFileIfAbsent(
     paths.config,
     [
-      "version: 1.0.0",
+      "version: 1.1.0",
       `created_at: "${new Date().toISOString()}"`,
       "memory_categories:",
       ...memoryCategories.map((category) => `  - ${category}`),
@@ -181,6 +210,12 @@ export async function initWorkspace(cwd = process.cwd()): Promise<InitResult> {
     const filePath = `${paths.templates}/${filename}`;
     const templateCreated = await writeFileIfAbsent(filePath, template);
     (templateCreated ? created : existing).push(filePath);
+  }
+
+  for (const [filename, template] of Object.entries(defaultCodexPrompts)) {
+    const filePath = `${paths.codexPrompts}/${filename}`;
+    const promptCreated = await writeFileIfAbsent(filePath, template);
+    (promptCreated ? created : existing).push(filePath);
   }
 
   await fs.access(paths.root);

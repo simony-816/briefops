@@ -37,7 +37,7 @@ export function registerBriefCommands(program: Command): void {
       console.log(generated.content);
 
       if (options.copy) {
-        console.error("Warning: --copy is not implemented in v0.1; brief printed to stdout.");
+        console.error("Warning: --copy is not implemented yet; brief printed to stdout.");
       }
 
       if (options.save || options.output) {

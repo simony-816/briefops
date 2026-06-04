@@ -34,6 +34,8 @@ export function workspacePaths(cwd = process.cwd()) {
     workers: path.join(root, "workers"),
     logs: path.join(root, "logs"),
     briefs: path.join(root, "briefs"),
+    codex: path.join(root, "codex"),
+    codexPrompts: path.join(root, "codex", "prompts"),
     evals: path.join(root, "evals"),
     evalResults: path.join(root, "evals", "results"),
     patches: path.join(root, "patches"),

@@ -22,6 +22,8 @@ export function registerDoctorCommand(program: Command): void {
         ["Workers", paths.workers],
         ["Logs", paths.logs],
         ["Briefs", paths.briefs],
+        ["Codex", paths.codex],
+        ["Codex Prompts", paths.codexPrompts],
         ["Evals", paths.evals],
         ["Eval Results", paths.evalResults],
         ["Patches", paths.patches],

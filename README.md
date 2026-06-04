@@ -6,6 +6,8 @@ It helps turn repeated explanations into compact, reusable task briefs for tools
 
 BriefOps does not run agents. BriefOps prepares better instructions for agents.
 
+BriefOps can also generate Codex-favored mission prompts with evidence gates, completion promises, and repo-local `AGENTS.md` guidance.
+
 ## What It Solves
 
 AI coding sessions often start with the same repeated setup: project facts, review rules, prior lessons, constraints, and the exact shape of the current task. BriefOps stores that durable context as small local files, then compiles only the useful pieces into a compact task brief.
@@ -22,7 +24,7 @@ Skill + Project Context + Relevant Memory + Task
 
 ## What It Is Not
 
-BriefOps v1.0 is intentionally scoped.
+BriefOps v1.x is intentionally scoped.
 
 It is not an agent runtime, an LLM client, a vector database, a dashboard, a cloud sync product, or a multi-agent orchestration system.
 
@@ -78,6 +80,19 @@ briefops log add \
   --lesson "Verify turnover warning threshold when rebalance logic changes."
 
 briefops skill propose-patch --skill risk-review --from-log latest
+
+briefops codex install
+
+briefops worker create quant-reviewer \
+  --project atlas-q \
+  --skills "risk-review" \
+  --style "governance-first"
+
+briefops codex mission \
+  --worker quant-reviewer \
+  --task "Review this PR for risk policy violations." \
+  --mode loop \
+  --save
 ```
 
 ## Commands
@@ -111,6 +126,10 @@ briefops brief generate --worker <name> --task "<task>" --budget 2500
 briefops brief list
 briefops brief show <id|latest>
 briefops brief inspect <id|latest>
+
+briefops codex install
+briefops codex mission --worker <name> --task "<task>" --mode loop --save
+briefops codex plan --project <name> --idea "<what to build>" --save
 
 briefops log add
 briefops log list
@@ -149,6 +168,8 @@ briefops inspect memory
 ├─ workers/
 ├─ logs/
 ├─ briefs/
+├─ codex/
+│  └─ prompts/
 ├─ evals/
 │  └─ results/
 ├─ patches/
@@ -184,6 +205,43 @@ When a generated brief is too large, BriefOps trims memory first, then worker hi
 7. Propose a skill patch from the work log lesson.
 8. Run checklist evals to verify the brief still carries expected operational checks.
 
+## Codex-Favored Mode
+
+BriefOps can prepare a lightweight Codex harness without becoming an agent runtime.
+
+```bash
+briefops codex install
+```
+
+This adds BriefOps guidance to `AGENTS.md` and creates `.briefops/codex/prompts/`.
+
+For execution, generate a mission prompt:
+
+```bash
+briefops codex mission \
+  --worker quant-reviewer \
+  --task "Review this PR for risk policy violations." \
+  --mode loop \
+  --completion-promise "Deliver verified findings and no unresolved blocking risk." \
+  --save
+```
+
+The mission prompt includes:
+
+- Codex operating contract
+- evidence gates
+- completion signal
+- token-aware BriefOps brief
+
+For planning without edits:
+
+```bash
+briefops codex plan \
+  --project atlas-q \
+  --idea "Add a release-readiness worker profile." \
+  --save
+```
+
 ## Worker Profiles
 
 Workers are skill bundles, not autonomous agents. A worker can provide default skills, a default project, style notes, and a short recent work history summary from logs.
@@ -203,7 +261,7 @@ briefops brief generate \
 
 ## Checklist Evals
 
-BriefOps v1.0 uses deterministic checklist evals. It does not call an LLM judge by default.
+BriefOps v1.x uses deterministic checklist evals. It does not call an LLM judge by default.
 
 ```bash
 briefops eval create turnover-missing-case \
@@ -216,9 +274,9 @@ briefops eval create turnover-missing-case \
 briefops eval run --skill risk-review --project atlas-q
 ```
 
-## v1.0 Scope
+## v1.x Scope
 
-BriefOps v1.0 includes a local CLI, file-based storage, skill/project/memory management, worker profiles, adapter templates, brief generation, token inspection, work logs, human-approved skill patch proposals, checklist evals, and tests.
+BriefOps v1.x includes a local CLI, file-based storage, skill/project/memory management, worker profiles, adapter templates, Codex mission prompts, brief generation, token inspection, work logs, human-approved skill patch proposals, checklist evals, and tests.
 
 It deliberately excludes agent execution, LLM API calls, vector search, web dashboards, cloud sync, and plugin architecture.
 
@@ -226,4 +284,4 @@ It deliberately excludes agent execution, LLM API calls, vector search, web dash
 
 Future versions may add optional LLM-based patch suggestions, optional LLM eval judges, better tokenizer integrations, Git diff-aware briefs, PR review mode, and external integrations.
 
-The long-term direction is a persistent worker layer for human-led AI coding workflows, but v1.0 stays focused on one useful job: compile compact, reusable briefs within a visible token budget.
+The long-term direction is a persistent worker layer for human-led AI coding workflows, but v1.x stays focused on one useful job: compile compact, reusable briefs within a visible token budget.
