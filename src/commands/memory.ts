@@ -1,0 +1,94 @@
+import type { Command } from "commander";
+import { addMemory, listMemory, showMemory, updateMemoryStatus } from "../core/memory.js";
+import { parseCommaList } from "../core/storage.js";
+import { printTable } from "./shared.js";
+
+export function registerMemoryCommands(program: Command): void {
+  const memory = program.command("memory").description("Manage curated operational memory.");
+
+  memory
+    .command("add")
+    .description("Add a curated memory item.")
+    .requiredOption("--type <type>", "facts|decisions|lessons|incidents|deprecated")
+    .option("--project <project>", "Project name.")
+    .option("--skill <skill>", "Skill name.")
+    .requiredOption("--content <content>", "Memory content.")
+    .option("--status <status>", "active|stale|deprecated|superseded|archived", "active")
+    .option("--tags <tags>", "Comma-separated tags.")
+    .action(async (options: Record<string, unknown>) => {
+      const item = await addMemory({
+        type: options.type as string,
+        project: options.project as string | undefined,
+        skill: options.skill as string | undefined,
+        content: options.content as string,
+        status: options.status as string | undefined,
+        tags: parseCommaList(options.tags as string | undefined)
+      });
+      console.log(`Added memory: ${item.id}`);
+    });
+
+  memory
+    .command("list")
+    .description("List memory items.")
+    .option("--type <type>", "Memory category.")
+    .option("--project <project>", "Filter by project.")
+    .option("--skill <skill>", "Filter by skill.")
+    .option("--status <status>", "Filter by status.")
+    .option("--tag <tag>", "Filter by tag.")
+    .action(async (options: Record<string, unknown>) => {
+      const items = await listMemory({
+        type: options.type as string | undefined,
+        project: options.project as string | undefined,
+        skill: options.skill as string | undefined,
+        status: options.status as string | undefined,
+        tag: options.tag as string | undefined
+      });
+      if (items.length === 0) {
+        console.log("No memory items found.");
+        return;
+      }
+
+      printTable([
+        ["ID", "Type", "Status", "Project", "Skill", "Content"],
+        ...items.map((item) => [
+          item.id,
+          item.type,
+          item.status,
+          item.project ?? "",
+          item.skill ?? "",
+          item.content
+        ])
+      ]);
+    });
+
+  memory
+    .command("show <id>")
+    .description("Show a memory item.")
+    .action(async (id: string) => {
+      const item = await showMemory(process.cwd(), id);
+      printTable([
+        ["Field", "Value"],
+        ["ID", item.id],
+        ["Type", item.type],
+        ["Status", item.status],
+        ["Project", item.project ?? ""],
+        ["Skill", item.skill ?? ""],
+        ["Content", item.content],
+        ["Tags", item.tags.join(",")],
+        ["Created", item.created_at]
+      ]);
+    });
+
+  memory
+    .command("update-status <id>")
+    .description("Update a memory item status.")
+    .requiredOption("--status <status>", "active|stale|deprecated|superseded|archived")
+    .action(async (id: string, options: Record<string, unknown>) => {
+      const item = await updateMemoryStatus({
+        id,
+        status: options.status as string
+      });
+      console.log(`Updated memory: ${item.id}`);
+      console.log(`Status: ${item.status}`);
+    });
+}
