@@ -1,6 +1,6 @@
 # BriefOps
 
-BriefOps is a local-first, token-aware skill and briefing layer for AI coding agents.
+BriefOps is an alpha-stage, local-first, token-aware skill and briefing CLI for AI coding agents.
 
 It helps you turn repeated instructions, project facts, lessons, and review rules into compact task briefs for tools like Codex and Claude Code.
 
@@ -44,7 +44,7 @@ BriefOps is:
 
 ## What BriefOps Is Not
 
-BriefOps v1.x is intentionally scoped.
+BriefOps is alpha software and intentionally scoped.
 
 It is not:
 
@@ -822,4 +822,4 @@ Future versions may add:
 - PR review mode
 - external integrations
 
-The long-term direction is a persistent worker layer for human-led AI coding workflows, while v1.x stays focused on one useful job: compile compact, reusable briefs and Codex missions within a visible token budget.
+The long-term direction is a persistent worker layer for human-led AI coding workflows, while the current alpha stays focused on one useful job: compile compact, reusable briefs and Codex missions within a visible token budget.

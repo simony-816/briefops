@@ -200,10 +200,12 @@ export async function selectRelevantMemory(options: {
   const skill = normalizeName(options.skill);
   const active = await listMemory({ cwd: options.cwd, status: "active" });
   const seen = new Set<string>();
+  const newestFirst = (items: MemoryItem[]) =>
+    [...items].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const buckets = [
-    active.filter((item) => item.project === project && item.skill === skill),
-    active.filter((item) => item.project === project),
-    active.filter((item) => item.skill === skill)
+    newestFirst(active.filter((item) => item.project === project && item.skill === skill)),
+    newestFirst(active.filter((item) => item.project === project)),
+    newestFirst(active.filter((item) => item.skill === skill))
   ];
   const ordered = buckets
     .flat()
@@ -213,8 +215,7 @@ export async function selectRelevantMemory(options: {
       }
       seen.add(item.id);
       return true;
-    })
-    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    });
 
   const selected: MemoryItem[] = [];
   let tokens = 0;

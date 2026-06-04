@@ -41,14 +41,20 @@ export function registerInspectCommands(program: Command): void {
       console.log(`  ${report.projectName}: ${report.projectTokens} tokens`);
       console.log("");
       console.log("Memory:");
-      console.log(`  matched items: ${report.memoryCount}`);
-      console.log(`  estimated tokens: ${report.memoryTokens}`);
+      console.log(`  effective section tokens: ${report.memoryTokens}`);
       console.log("");
       console.log("Task:");
-      console.log(`  estimated tokens: ${report.taskTokens}`);
+      console.log(`  effective section tokens: ${report.taskTokens}`);
       console.log("");
-      console.log("Total estimated brief size:");
-      console.log(`  ${report.totalTokens} / ${report.budget}`);
+      console.log("Rendered brief estimate:");
+      console.log(`  ${report.renderedTokens} / ${report.budget}`);
+      if (report.warnings.length > 0) {
+        console.log("");
+        console.log("Warnings:");
+        for (const warning of report.warnings) {
+          console.log(`  - ${warning}`);
+        }
+      }
     });
 
   inspect

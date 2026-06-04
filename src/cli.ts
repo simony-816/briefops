@@ -17,7 +17,7 @@ export function buildProgram(): Command {
   program
     .name("briefops")
     .description("Local-first, token-aware brief compiler for AI coding workflows.")
-    .version("1.1.0");
+    .version("0.1.0");
 
   registerInitCommand(program);
   registerDoctorCommand(program);

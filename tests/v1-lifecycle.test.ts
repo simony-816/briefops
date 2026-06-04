@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateBrief } from "../src/core/brief.js";
 import { createEvalCase, runEval } from "../src/core/eval.js";
 import { addWorkLog } from "../src/core/log.js";
-import { applySkillPatch, proposeSkillPatch } from "../src/core/patch.js";
+import { applySkillPatch, proposeSkillPatch, readSkillPatch, rejectSkillPatch } from "../src/core/patch.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill, readSkill } from "../src/core/skill.js";
 import { createWorker } from "../src/core/worker.js";
@@ -70,6 +70,37 @@ describe("v1 lifecycle features", () => {
       expect(skill.data.version).toBe("0.1.1");
       expect(skill.body).toContain("- Verify turnover warning threshold");
       expect(skill.body).toContain("## Changelog");
+    });
+  });
+
+  it("rejects a proposed skill patch without modifying the skill", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await createSkill({ cwd: dir, name: "risk-review" });
+      await addWorkLog({
+        cwd: dir,
+        skill: "risk-review",
+        task: "Review rebalance logic.",
+        result: "Found missing turnover warning check.",
+        lessons: ["Verify turnover warning threshold when rebalance logic changes."]
+      });
+
+      const proposed = await proposeSkillPatch({
+        cwd: dir,
+        skill: "risk-review",
+        fromLog: "latest"
+      });
+      await rejectSkillPatch({
+        cwd: dir,
+        patch: proposed.patch.id
+      });
+
+      const rejected = await readSkillPatch(dir, proposed.patch.id);
+      const skill = await readSkill(dir, "risk-review");
+
+      expect(rejected.status).toBe("rejected");
+      expect(skill.data.version).toBe("0.1.0");
+      expect(skill.body).not.toContain("- Verify turnover warning threshold");
     });
   });
 

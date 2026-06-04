@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { generateBrief } from "../src/core/brief.js";
+import { generateBrief, inspectBriefTokens } from "../src/core/brief.js";
 import { addMemory } from "../src/core/memory.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
+import { estimateTokens } from "../src/core/tokens.js";
 import { initWorkspace } from "../src/core/workspace.js";
 import { withTempDir } from "./helpers.js";
 
@@ -69,8 +70,51 @@ describe("brief generation", () => {
         budget: 120
       });
 
-      expect(generated.totalTokens).toBeLessThanOrEqual(120);
+      expect(generated.totalTokens).toBe(estimateTokens(generated.content));
       expect(generated.warnings.some((warning) => warning.includes("memory item"))).toBe(true);
+      expect(generated.warnings.some((warning) => warning.includes("Rendered brief exceeds"))).toBe(true);
+    });
+  });
+
+  it("reports totalTokens from the final rendered brief content", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await createSkill({ cwd: dir, name: "risk-review", maxTokens: 100 });
+      await createProject({ cwd: dir, name: "atlas-q", maxTokens: 80 });
+
+      const generated = await generateBrief({
+        cwd: dir,
+        skill: "risk-review",
+        project: "atlas-q",
+        task: "Review this change.",
+        budget: 500,
+        adapter: "codex"
+      });
+
+      expect(generated.totalTokens).toBe(estimateTokens(generated.content));
+      expect(generated.content).toContain(`- Total: ${generated.totalTokens} / 500`);
+    });
+  });
+
+  it("inspects tokens through the same rendered path as brief generation", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await createSkill({ cwd: dir, name: "risk-review", maxTokens: 100 });
+      await createProject({ cwd: dir, name: "atlas-q", maxTokens: 80 });
+
+      const input = {
+        cwd: dir,
+        skill: "risk-review",
+        project: "atlas-q",
+        task: "Review this change.",
+        budget: 500,
+        adapter: "codex"
+      };
+      const generated = await generateBrief(input);
+      const inspected = await inspectBriefTokens(input);
+
+      expect(inspected.renderedTokens).toBe(generated.totalTokens);
+      expect(inspected.totalTokens).toBe(generated.totalTokens);
     });
   });
 });

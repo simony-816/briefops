@@ -71,6 +71,84 @@ type BuiltBriefParts = {
   memoryOmitted: number;
 };
 
+async function renderStableBrief(options: {
+  cwd: string;
+  adapter: BriefAdapter;
+  parts: BuiltBriefParts;
+  budget: number;
+}): Promise<{ content: string; warnings: string[]; totalTokens: number }> {
+  let warnings = [...options.parts.warnings];
+  let totalTokens = options.parts.totalTokens;
+  let content = "";
+
+  for (let pass = 0; pass < 8; pass += 1) {
+    content = await renderBriefWithAdapter({
+      cwd: options.cwd,
+      adapter: options.adapter,
+      parts: {
+        warnings,
+        workerText: options.parts.workerText,
+        skillText: options.parts.skillText,
+        projectText: options.parts.projectText,
+        memoryText: options.parts.memoryText,
+        taskText: options.parts.taskText,
+        outputContract,
+        readIfNeeded: options.parts.readIfNeeded,
+        report: options.parts.report,
+        totalTokens,
+        budget: options.budget
+      }
+    });
+    const renderedTokens = estimateTokens(content);
+    const needsBudgetWarning =
+      renderedTokens > options.budget &&
+      !warnings.some((warning) => warning.startsWith("Rendered brief exceeds token budget"));
+
+    if (needsBudgetWarning) {
+      warnings = [
+        ...warnings,
+        `Rendered brief exceeds token budget by ${renderedTokens - options.budget} estimated tokens.`
+      ];
+      totalTokens = renderedTokens;
+      continue;
+    }
+
+    if (renderedTokens === totalTokens) {
+      return {
+        content,
+        warnings,
+        totalTokens: renderedTokens
+      };
+    }
+
+    totalTokens = renderedTokens;
+  }
+
+  content = await renderBriefWithAdapter({
+    cwd: options.cwd,
+    adapter: options.adapter,
+    parts: {
+      warnings,
+      workerText: options.parts.workerText,
+      skillText: options.parts.skillText,
+      projectText: options.parts.projectText,
+      memoryText: options.parts.memoryText,
+      taskText: options.parts.taskText,
+      outputContract,
+      readIfNeeded: options.parts.readIfNeeded,
+      report: options.parts.report,
+      totalTokens,
+      budget: options.budget
+    }
+  });
+
+  return {
+    content,
+    warnings,
+    totalTokens: estimateTokens(content)
+  };
+}
+
 function extractReadIfNeeded(projectBody: string): string {
   const lines = projectBody.split(/\r?\n/);
   const start = lines.findIndex((line) => /^##\s+read if needed\s*$/i.test(line.trim()));
@@ -162,8 +240,7 @@ async function selectMemoryForSkills(options: {
       }
       seen.add(item.id);
       return true;
-    })
-    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    });
   const selected: MemoryItem[] = [];
   let tokens = 0;
 
@@ -341,27 +418,18 @@ export async function generateBrief(input: GenerateBriefOptions): Promise<Genera
     );
   }
 
+  const rendered = await renderStableBrief({
+    cwd: options.cwd,
+    adapter: options.adapter,
+    parts,
+    budget: options.budget
+  });
+
   return {
-    content: await renderBriefWithAdapter({
-      cwd: options.cwd,
-      adapter: options.adapter,
-      parts: {
-        warnings: parts.warnings,
-        workerText: parts.workerText,
-        skillText: parts.skillText,
-        projectText: parts.projectText,
-        memoryText: parts.memoryText,
-        taskText: parts.taskText,
-        outputContract,
-        readIfNeeded: parts.readIfNeeded,
-        report: parts.report,
-        totalTokens: parts.totalTokens,
-        budget: options.budget
-      }
-    }),
-    warnings: parts.warnings,
+    content: rendered.content,
+    warnings: rendered.warnings,
     report: parts.report,
-    totalTokens: parts.totalTokens,
+    totalTokens: rendered.totalTokens,
     budget: options.budget
   };
 }
@@ -393,42 +461,33 @@ export async function inspectBriefTokens(input: GenerateBriefOptions): Promise<{
   projectTokens: number;
   workerName?: string;
   workerTokens: number;
-  memoryCount: number;
   memoryTokens: number;
   taskTokens: number;
   totalTokens: number;
+  renderedTokens: number;
   budget: number;
+  warnings: string[];
+  report: TokenReportLine[];
 }> {
   const options = await resolveBriefOptions(input);
-  const skills = await Promise.all(options.skills.map((skill) => readSkill(options.cwd, skill)));
-  const project = await readProject(options.cwd, options.project);
-  const memory = await selectMemoryForSkills({
-    cwd: options.cwd,
-    project: options.project,
-    skills: options.skills,
-    maxTokens: DEFAULT_MEMORY_BUDGET
-  });
-  const workerTokens = options.worker
-    ? estimateTokens(await formatWorkerForBrief(options.cwd, options.worker))
-    : 0;
-  const skillTokens = skills.reduce((sum, skill) => sum + estimateTokens(skill.body), 0);
-  const projectTokens = estimateTokens(project.body);
-  const taskTokens = estimateTokens(input.task.trim());
-  const totalTokens =
-    workerTokens + skillTokens + projectTokens + memory.tokens + taskTokens + estimateTokens(outputContract);
+  const generated = await generateBrief(input);
+  const reportValue = (labels: string[]): number =>
+    generated.report.find((line) => labels.includes(line.label))?.used ?? 0;
 
   return {
     skillName: options.skills.join(","),
-    skillTokens,
+    skillTokens: reportValue(["Skill", "Skills"]),
     projectName: options.project,
-    projectTokens,
+    projectTokens: reportValue(["Project Context"]),
     workerName: options.worker,
-    workerTokens,
-    memoryCount: memory.items.length,
-    memoryTokens: memory.tokens,
-    taskTokens,
-    totalTokens,
-    budget: options.budget
+    workerTokens: reportValue(["Worker"]),
+    memoryTokens: reportValue(["Memory"]),
+    taskTokens: reportValue(["Task"]),
+    totalTokens: generated.totalTokens,
+    renderedTokens: generated.totalTokens,
+    budget: options.budget,
+    warnings: generated.warnings,
+    report: generated.report
   };
 }
 

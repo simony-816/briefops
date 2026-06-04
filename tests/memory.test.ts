@@ -50,4 +50,44 @@ describe("memory", () => {
       expect(selected.text).not.toContain("Old incident");
     });
   });
+
+  it("prefers project+skill memory over newer lower-priority matches", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Highest priority project and skill match."
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await addMemory({
+        cwd: dir,
+        type: "facts",
+        project: "atlas-q",
+        content: "Newer project-only match."
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await addMemory({
+        cwd: dir,
+        type: "decisions",
+        skill: "risk-review",
+        content: "Newest skill-only match."
+      });
+
+      const selected = await selectRelevantMemory({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        maxTokens: 500
+      });
+
+      expect(selected.items.map((item) => item.content)).toEqual([
+        "Highest priority project and skill match.",
+        "Newer project-only match.",
+        "Newest skill-only match."
+      ]);
+    });
+  });
 });
