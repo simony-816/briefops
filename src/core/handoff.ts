@@ -1,7 +1,7 @@
 import path from "node:path";
 import { BriefOpsError } from "./errors.js";
-import { listWorkLogs, summarizeRecentLogs } from "./log.js";
-import { formatMemoryItem, selectContinuityContext } from "./memory.js";
+import { listWorkLogs } from "./log.js";
+import { formatMemoryItem, selectContinuityContext, taskKeywords } from "./memory.js";
 import { readProject } from "./project.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import {
@@ -16,6 +16,7 @@ import { generateWorkerIntelligence, readWorker } from "./worker.js";
 import { requireWorkspace } from "./workspace.js";
 import { handoffSchema, type HandoffMetadata } from "../schemas/handoff.js";
 import type { TokenReportLine } from "../schemas/brief.js";
+import type { WorkLog } from "../schemas/log.js";
 
 const defaultPolicy = {
   max_total_tokens: 2500,
@@ -70,6 +71,71 @@ function renderTokenReport(lines: TokenReportLine[], total: number, budget: numb
 
 function formatMemory(items: ReturnType<typeof formatMemoryItem>[]): string {
   return items.length > 0 ? items.join("\n") : "No active matching memory found.";
+}
+
+function formatLogItem(log: WorkLog): string {
+  const details = [
+    log.result,
+    ...log.open_risks.map((risk) => `open risk: ${risk}`),
+    ...log.decisions.map((decision) => `decision: ${decision}`),
+    ...log.incidents.map((incident) => `incident: ${incident}`),
+    ...log.next_steps.map((step) => `next: ${step}`)
+  ].join("; ");
+  return `- ${log.created_at.slice(0, 10)}: ${log.task}; ${details}`;
+}
+
+function scoreLogItem(log: WorkLog, task?: string): number {
+  const taskWords = taskKeywords(task);
+  const logWords = taskKeywords([
+    log.task,
+    log.result,
+    ...log.lessons,
+    ...log.open_risks,
+    ...log.next_steps,
+    ...log.decisions,
+    ...log.incidents
+  ].join(" "));
+  const overlap = [...taskWords].filter((word) => logWords.has(word)).length;
+  const age = Date.parse(log.created_at);
+  const fresh = Number.isNaN(age) ? 0 : Math.max(0, 10 - Math.floor((Date.now() - age) / 86_400_000));
+
+  return (
+    overlap * 8 +
+    fresh +
+    log.open_risks.length * 12 +
+    log.decisions.length * 10 +
+    log.incidents.length * 8 +
+    log.next_steps.length * 4
+  );
+}
+
+function selectLogItems(options: {
+  logs: WorkLog[];
+  task?: string;
+  maxTokens: number;
+  quota: number;
+}): string {
+  const ordered = options.logs
+    .map((log) => ({
+      log,
+      score: scoreLogItem(log, options.task)
+    }))
+    .sort((a, b) => b.score - a.score || b.log.created_at.localeCompare(a.log.created_at))
+    .slice(0, options.quota);
+  const selected: string[] = [];
+  let tokens = 0;
+
+  for (const item of ordered) {
+    const text = formatLogItem(item.log);
+    const itemTokens = estimateTokens(text);
+    if (selected.length > 0 && tokens + itemTokens > options.maxTokens) {
+      continue;
+    }
+    selected.push(text);
+    tokens += itemTokens;
+  }
+
+  return selected.length > 0 ? selected.join("\n") : "No recent work logs found.";
 }
 
 async function resolveHandoffContext(options: GenerateHandoffOptions): Promise<{
@@ -153,17 +219,17 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
       })).content
     : "No worker selected.";
   let workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
-  let logsText = truncateToTokenBudget(await summarizeRecentLogs({
-    cwd: context.cwd,
-    project: context.project,
-    worker: context.worker,
-    limit: 5
-  }), defaultPolicy.recent_logs).text;
   const logs = await listWorkLogs({
     cwd: context.cwd,
     project: context.project,
     worker: context.worker,
-    limit: 5
+    limit: 12
+  });
+  let logsText = selectLogItems({
+    logs,
+    task: context.task,
+    maxTokens: defaultPolicy.recent_logs,
+    quota: 5
   });
   const memory = await selectContinuityContext({
     cwd: context.cwd,
@@ -280,11 +346,6 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
   let rendered = render();
   const trimTargets = [
     () => {
-      const trimmed = trimSection(decisionsText, 30);
-      decisionsText = trimmed.text;
-      return trimmed.trimmed;
-    },
-    () => {
       const trimmed = trimSection(lessonsText, 30);
       lessonsText = trimmed.text;
       return trimmed.trimmed;
@@ -307,6 +368,11 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
     () => {
       const trimmed = trimSection(projectText, 45);
       projectText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(decisionsText, 30);
+      decisionsText = trimmed.text;
       return trimmed.trimmed;
     }
   ];
@@ -508,11 +574,6 @@ export async function generateCodexResumeFromHandoff(options: GenerateHandoffOpt
   let resume = renderResume();
   const trimResumeTargets = [
     () => {
-      const trimmed = trimMarkdownSection(handoffText, "Active Decisions", 30);
-      handoffText = trimmed.text;
-      return trimmed.trimmed;
-    },
-    () => {
       const trimmed = trimMarkdownSection(handoffText, "Active Lessons", 30);
       handoffText = trimmed.text;
       return trimmed.trimmed;
@@ -539,6 +600,11 @@ export async function generateCodexResumeFromHandoff(options: GenerateHandoffOpt
     },
     () => {
       const trimmed = trimMarkdownSection(handoffText, "Project", 45);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Active Decisions", 30);
       handoffText = trimmed.text;
       return trimmed.trimmed;
     }

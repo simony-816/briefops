@@ -42,6 +42,19 @@ briefops codex resume --worker reviewer --task "Continue auth refactor"
 
 The result is a compact continuity prompt with prior decisions, active lessons, recent work, evidence gates, and after-completion logging commands.
 
+Most repeated work can use the two-command persistent worker loop:
+
+```bash
+briefops finish --worker quant-reviewer --project atlas-q --skill risk-review \
+  --task "Review rebalance logic." \
+  --result "Found missing turnover warning check." \
+  --lesson "Always verify turnover warning threshold." \
+  --next-step "Continue unresolved slippage checks."
+
+briefops continue --worker quant-reviewer \
+  --task "Continue unresolved slippage checks."
+```
+
 ## What BriefOps Is
 
 BriefOps is:
@@ -179,42 +192,39 @@ The mission includes:
 - completion signal
 - token-aware BriefOps brief
 
-### 8. Log the result after Codex finishes
+### 8. Finish the task after Codex finishes
 
 ```bash
-briefops log add \
+briefops finish \
   --project atlas-q \
   --skill risk-review \
   --worker quant-reviewer \
   --task "Review this PR for risk policy violations." \
   --result "Found missing turnover warning check." \
   --lesson "Verify turnover warning threshold when rebalance logic changes." \
+  --open-risk "Slippage assumptions remain unverified." \
+  --next-step "Continue the review and finish unresolved slippage checks." \
   --commands "npm test,npm run build"
 ```
 
-### 9. Propose a skill improvement
+`finish` writes the work log, creates a memory proposal from that log, and prints the next `briefops continue` command.
 
-First promote log lessons into curated memory:
+### 9. Approve memory and continue
 
 ```bash
-briefops memory propose-from-log latest
 briefops memory proposal-list
-briefops memory proposal-apply <proposal-id>
+briefops memory proposal-apply latest
 ```
 
-Refresh the worker and prepare a fresh-thread handoff:
+Then continue in a fresh Codex thread:
 
 ```bash
-briefops worker refresh-summary quant-reviewer
-briefops handoff generate \
+briefops continue \
   --worker quant-reviewer \
-  --task "Continue reviewing rebalance policy changes." \
-  --save
-briefops codex resume \
-  --worker quant-reviewer \
-  --task "Continue the rebalance review and identify remaining risks." \
-  --save
+  --task "Continue the review and finish unresolved slippage checks."
 ```
+
+`continue` checks continuity health, warns about pending memory proposals, refreshes worker intelligence, generates a handoff, saves a Codex resume prompt, and prints the saved path.
 
 Then propose any skill protocol improvement:
 
@@ -228,6 +238,18 @@ Apply only after review:
 
 ```bash
 briefops skill apply-patch risk-review --patch <patch-id>
+```
+
+### Portable resume pack
+
+`.briefops/` is local and private by default. Codex does not automatically read ignored local memory unless you paste or attach a generated resume prompt.
+
+For a self-contained markdown file that does not require Codex to access `.briefops` directly:
+
+```bash
+briefops pack resume \
+  --worker quant-reviewer \
+  --task "Continue the review and finish unresolved slippage checks."
 ```
 
 ## Core Concepts
@@ -257,10 +279,10 @@ Use this loop for repeated Codex work:
 3. Generate a Codex mission when the work is ready.
 4. Paste the mission into Codex.
 5. Let Codex inspect, act, and verify.
-6. Save a work log.
-7. Propose memory from the latest log and apply only after review.
-8. Refresh the worker summary.
-9. Generate handoff or Codex resume prompts for the next thread.
+6. Run briefops finish.
+7. Review and apply the generated memory proposal when it is useful.
+8. Run briefops continue for the next thread.
+9. Use briefops pack resume when the next thread cannot access local .briefops files.
 10. Propose skill patches from lessons when the working protocol should change.
 11. Run evals for important skills.
 ```
@@ -604,6 +626,16 @@ briefops codex resume \
 
 Handoffs are generic continuity documents. Codex-specific behavior lives in `briefops codex resume`.
 
+Create a self-contained portable pack:
+
+```bash
+briefops pack resume \
+  --worker quant-reviewer \
+  --task "Continue the previous review and finish unresolved slippage checks."
+```
+
+Use a pack when you need to paste or attach one markdown file to a fresh thread. It includes the continuity context directly, so the receiving agent does not need direct access to `.briefops`.
+
 List logs:
 
 ```bash
@@ -769,11 +801,15 @@ The task itself is never removed.
 
 By default `.briefops/` is ignored by git in this repository. This keeps local operational memory out of public commits unless you intentionally choose otherwise.
 
+Because `.briefops/` is local/private, Codex does not automatically see it. Provide a saved Codex resume prompt or portable resume pack when starting a fresh thread that needs prior worker context.
+
 ## Command Reference
 
 ```bash
 briefops init
 briefops doctor
+briefops finish --worker <name> --project <name> --skill <name> --task "<task>" --result "<result>"
+briefops continue --worker <name> --task "<task>"
 
 briefops skill create <name>
 briefops skill list
@@ -810,6 +846,7 @@ briefops codex install
 briefops codex mission --worker <name> --task "<task>" --mode loop --save
 briefops codex plan --project <name> --idea "<what to build>" --save
 briefops codex resume --worker <name> --task "<task>" --from-handoff <id|latest> --mode loop --save
+briefops pack resume --worker <name> --task "<task>"
 
 briefops log add
 briefops log list

@@ -13,6 +13,8 @@ import {
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
 import { createWorker, readWorkerSummary, refreshWorkerSummary } from "../src/core/worker.js";
+import { readTextFile } from "../src/core/storage.js";
+import { continueWork, finishWork, packResume } from "../src/core/workflow.js";
 import { initWorkspace } from "../src/core/workspace.js";
 import { withTempDir } from "./helpers.js";
 
@@ -406,6 +408,56 @@ describe("persistent worker continuity", () => {
       });
       expect(resume.content).toContain("## Completion Signal");
       expect(resume.tokens).toBeLessThanOrEqual(1400);
+    });
+  });
+
+  it("runs the persistent worker UX with finish, memory approval, continue, and portable pack", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const finished = await finishWork({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance logic for risk policy violations.",
+        result: "Found missing turnover warning check and unverified slippage assumptions.",
+        lessons: ["Always verify turnover warning threshold when rebalance logic changes."],
+        decisions: ["Treat unverified slippage assumptions as blocking before merge recommendation."],
+        incidents: ["Missing turnover warning check was found during rebalance review."],
+        openRisks: ["Slippage assumptions were not verified against the project risk policy."],
+        nextSteps: ["Inspect risk policy and add slippage verification to the review checklist."],
+        commands: "npm test,npm run build",
+        refreshWorker: true
+      });
+      expect(finished.nextCommand).toContain("briefops continue");
+      expect(finished.memoryProposalId).toContain("memprop_");
+
+      await applyMemoryProposal({ cwd: dir, id: finished.memoryProposalId });
+      const continued = await continueWork({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue the previous review and finish unresolved slippage checks.",
+        budget: 3000,
+        mode: "loop"
+      });
+      expect(continued.resumePath).toBeTruthy();
+      const resume = await readTextFile(continued.resumePath as string);
+      expect(resume).toContain("Always verify turnover warning threshold");
+      expect(resume).toContain("Treat unverified slippage assumptions as blocking");
+      expect(resume).toContain("Slippage assumptions were not verified");
+      expect(resume).toContain("## Worker Intelligence");
+      expect(resume).toContain("Continuity Contract");
+      expect(resume).toContain("<briefops-complete>DONE</briefops-complete>");
+
+      const pack = await packResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue the previous review and finish unresolved slippage checks.",
+        budget: 3000
+      });
+      expect(pack.content).toContain("# BriefOps Portable Resume Pack");
+      expect(pack.content).toContain("Always verify turnover warning threshold");
+      expect(pack.content).not.toContain("Project file: .briefops/");
     });
   });
 });
