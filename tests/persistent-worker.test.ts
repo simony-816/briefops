@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { inspectContinuityHealth } from "../src/core/continuity.js";
 import { generateCodexResume } from "../src/core/codex.js";
 import { generateHandoff } from "../src/core/handoff.js";
 import { addWorkLog } from "../src/core/log.js";
@@ -180,7 +181,6 @@ describe("persistent worker continuity", () => {
         worker: "quant-reviewer",
         task: "Continue reviewing rebalance policy changes.",
         budget: 3000,
-        adapter: "codex",
         save: true
       });
       expect(handoff.content).toContain("# BriefOps Continuity Handoff");
@@ -233,6 +233,8 @@ describe("persistent worker continuity", () => {
         task: "Review rebalance logic for risk policy violations.",
         result: "Found missing turnover warning check and unverified slippage assumptions.",
         lessons: ["Always verify turnover warning threshold when rebalance logic changes."],
+        decisions: ["Treat unverified slippage assumptions as blocking before merge recommendation."],
+        incidents: ["Missing turnover warning check was found during rebalance review."],
         openRisks: ["Slippage assumptions were not verified against the project risk policy."],
         nextSteps: ["Inspect risk policy and add slippage verification to the review checklist."],
         commands: "npm test,npm run build"
@@ -243,6 +245,7 @@ describe("persistent worker continuity", () => {
       expect(proposal.proposal.items.map((item) => item.type)).toContain("incident");
       expect(proposal.proposal.items.map((item) => item.type)).toContain("decision");
       await applyMemoryProposal({ cwd: dir, id: "latest" });
+      await refreshWorkerSummary({ cwd: dir, name: "quant-reviewer" });
 
       const handoff = await generateHandoff({
         cwd: dir,
@@ -256,6 +259,7 @@ describe("persistent worker continuity", () => {
       expect(handoff.content).toContain("Rule-based quantitative trading system");
       expect(handoff.content).toContain("Found missing turnover warning check");
       expect(handoff.content).toContain("Always verify turnover warning threshold");
+      expect(handoff.content).toContain("Treat unverified slippage assumptions as blocking");
       expect(handoff.content).toContain("Slippage assumptions were not verified");
       expect(handoff.content).toContain("Suggested Next Actions");
       expect(handoff.content).toContain("Token Budget Report");
@@ -275,8 +279,133 @@ describe("persistent worker continuity", () => {
       expect(resume.content).toContain("## Worker Intelligence");
       expect(resume.content).toContain("Evidence Gates");
       expect(resume.content).toContain("Token Budget Report");
+      expect(resume.content).toContain("Always verify turnover warning threshold");
+      expect(resume.content).toContain("Treat unverified slippage assumptions as blocking");
+      expect(resume.content).toContain("Slippage assumptions were not verified");
+      expect(resume.content).toContain("Continuity Contract");
       expect(resume.content).toContain("<briefops-complete>DONE</briefops-complete>");
       expect(resume.savedPath).toBeTruthy();
+    });
+  });
+
+  it("skips duplicate memory when applying a proposal with existing content", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Always verify turnover warning threshold when rebalance logic changes."
+      });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance logic",
+        result: "Completed review.",
+        lessons: ["Always verify turnover warning threshold when rebalance logic changes."]
+      });
+
+      const proposal = await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      const applied = await applyMemoryProposal({ cwd: dir, id: proposal.proposal.id });
+
+      expect(applied.created).toBe(0);
+      expect(applied.skipped).toBe(1);
+    });
+  });
+
+  it("reports inspect continuity PASS, WARN, and FAIL states", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const warn = await inspectContinuityHealth({
+        cwd: dir,
+        project: "atlas-q",
+        worker: "quant-reviewer"
+      });
+      expect(warn.readiness).toBe("WARN");
+
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Always verify turnover warning threshold."
+      });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance",
+        result: "Found missing turnover warning check.",
+        openRisks: ["Slippage assumptions remain unverified."],
+        nextSteps: ["Verify slippage assumptions against policy."]
+      });
+      const pass = await inspectContinuityHealth({
+        cwd: dir,
+        project: "atlas-q",
+        worker: "quant-reviewer"
+      });
+      expect(pass.readiness).toBe("PASS");
+
+      const fail = await inspectContinuityHealth({
+        cwd: dir,
+        project: "missing-project",
+        worker: "quant-reviewer"
+      });
+      expect(fail.readiness).toBe("FAIL");
+    });
+  });
+
+  it("trims handoff and resume context before warning about token budget", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      for (let index = 0; index < 8; index += 1) {
+        await addMemory({
+          cwd: dir,
+          type: "lessons",
+          project: "atlas-q",
+          skill: "risk-review",
+          content: `Lesson ${index}: verify rebalance turnover, slippage, governance policy, and release risk before any recommendation.`
+        });
+        await addMemory({
+          cwd: dir,
+          type: "decisions",
+          project: "atlas-q",
+          skill: "risk-review",
+          content: `Decision ${index}: unverified risk policy assumptions block merge recommendations until checked.`
+        });
+      }
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance policy",
+        result: "Found missing turnover warning check and unverified slippage assumptions.",
+        openRisks: ["Slippage assumptions remain unverified against policy."],
+        nextSteps: ["Verify slippage assumptions against policy."]
+      });
+
+      const handoff = await generateHandoff({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue rebalance risk review.",
+        budget: 900
+      });
+      expect(handoff.warnings).toEqual([]);
+      expect(handoff.tokens).toBeLessThanOrEqual(900);
+
+      const resume = await generateCodexResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue rebalance risk review.",
+        budget: 1400
+      });
+      expect(resume.content).toContain("## Completion Signal");
+      expect(resume.tokens).toBeLessThanOrEqual(1400);
     });
   });
 });

@@ -20,7 +20,6 @@ export function registerHandoffCommands(program: Command): void {
     .option("--worker <worker>", "Worker profile name.")
     .option("--task <task>", "Optional next task.")
     .option("--budget <tokens>", "Overall token budget.", parsePositiveInt, 2500)
-    .option("--adapter <adapter>", "generic|codex|claude-code", "generic")
     .option("--save", "Save to .briefops/handoffs.")
     .option("--output <path>", "Write the handoff to a specific path.")
     .action(async (options: Record<string, unknown>) => {
@@ -29,7 +28,6 @@ export function registerHandoffCommands(program: Command): void {
         worker: options.worker as string | undefined,
         task: options.task as string | undefined,
         budget: options.budget as number,
-        adapter: options.adapter as string | undefined,
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)

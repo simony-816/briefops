@@ -209,7 +209,6 @@ briefops worker refresh-summary quant-reviewer
 briefops handoff generate \
   --worker quant-reviewer \
   --task "Continue reviewing rebalance policy changes." \
-  --adapter codex \
   --save
 briefops codex resume \
   --worker quant-reviewer \
@@ -501,6 +500,18 @@ Statuses:
 - `superseded`
 - `archived`
 
+Promote useful work-log items into durable memory through a human-reviewed proposal:
+
+```bash
+briefops memory propose-from-log latest
+briefops memory proposal-list
+briefops memory proposal-show <proposal-id|latest>
+briefops memory proposal-apply <proposal-id|latest>
+briefops memory proposal-reject <proposal-id|latest>
+```
+
+Extraction is deterministic and local. Lessons, decisions, incidents, open risks, and policy-like next steps can become proposal items.
+
 ## Workers
 
 Create:
@@ -525,6 +536,9 @@ Summarize worker history from logs:
 
 ```bash
 briefops worker summary quant-reviewer
+briefops worker intelligence quant-reviewer
+briefops worker refresh-summary quant-reviewer
+briefops worker inspect quant-reviewer
 ```
 
 Use a worker in a brief or Codex mission:
@@ -546,9 +560,49 @@ briefops log add \
   --task "Review rebalance logic changes." \
   --result "Found missing turnover warning check." \
   --lesson "Add turnover warning verification to the review checklist." \
+  --decision "Treat unverified slippage assumptions as blocking." \
+  --incident "Missing turnover warning check was found during review." \
+  --open-risk "Slippage assumptions remain unverified." \
+  --next-step "Verify slippage assumptions against policy." \
   --files "src/rebalance.ts,tests/rebalance.test.ts" \
   --commands "npm test,npm run build"
 ```
+
+`--lesson`, `--decision`, `--incident`, `--open-risk`, and `--next-step` can be repeated.
+
+## Handoffs and Codex Resume
+
+Generate a compact fresh-thread handoff:
+
+```bash
+briefops handoff generate \
+  --project atlas-q \
+  --worker quant-reviewer \
+  --task "Continue the previous review and finish unresolved slippage checks." \
+  --budget 2500 \
+  --save
+```
+
+List, show, and inspect saved handoffs:
+
+```bash
+briefops handoff list
+briefops handoff show <handoff-id|latest>
+briefops handoff inspect <handoff-id|latest>
+```
+
+Generate a Codex resume mission from a saved or generated handoff:
+
+```bash
+briefops codex resume \
+  --worker quant-reviewer \
+  --task "Continue the previous review and finish unresolved slippage checks." \
+  --from-handoff latest \
+  --mode loop \
+  --save
+```
+
+Handoffs are generic continuity documents. Codex-specific behavior lives in `briefops codex resume`.
 
 List logs:
 
@@ -629,6 +683,19 @@ briefops inspect memory
 briefops inspect memory --project atlas-q
 ```
 
+Inspect task-aware memory retrieval and continuity readiness:
+
+```bash
+briefops inspect retrieval \
+  --project atlas-q \
+  --worker quant-reviewer \
+  --task "Continue rebalance review and finish slippage checks."
+
+briefops inspect continuity \
+  --project atlas-q \
+  --worker quant-reviewer
+```
+
 ## Saved Briefs and Prompts
 
 List saved briefs:
@@ -683,8 +750,11 @@ The task itself is never removed.
 |   +-- lessons.yaml
 |   +-- incidents.yaml
 |   +-- deprecated.yaml
++-- memory-proposals/
 +-- workers/
+|   +-- summaries/
 +-- logs/
++-- handoffs/
 +-- briefs/
 +-- codex/
 |   +-- prompts/
@@ -724,6 +794,11 @@ briefops memory add
 briefops memory list
 briefops memory show <id>
 briefops memory update-status <id> --status <status>
+briefops memory propose-from-log <log-id|latest>
+briefops memory proposal-list
+briefops memory proposal-show <proposal-id|latest>
+briefops memory proposal-apply <proposal-id|latest>
+briefops memory proposal-reject <proposal-id|latest>
 
 briefops brief generate --skill <name> --project <name> --task "<task>" --adapter codex
 briefops brief generate --worker <name> --task "<task>" --adapter codex
@@ -734,6 +809,7 @@ briefops brief inspect <id|latest>
 briefops codex install
 briefops codex mission --worker <name> --task "<task>" --mode loop --save
 briefops codex plan --project <name> --idea "<what to build>" --save
+briefops codex resume --worker <name> --task "<task>" --from-handoff <id|latest> --mode loop --save
 
 briefops log add
 briefops log list
@@ -748,10 +824,20 @@ briefops worker create <name>
 briefops worker list
 briefops worker show <name>
 briefops worker summary <name>
+briefops worker intelligence <name>
+briefops worker refresh-summary <name>
+briefops worker inspect <name>
+
+briefops handoff generate --project <name> --worker <name> --task "<task>" --save
+briefops handoff list
+briefops handoff show <id|latest>
+briefops handoff inspect <id|latest>
 
 briefops inspect tokens
 briefops inspect workspace
 briefops inspect memory
+briefops inspect retrieval --project <name> --worker <name> --task "<task>"
+briefops inspect continuity --project <name> --worker <name>
 ```
 
 ## Example: PR Review With Codex

@@ -1,5 +1,4 @@
 import path from "node:path";
-import { normalizeBriefAdapter, type BriefAdapter } from "./adapter.js";
 import { BriefOpsError } from "./errors.js";
 import { listWorkLogs, summarizeRecentLogs } from "./log.js";
 import { formatMemoryItem, selectContinuityContext } from "./memory.js";
@@ -37,7 +36,6 @@ export type GenerateHandoffOptions = {
   worker?: string;
   task?: string;
   budget?: number;
-  adapter?: string;
   fromHandoff?: string;
   mode?: string;
   completionPromise?: string;
@@ -81,7 +79,6 @@ async function resolveHandoffContext(options: GenerateHandoffOptions): Promise<{
   skills: string[];
   task?: string;
   budget: number;
-  adapter: BriefAdapter;
 }> {
   const cwd = options.cwd ?? process.cwd();
   await requireWorkspace(cwd);
@@ -99,15 +96,53 @@ async function resolveHandoffContext(options: GenerateHandoffOptions): Promise<{
     worker: workerName,
     skills: worker?.default_skills ?? [],
     task: options.task?.trim(),
-    budget: options.budget ?? defaultPolicy.max_total_tokens,
-    adapter: normalizeBriefAdapter(options.adapter)
+    budget: options.budget ?? defaultPolicy.max_total_tokens
+  };
+}
+
+function trimSection(text: string, minTokens: number): { text: string; trimmed: boolean } {
+  const used = estimateTokens(text);
+  if (used <= minTokens) {
+    return { text, trimmed: false };
+  }
+
+  const target = Math.max(minTokens, Math.floor(used * 0.65));
+  const trimmed = truncateToTokenBudget(text, target).text;
+  return {
+    text: trimmed,
+    trimmed: trimmed !== text
+  };
+}
+
+function trimMarkdownSection(markdown: string, heading: string, minTokens: number): {
+  text: string;
+  trimmed: boolean;
+} {
+  const marker = `## ${heading}`;
+  const start = markdown.indexOf(marker);
+  if (start === -1) {
+    return { text: markdown, trimmed: false };
+  }
+
+  const bodyStart = start + marker.length;
+  const nextHeading = markdown.indexOf("\n## ", bodyStart);
+  const end = nextHeading === -1 ? markdown.length : nextHeading;
+  const body = markdown.slice(bodyStart, end);
+  const trimmed = trimSection(body.trim(), minTokens);
+  if (!trimmed.trimmed) {
+    return { text: markdown, trimmed: false };
+  }
+
+  return {
+    text: `${markdown.slice(0, bodyStart)}\n\n${trimmed.text}\n${markdown.slice(end)}`,
+    trimmed: true
   };
 }
 
 export async function generateHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
   const id = `handoff_${formatDateStamp()}`;
-  const projectText = context.project
+  let projectText = context.project
     ? truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
     : "No project selected.";
   const workerSummary = context.worker
@@ -117,8 +152,8 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
         budget: defaultPolicy.worker
       })).content
     : "No worker selected.";
-  const workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
-  const logsText = truncateToTokenBudget(await summarizeRecentLogs({
+  let workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
+  let logsText = truncateToTokenBudget(await summarizeRecentLogs({
     cwd: context.cwd,
     project: context.project,
     worker: context.worker,
@@ -154,121 +189,170 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
   const taskText = truncateToTokenBudget(context.task ?? "No next task provided.", defaultPolicy.task).text;
   const openRisks = logs.flatMap((log) => log.open_risks);
   const nextSteps = logs.flatMap((log) => log.next_steps);
-  const warnings = [
-    memory.omitted > 0 ? `${memory.omitted} memory item(s) were omitted by handoff budget or quotas.` : undefined
-  ].filter((warning): warning is string => Boolean(warning));
-  const sections = [
-    ["Project", projectText, defaultPolicy.project] as const,
-    ["Worker", workerText, defaultPolicy.worker] as const,
-    ["Recent Work", logsText, defaultPolicy.recent_logs] as const,
-    ["Active Decisions", formatMemory(byType("decision")), defaultPolicy.decisions] as const,
-    ["Active Lessons", formatMemory(byType("lesson")), defaultPolicy.lessons] as const,
-    ["Recent Incidents / Risks", formatMemory(byType("incident")), defaultPolicy.incidents] as const,
-    ["Open Risks", openRisks.length > 0 ? openRisks.map((risk) => `- ${risk}`).join("\n") : "No unresolved open risks found.", defaultPolicy.open_risks] as const,
-    ["Current Task", taskText, defaultPolicy.task] as const
-  ];
-  const report = sections.map(([label, text, budget]) => sectionReport(label, text, budget));
-  const body = [
-    "# BriefOps Continuity Handoff",
-    "",
-    "## Purpose",
-    "",
-    "This handoff lets a new AI coding thread continue work without requiring the user to repeat project history, worker judgment, and recent task context.",
-    "",
-    "## Project",
-    "",
-    projectText,
-    "",
-    "## Worker",
-    "",
-    workerText,
-    "",
-    "## Current Task",
-    "",
-    taskText,
-    "",
-    "## Recent Work",
-    "",
-    logsText,
-    "",
-    "## Active Decisions",
-    "",
-    formatMemory(byType("decision")),
-    "",
-    "## Active Lessons",
-    "",
-    formatMemory(byType("lesson")),
-    "",
-    "## Recent Incidents / Risks",
-    "",
-    formatMemory(byType("incident")),
-    "",
-    "## Open Risks",
-    "",
-    openRisks.length > 0 ? openRisks.map((risk) => `- ${risk}`).join("\n") : "No unresolved open risks found.",
-    "",
-    "## Suggested Next Actions",
-    "",
-    nextSteps.length > 0 ? nextSteps.map((step) => `- ${step}`).join("\n") : `- ${taskText}`,
-    "",
-    "## Read If Needed",
-    "",
-    context.project ? `Project file: .briefops/projects/${context.project}.project.md` : "No project references listed.",
-    "",
-    "## Token Budget Report",
-    "",
-    "__TOKEN_REPORT__",
-    ""
-  ].join("\n");
-  let content = body;
-  let tokens = estimateTokens(content.replace("__TOKEN_REPORT__", ""));
-  content = content.replace("__TOKEN_REPORT__", renderTokenReport(report, tokens, context.budget));
-  tokens = estimateTokens(content);
-  if (tokens > context.budget) {
-    warnings.push(`Rendered handoff exceeds token budget by ${tokens - context.budget} estimated tokens.`);
-  }
-  if (warnings.length > 0) {
-    content = content.replace(
-      "## Purpose",
-      `> ${warnings.join("\n> ")}\n\n## Purpose`
-    );
+  let decisionsText = formatMemory(byType("decision"));
+  let lessonsText = formatMemory(byType("lesson"));
+  let incidentsText = formatMemory(byType("incident"));
+  const openRisksText = openRisks.length > 0
+    ? openRisks.map((risk) => `- ${risk}`).join("\n")
+    : "No unresolved open risks found.";
+  const nextActionsText = nextSteps.length > 0
+    ? nextSteps.map((step) => `- ${step}`).join("\n")
+    : `- ${taskText}`;
+  const readIfNeededText = context.project
+    ? `Project file: .briefops/projects/${context.project}.project.md`
+    : "No project references listed.";
+
+  const render = (warnings: string[] = []) => {
+    const sections = [
+      ["Project", projectText, defaultPolicy.project] as const,
+      ["Worker", workerText, defaultPolicy.worker] as const,
+      ["Recent Work", logsText, defaultPolicy.recent_logs] as const,
+      ["Active Decisions", decisionsText, defaultPolicy.decisions] as const,
+      ["Active Lessons", lessonsText, defaultPolicy.lessons] as const,
+      ["Recent Incidents / Risks", incidentsText, defaultPolicy.incidents] as const,
+      ["Open Risks", openRisksText, defaultPolicy.open_risks] as const,
+      ["Current Task", taskText, defaultPolicy.task] as const
+    ];
+    const report = sections.map(([label, text, budget]) => sectionReport(label, text, budget));
+    const warningText = warnings.length > 0 ? `> ${warnings.join("\n> ")}\n\n` : "";
+    const body = [
+      "# BriefOps Continuity Handoff",
+      "",
+      `${warningText}## Purpose`,
+      "",
+      "This handoff lets a new AI coding thread continue work without requiring the user to repeat project history, worker judgment, and recent task context.",
+      "",
+      "## Project",
+      "",
+      projectText,
+      "",
+      "## Worker",
+      "",
+      workerText,
+      "",
+      "## Current Task",
+      "",
+      taskText,
+      "",
+      "## Recent Work",
+      "",
+      logsText,
+      "",
+      "## Active Decisions",
+      "",
+      decisionsText,
+      "",
+      "## Active Lessons",
+      "",
+      lessonsText,
+      "",
+      "## Recent Incidents / Risks",
+      "",
+      incidentsText,
+      "",
+      "## Open Risks",
+      "",
+      openRisksText,
+      "",
+      "## Suggested Next Actions",
+      "",
+      nextActionsText,
+      "",
+      "## Read If Needed",
+      "",
+      readIfNeededText,
+      "",
+      "## Token Budget Report",
+      "",
+      "__TOKEN_REPORT__",
+      ""
+    ].join("\n");
+    let content = body;
+    let tokens = estimateTokens(content.replace("__TOKEN_REPORT__", ""));
+    content = content.replace("__TOKEN_REPORT__", renderTokenReport(report, tokens, context.budget));
     tokens = estimateTokens(content);
+    content = content.replace(/- Total: \d+ \/ \d+/, `- Total: ${tokens} / ${context.budget}`);
+    tokens = estimateTokens(content);
+    return { content, tokens, report };
+  };
+
+  const bodyBudget = Math.max(200, context.budget - 100);
+  let rendered = render();
+  const trimTargets = [
+    () => {
+      const trimmed = trimSection(decisionsText, 30);
+      decisionsText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(lessonsText, 30);
+      lessonsText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(incidentsText, 30);
+      incidentsText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(logsText, 35);
+      logsText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(workerText, 45);
+      workerText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(projectText, 45);
+      projectText = trimmed.text;
+      return trimmed.trimmed;
+    }
+  ];
+  while (rendered.tokens > bodyBudget) {
+    const trimmed = trimTargets.some((trim) => trim());
+    if (!trimmed) {
+      break;
+    }
+    rendered = render();
   }
-  content = content.replace(
-    /- Total: \d+ \/ \d+/,
-    `- Total: ${tokens} / ${context.budget}`
-  );
-  tokens = estimateTokens(content);
+  const warnings = rendered.tokens > bodyBudget
+    ? [`Rendered handoff exceeds token budget by ${rendered.tokens - bodyBudget} estimated tokens after trimming continuity context.`]
+    : [];
+  if (warnings.length > 0) {
+    rendered = render(warnings);
+  }
   const metadata: HandoffMetadata = {
     id,
     created_at: new Date().toISOString(),
     project: context.project,
     worker: context.worker,
     task: context.task,
-    adapter: context.adapter,
+    adapter: "generic",
     budget: context.budget,
-    total_tokens: tokens,
+    total_tokens: rendered.tokens,
     warnings
   };
-  const rendered = stringifyMarkdownWithFrontmatter(metadata, content);
+  const content = stringifyMarkdownWithFrontmatter(metadata, rendered.content);
   const savedPath = options.save
     ? await saveGeneratedHandoff({
         cwd: context.cwd,
         id,
         project: context.project,
         worker: context.worker,
-        content: rendered,
+        content,
         outputPath: options.outputPath
       })
     : undefined;
 
   return {
     id,
-    content: rendered,
-    tokens: estimateTokens(rendered),
+    content,
+    tokens: estimateTokens(content),
     budget: context.budget,
     warnings,
-    report,
+    report: rendered.report,
     savedPath
   };
 }
@@ -356,83 +440,137 @@ export async function generateCodexResumeFromHandoff(options: GenerateHandoffOpt
     : (await generateHandoff({
         ...options,
         cwd: context.cwd,
-        save: false,
-        adapter: "codex"
+        save: false
       })).content;
-  const workerIntelligence = context.worker
+  let workerIntelligence = context.worker
     ? (await generateWorkerIntelligence({
         cwd: context.cwd,
         name: context.worker,
         budget: 800
       })).content
     : "No worker selected.";
-  const content = [
-    "# BriefOps Codex Resume Mission",
-    "",
-    "## Mission",
-    "",
-    `Continue work as ${context.worker ?? "the selected BriefOps worker"}.`,
-    "",
-    "## Continuity Contract",
-    "",
-    "You are starting in a new thread. Do not assume the user will repeat prior context.",
-    "",
-    "Before acting:",
-    "1. Read the handoff.",
-    "2. Restate what is already known.",
-    "3. Identify unresolved risks.",
-    "4. Execute only the current task.",
-    "5. Verify before claiming completion.",
-    "",
-    "## Current Task",
-    "",
-    context.task ?? "Continue prior BriefOps work.",
-    "",
-    "## Handoff",
-    "",
-    handoff.trim(),
-    "",
-    "## Worker Intelligence",
-    "",
-    workerIntelligence.trim(),
-    "",
-    "## Evidence Gates",
-    "",
-    "- Context gate: name the project files, docs, memory items, or logs used.",
-    "- Continuity gate: state which previous result or lesson you are continuing from.",
-    "- Change gate: summarize smallest useful change set.",
-    "- Verification gate: include commands or manual checks.",
-    "- Risk gate: call out unresolved or deferred risks.",
-    options.completionPromise ? `- Completion promise: ${options.completionPromise}` : undefined,
-    "",
-    "## Completion Signal",
-    "",
-    "Only after all gates pass, end with:",
-    "",
-    "```text",
-    "<briefops-complete>DONE</briefops-complete>",
-    "```",
-    ""
-  ].filter((line): line is string => line !== undefined).join("\n");
-  const tokens = estimateTokens(content);
-  const warnings = tokens > context.budget
-    ? [`Rendered Codex resume exceeds token budget by ${tokens - context.budget} estimated tokens.`]
+  let handoffText = handoff.trim();
+  const renderResume = (warnings: string[] = []) => {
+    const warningText = warnings.length > 0 ? `> ${warnings.join("\n> ")}\n\n` : "";
+    const content = [
+      "# BriefOps Codex Resume Mission",
+      "",
+      "## Mission",
+      "",
+      `Continue work as ${context.worker ?? "the selected BriefOps worker"}.`,
+      "",
+      `${warningText}## Continuity Contract`,
+      "",
+      "You are starting in a new thread. Do not assume the user will repeat prior context.",
+      "",
+      "Before acting:",
+      "1. Read the handoff.",
+      "2. Restate what is already known.",
+      "3. Identify unresolved risks.",
+      "4. Execute only the current task.",
+      "5. Verify before claiming completion.",
+      "",
+      "## Current Task",
+      "",
+      context.task ?? "Continue prior BriefOps work.",
+      "",
+      "## Handoff",
+      "",
+      handoffText,
+      "",
+      "## Worker Intelligence",
+      "",
+      workerIntelligence.trim(),
+      "",
+      "## Evidence Gates",
+      "",
+      "- Context gate: name the project files, docs, memory items, or logs used.",
+      "- Continuity gate: state which previous result or lesson you are continuing from.",
+      "- Change gate: summarize smallest useful change set.",
+      "- Verification gate: include commands or manual checks.",
+      "- Risk gate: call out unresolved or deferred risks.",
+      options.completionPromise ? `- Completion promise: ${options.completionPromise}` : undefined,
+      "",
+      "## Completion Signal",
+      "",
+      "Only after all gates pass, end with:",
+      "",
+      "```text",
+      "<briefops-complete>DONE</briefops-complete>",
+      "```",
+      ""
+    ].filter((line): line is string => line !== undefined).join("\n");
+    return {
+      content,
+      tokens: estimateTokens(content)
+    };
+  };
+  let resume = renderResume();
+  const trimResumeTargets = [
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Active Decisions", 30);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Active Lessons", 30);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Recent Incidents / Risks", 30);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Recent Work", 35);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimSection(workerIntelligence, 80);
+      workerIntelligence = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Worker", 45);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    },
+    () => {
+      const trimmed = trimMarkdownSection(handoffText, "Project", 45);
+      handoffText = trimmed.text;
+      return trimmed.trimmed;
+    }
+  ];
+  while (resume.tokens > context.budget) {
+    const trimmed = trimResumeTargets.some((trim) => trim());
+    if (!trimmed) {
+      break;
+    }
+    resume = renderResume();
+  }
+  const warnings = resume.tokens > context.budget
+    ? [`Rendered Codex resume exceeds token budget by ${resume.tokens - context.budget} estimated tokens after trimming continuity context.`]
     : [];
+  if (warnings.length > 0) {
+    resume = renderResume(warnings);
+  }
   const id = `resume_${formatDateStamp()}`;
   const savedPath = options.save
     ? await writeResumePrompt({
         cwd: context.cwd,
         id,
         worker: context.worker,
-        content,
+        content: resume.content,
         outputPath: options.outputPath
       })
     : undefined;
 
   return {
     id,
-    content,
-    tokens,
+    content: resume.content,
+    tokens: resume.tokens,
     budget: context.budget,
     warnings,
     report: [],

@@ -361,7 +361,6 @@ export async function generateCodexResume(options: CodexResumeOptions): Promise<
     budget: options.budget ?? 3000,
     mode: options.mode,
     completionPromise: options.completionPromise,
-    adapter: "codex",
     save: options.save,
     outputPath: options.outputPath
   });
