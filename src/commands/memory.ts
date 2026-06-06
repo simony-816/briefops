@@ -116,6 +116,8 @@ export function registerMemoryCommands(program: Command): void {
     .option("--skill <skill>", "Skill name.")
     .requiredOption("--content <content>", "Memory content.")
     .option("--status <status>", "active|stale|deprecated|superseded|archived", "active")
+    .option("--visibility <visibility>", "private|shared|public", "private")
+    .option("--exportable", "Mark memory as exportable in future filtered exports.")
     .option("--tags <tags>", "Comma-separated tags.")
     .action(async (options: Record<string, unknown>) => {
       const item = await addMemory({
@@ -124,6 +126,8 @@ export function registerMemoryCommands(program: Command): void {
         skill: options.skill as string | undefined,
         content: options.content as string,
         status: options.status as string | undefined,
+        visibility: options.visibility as string | undefined,
+        exportable: Boolean(options.exportable),
         tags: parseCommaList(options.tags as string | undefined)
       });
       console.log(`Added memory: ${item.id}`);
@@ -151,11 +155,13 @@ export function registerMemoryCommands(program: Command): void {
       }
 
       printTable([
-        ["ID", "Type", "Status", "Project", "Skill", "Content"],
+        ["ID", "Type", "Status", "Visibility", "Exportable", "Project", "Skill", "Content"],
         ...items.map((item) => [
           item.id,
           item.type,
           item.status,
+          item.visibility,
+          item.exportable ? "yes" : "no",
           item.project ?? "",
           item.skill ?? "",
           item.content
@@ -177,6 +183,8 @@ export function registerMemoryCommands(program: Command): void {
         ["Skill", item.skill ?? ""],
         ["Content", item.content],
         ["Tags", item.tags.join(",")],
+        ["Visibility", item.visibility],
+        ["Exportable", item.exportable ? "yes" : "no"],
         ["Created", item.created_at]
       ]);
     });

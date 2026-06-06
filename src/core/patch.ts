@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import path from "node:path";
 import { BriefOpsError } from "./errors.js";
 import { readWorkLog } from "./log.js";
 import {
@@ -144,9 +145,17 @@ export async function proposeSkillPatch(
 
 export async function readSkillPatch(cwd: string, id: string): Promise<SkillPatch> {
   await requireWorkspace(cwd);
-  const filePath = skillPatchFilePath(cwd, id);
+  const normalized = id.trim().toLowerCase();
 
   try {
+    const files = await listFilesBySuffix(workspacePaths(cwd).patches, ".patch.yaml");
+    const filePath =
+      normalized === "latest"
+        ? [...files].sort().at(-1)
+        : files.find((file) => path.basename(file).startsWith(normalizeName(id)));
+    if (!filePath) {
+      throw new BriefOpsError(`Skill patch not found: ${id}`);
+    }
     const raw = await readTextFile(filePath);
     const parsed = YAML.parse(raw);
     const result = skillPatchSchema.safeParse(parsed);

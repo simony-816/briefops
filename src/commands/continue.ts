@@ -14,6 +14,7 @@ export function registerContinueCommand(program: Command): void {
     .option("--mode <mode>", "loop|execute|plan", "loop")
     .option("--completion-promise <text>", "Concrete completion promise.")
     .option("--output <path>", "Write the resume prompt to a specific path.")
+    .option("--pack", "Also save a self-contained portable resume pack.")
     .action(async (options: Record<string, unknown>) => {
       const result = await continueWork({
         project: options.project as string | undefined,
@@ -24,7 +25,8 @@ export function registerContinueCommand(program: Command): void {
         completionPromise: options.completionPromise as string | undefined,
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        pack: Boolean(options.pack)
       });
 
       console.log(`Continuity readiness: ${result.readiness}`);
@@ -35,6 +37,20 @@ export function registerContinueCommand(program: Command): void {
           console.log(`- ${warning}`);
         }
       }
+      if (result.pendingMemoryProposals > 0) {
+        console.log("");
+        console.log("Pending memory proposals should be reviewed before continuing.");
+        console.log("");
+        console.log("Review:");
+        console.log("briefops memory proposal-list --status proposed");
+        console.log("briefops memory proposal-show latest");
+        console.log("");
+        console.log("Apply if appropriate:");
+        console.log("briefops memory proposal-apply latest");
+        console.log("");
+        console.log("Reject if not useful:");
+        console.log("briefops memory proposal-reject latest");
+      }
       console.log("");
       console.log(`Refreshed worker summary: ${result.workerSummaryPath}`);
       if (result.handoffPath) {
@@ -42,6 +58,9 @@ export function registerContinueCommand(program: Command): void {
       }
       if (result.resumePath) {
         console.log(`Saved Codex resume: ${result.resumePath}`);
+      }
+      if (result.packPath) {
+        console.log(`Saved portable resume pack: ${result.packPath}`);
       }
     });
 }

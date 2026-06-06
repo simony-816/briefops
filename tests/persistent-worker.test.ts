@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { approveMemory, approveSkillPatch } from "../src/core/approval.js";
 import { inspectContinuityHealth } from "../src/core/continuity.js";
 import { generateCodexResume } from "../src/core/codex.js";
 import { generateHandoff } from "../src/core/handoff.js";
+import { getInboxSummary } from "../src/core/inbox.js";
 import { addWorkLog } from "../src/core/log.js";
 import { addMemory, listMemory, selectRelevantMemory } from "../src/core/memory.js";
 import {
@@ -10,6 +12,7 @@ import {
   readMemoryProposal,
   rejectMemoryProposal
 } from "../src/core/memoryProposal.js";
+import { proposeSkillPatch, readSkillPatch } from "../src/core/patch.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
 import { createWorker, readWorkerSummary, refreshWorkerSummary } from "../src/core/worker.js";
@@ -318,6 +321,222 @@ describe("persistent worker continuity", () => {
     });
   });
 
+  it("finishWork records a log and warns when no memory proposal candidates exist", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+
+      const finished = await finishWork({
+        cwd: dir,
+        worker: "reviewer",
+        task: "Fix typo",
+        result: "Fixed typo."
+      });
+
+      expect(finished.logId).toContain("log_");
+      expect(finished.logPath).toContain(".briefops/logs");
+      expect(finished.memoryProposalId).toBeUndefined();
+      expect(finished.memoryProposalPath).toBeUndefined();
+      expect(finished.warnings).toEqual(["No durable memory proposal candidates found."]);
+      expect(finished.nextCommand).toBe(
+        'briefops continue --worker reviewer --task "Fix typo"'
+      );
+    });
+  });
+
+  it("continueWork can save a portable pack with the handoff and resume", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Always verify turnover warning threshold."
+      });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance",
+        result: "Found missing turnover warning check.",
+        openRisks: ["Slippage assumptions remain unverified."],
+        nextSteps: ["Verify slippage assumptions against policy."]
+      });
+
+      const continued = await continueWork({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue unresolved slippage checks.",
+        budget: 3000,
+        pack: true
+      });
+
+      expect(continued.handoffPath).toBeTruthy();
+      expect(continued.resumePath).toBeTruthy();
+      expect(continued.packPath).toBeTruthy();
+      expect(await readTextFile(continued.packPath as string)).toContain(
+        "# BriefOps Portable Resume Pack"
+      );
+    });
+  });
+
+  it("packResume includes self-contained header metadata", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Always verify turnover warning threshold."
+      });
+
+      const pack = await packResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue unresolved slippage checks.",
+        budget: 3000
+      });
+
+      expect(pack.content).toContain("# BriefOps Portable Resume Pack");
+      expect(pack.content).toContain("This pack is self-contained.");
+      expect(pack.content).toContain("Worker: quant-reviewer");
+      expect(pack.content).toContain("Task: Continue unresolved slippage checks.");
+      expect(pack.content).toContain("Generated:");
+      expect(pack.content).toContain("Estimated tokens:");
+      expect(pack.content).not.toContain("Project file: .briefops/");
+    });
+  });
+
+  it("stores memory visibility and export metadata from manual adds and proposals", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const manual = await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Shared lesson for future export.",
+        visibility: "shared",
+        exportable: true
+      });
+      expect(manual.visibility).toBe("shared");
+      expect(manual.exportable).toBe(true);
+
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance",
+        result: "Completed review.",
+        lessons: ["Private lesson from work log."]
+      });
+      const proposed = await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      expect(proposed.proposal.items[0].visibility).toBe("private");
+      expect(proposed.proposal.items[0].exportable).toBe(false);
+
+      await applyMemoryProposal({ cwd: dir, id: proposed.proposal.id });
+      const applied = await listMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review"
+      });
+      expect(applied.find((item) => item.content === "Private lesson from work log.")?.visibility)
+        .toBe("private");
+      expect(applied.find((item) => item.content === "Private lesson from work log.")?.exportable)
+        .toBe(false);
+    });
+  });
+
+  it("approves memory proposals and skill patches through convenience helpers", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance",
+        result: "Found missing turnover warning check.",
+        lessons: ["Always verify turnover warning threshold."],
+        nextSteps: ["Verify turnover warning threshold before merge."]
+      });
+      await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+
+      const memory = await approveMemory({ cwd: dir, id: "latest" });
+      expect(memory.kind).toBe("memory");
+      expect(memory.created).toBeGreaterThan(0);
+
+      const patch = await proposeSkillPatch({
+        cwd: dir,
+        skill: "risk-review",
+        fromLog: "latest"
+      });
+      expect((await readSkillPatch(dir, patch.patch.id)).status).toBe("proposed");
+
+      const approvedPatch = await approveSkillPatch({ cwd: dir, id: "latest" });
+      expect(approvedPatch.kind).toBe("skill-patch");
+      expect(approvedPatch.patch.status).toBe("applied");
+      expect(approvedPatch.skillPath).toContain("risk-review.skill.md");
+    });
+  });
+
+  it("summarizes the local inbox queue", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Old lesson.",
+        status: "stale"
+      });
+      await addMemory({
+        cwd: dir,
+        type: "deprecated",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Deprecated local rule."
+      });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review rebalance",
+        result: "Found missing turnover warning check.",
+        lessons: ["Always verify turnover warning threshold."],
+        openRisks: ["Slippage assumptions remain unverified."]
+      });
+      await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      await proposeSkillPatch({
+        cwd: dir,
+        skill: "risk-review",
+        fromLog: "latest"
+      });
+
+      const inbox = await getInboxSummary({
+        cwd: dir,
+        project: "atlas-q",
+        worker: "quant-reviewer",
+        skill: "risk-review"
+      });
+
+      expect(inbox.pendingMemoryProposals).toBe(1);
+      expect(inbox.pendingSkillPatches).toBe(1);
+      expect(inbox.openRisks).toBe(1);
+      expect(inbox.staleMemory).toBe(1);
+      expect(inbox.deprecatedMemory).toBe(1);
+      expect(inbox.recommendedCommands).toContain(
+        "briefops memory proposal-list --status proposed"
+      );
+    });
+  });
+
   it("reports inspect continuity PASS, WARN, and FAIL states", async () => {
     await withTempDir(async (dir) => {
       await seedContinuityWorkspace(dir);
@@ -438,9 +657,11 @@ describe("persistent worker continuity", () => {
         worker: "quant-reviewer",
         task: "Continue the previous review and finish unresolved slippage checks.",
         budget: 3000,
-        mode: "loop"
+        mode: "loop",
+        pack: true
       });
       expect(continued.resumePath).toBeTruthy();
+      expect(continued.packPath).toBeTruthy();
       const resume = await readTextFile(continued.resumePath as string);
       expect(resume).toContain("Always verify turnover warning threshold");
       expect(resume).toContain("Treat unverified slippage assumptions as blocking");

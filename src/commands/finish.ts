@@ -44,14 +44,23 @@ export function registerFinishCommand(program: Command): void {
 
       console.log(`Added work log: ${result.logId}`);
       console.log(result.logPath);
-      console.log(`Created memory proposal: ${result.memoryProposalId}`);
-      console.log(result.memoryProposalPath);
+      if (result.memoryProposalId && result.memoryProposalPath) {
+        console.log(`Created memory proposal: ${result.memoryProposalId}`);
+        console.log(result.memoryProposalPath);
+      }
       if (result.skillPatchId && result.skillPatchPath) {
         console.log(`Created skill patch: ${result.skillPatchId}`);
         console.log(result.skillPatchPath);
       }
       if (result.workerSummaryPath) {
         console.log(`Refreshed worker summary: ${result.workerSummaryPath}`);
+      }
+      if (result.warnings.length > 0) {
+        console.log("");
+        console.log("Warnings:");
+        for (const warning of result.warnings) {
+          console.log(`- ${warning}`);
+        }
       }
       console.log("");
       console.log("Next command:");

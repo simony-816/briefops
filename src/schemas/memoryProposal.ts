@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { memoryCategories } from "../core/paths.js";
-import { memoryItemTypes, memoryStatuses } from "./memory.js";
+import { memoryItemTypes, memoryStatuses, memoryVisibilities } from "./memory.js";
 
 export const memoryProposalStatuses = ["proposed", "applied", "rejected"] as const;
 
@@ -11,6 +11,8 @@ export const memoryProposalEntrySchema = z.object({
   content: z.string().min(1),
   source: z.string().optional(),
   tags: z.array(z.string()).default([]),
+  visibility: z.enum(memoryVisibilities).default("private"),
+  exportable: z.boolean().default(false),
   rationale: z.string().default("")
 }).transform((entry) => ({
   ...entry,

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const memoryItemTypes = ["fact", "decision", "lesson", "incident", "deprecated"] as const;
 export const memoryStatuses = ["active", "stale", "deprecated", "superseded", "archived"] as const;
+export const memoryVisibilities = ["private", "shared", "public"] as const;
 
 export const memoryItemSchema = z.object({
   id: z.string().min(1),
@@ -12,7 +13,9 @@ export const memoryItemSchema = z.object({
   content: z.string().min(1),
   source: z.string().default("manual"),
   created_at: z.string().datetime(),
-  tags: z.array(z.string()).default([])
+  tags: z.array(z.string()).default([]),
+  visibility: z.enum(memoryVisibilities).default("private"),
+  exportable: z.boolean().default(false)
 });
 
 export const memoryFileSchema = z.object({
@@ -21,4 +24,5 @@ export const memoryFileSchema = z.object({
 
 export type MemoryItem = z.infer<typeof memoryItemSchema>;
 export type MemoryStatus = (typeof memoryStatuses)[number];
+export type MemoryVisibility = (typeof memoryVisibilities)[number];
 export type MemoryFile = z.infer<typeof memoryFileSchema>;

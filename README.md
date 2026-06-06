@@ -1,88 +1,40 @@
 # BriefOps
 
-Stop dumping context. Compile it.
-
 BriefOps is a local-first, token-aware persistent work history layer for AI coding agents.
 
-It turns project rules, skills, decisions, lessons, and work history into compact task and handoff briefs for Codex, Claude Code, and similar tools.
-
-BriefOps does not run agents.
-BriefOps prepares better continuity for them.
-
-## Why BriefOps
-
-AI coding sessions often begin with the same setup:
-
-- what the project is
-- what rules the agent must follow
-- what previous lessons matter
-- what the current task actually asks for
-- how the agent should prove it is done
-
-BriefOps stores durable context as local files, then compiles only the relevant pieces into token-aware briefs, handoffs, and Codex resume missions.
-
-```text
-Skill + Project Context + Relevant Memory + Worker + Task
-  -> Token-aware Brief
-  -> Work Log
-  -> Human-approved Memory / Skill Proposal
-  -> Worker Summary
-  -> Handoff / Codex Resume Prompt
-  -> Better future threads
-```
-
-Before:
-A new Codex thread starts from zero. The user pastes repeated project context and prior decisions.
-
-After:
+The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, promote useful work history into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
 
 ```bash
-briefops codex resume --worker reviewer --task "Continue auth refactor"
+briefops finish ...
+briefops memory proposal-show latest
+briefops memory proposal-apply latest
+briefops continue --worker <worker> --task "<next task>" --pack
 ```
 
-The result is a compact continuity prompt with prior decisions, active lessons, recent work, evidence gates, and after-completion logging commands.
-
-Most repeated work can use the two-command persistent worker loop:
-
-```bash
-briefops finish --worker quant-reviewer --project atlas-q --skill risk-review \
-  --task "Review rebalance logic." \
-  --result "Found missing turnover warning check." \
-  --lesson "Always verify turnover warning threshold." \
-  --next-step "Continue unresolved slippage checks."
-
-briefops continue --worker quant-reviewer \
-  --task "Continue unresolved slippage checks."
-```
+BriefOps does not run agents. It prepares deterministic local context for them.
 
 ## What BriefOps Is
 
-BriefOps is:
-
 - a local CLI
-- a reusable skill and project context registry
-- a curated memory store
-- a token-aware brief compiler
-- a Codex mission prompt generator
-- a work log and learning loop
-- a deterministic checklist eval runner
-- a persistent worker profile system with summaries, handoffs, and task-aware memory retrieval
+- a file-based skill, project, memory, worker, and work-log store
+- a deterministic memory proposal and approval workflow
+- a token-aware brief, handoff, Codex mission, and resume generator
+- a persistent worker continuity layer for fresh AI coding threads
 
 ## What BriefOps Is Not
 
-BriefOps is alpha software and intentionally scoped.
+BriefOps is intentionally scoped. It is not:
 
-It is not:
-
-- an agent runtime
-- a Codex replacement
 - an LLM client
 - a vector database
 - a SaaS product
-- a dashboard
-- a multi-agent orchestration system
+- a web UI
+- an agent runtime
+- a multi-agent orchestrator
+- a cloud sync service
+- an MCP server
 
-BriefOps prepares the context. Codex or another coding agent still performs the work.
+Everything important lives in local files under `.briefops/`.
 
 ## Install
 
@@ -100,7 +52,7 @@ Run during development without linking:
 npm run dev -- --help
 ```
 
-Check the installed CLI:
+Check the CLI:
 
 ```bash
 briefops --version
@@ -109,9 +61,9 @@ briefops --help
 
 ## 5-Minute Codex Quickstart
 
-This is the recommended first flow if you want BriefOps to feel Codex-native.
+This is the primary BriefOps workflow.
 
-### 1. Initialize BriefOps
+### 1. Initialize
 
 ```bash
 briefops init
@@ -119,7 +71,7 @@ briefops init
 
 This creates a local `.briefops/` workspace.
 
-### 2. Install Codex guidance
+### 2. Install Codex Guidance
 
 ```bash
 briefops codex install
@@ -127,7 +79,7 @@ briefops codex install
 
 This creates or updates `AGENTS.md` with BriefOps guidance and creates `.briefops/codex/prompts/`.
 
-### 3. Create a skill
+### 3. Create A Skill
 
 ```bash
 briefops skill create risk-review \
@@ -135,9 +87,9 @@ briefops skill create risk-review \
   --tags "review,risk,governance"
 ```
 
-A skill is a short reusable working protocol.
+A skill is a reusable working protocol.
 
-### 4. Create project context
+### 4. Create Project Context
 
 ```bash
 briefops project create atlas-q \
@@ -147,20 +99,7 @@ briefops project create atlas-q \
 
 A project stores durable facts and constraints.
 
-### 5. Add useful memory
-
-```bash
-briefops memory add \
-  --type lessons \
-  --project atlas-q \
-  --skill risk-review \
-  --content "Always verify turnover warning threshold when rebalance logic changes." \
-  --tags "rebalance,turnover,risk"
-```
-
-Memory is curated operational knowledge, not raw chat history.
-
-### 6. Create a worker profile
+### 5. Create A Worker
 
 ```bash
 briefops worker create quant-reviewer \
@@ -169,9 +108,9 @@ briefops worker create quant-reviewer \
   --style "governance-first,no strategy drift without approval"
 ```
 
-A worker is a skill bundle with a default project, style notes, and recent work history.
+A worker is the persistent identity BriefOps carries across fresh threads: default project, skill bundle, style, lessons, risks, and judgment profile.
 
-### 7. Generate a Codex mission
+### 6. Start A Codex Mission
 
 ```bash
 briefops codex mission \
@@ -184,15 +123,9 @@ briefops codex mission \
 
 Paste the generated mission prompt into Codex.
 
-The mission includes:
+### 7. Finish The Task
 
-- Codex operating contract
-- evidence gates
-- completion promise
-- completion signal
-- token-aware BriefOps brief
-
-### 8. Finish the task after Codex finishes
+When Codex finishes, record what happened:
 
 ```bash
 briefops finish \
@@ -202,284 +135,166 @@ briefops finish \
   --task "Review this PR for risk policy violations." \
   --result "Found missing turnover warning check." \
   --lesson "Verify turnover warning threshold when rebalance logic changes." \
+  --decision "Treat unverified slippage assumptions as blocking before merge recommendation." \
   --open-risk "Slippage assumptions remain unverified." \
   --next-step "Continue the review and finish unresolved slippage checks." \
   --commands "npm test,npm run build"
 ```
 
-`finish` writes the work log, creates a memory proposal from that log, and prints the next `briefops continue` command.
+`finish` always writes a work log when `--task` and `--result` are valid. If the log has no durable memory candidates, `finish` warns and still prints the next `briefops continue` command.
 
-### 9. Approve memory and continue
+### 8. Review And Apply Memory
+
+Memory is human-approved. Review the proposal:
 
 ```bash
-briefops memory proposal-list
+briefops memory proposal-show latest
+```
+
+Apply it only when useful:
+
+```bash
 briefops memory proposal-apply latest
 ```
 
-Then continue in a fresh Codex thread:
+You can also use the convenience command:
+
+```bash
+briefops approve latest
+```
+
+### 9. Continue In A Fresh Thread
 
 ```bash
 briefops continue \
   --worker quant-reviewer \
-  --task "Continue the review and finish unresolved slippage checks."
+  --task "Continue the review and finish unresolved slippage checks." \
+  --pack
 ```
 
-`continue` checks continuity health, warns about pending memory proposals, refreshes worker intelligence, generates a handoff, saves a Codex resume prompt, and prints the saved path.
+`continue --pack` checks continuity health, warns about pending memory proposals, refreshes worker intelligence, saves a handoff, saves a Codex resume prompt, saves a portable resume pack, and prints all generated paths.
 
-Then propose any skill protocol improvement:
+## Finish / Continue UX
+
+`finish` records what happened.
+
+It writes a work log, proposes durable memory when the log contains useful candidates, can propose a skill patch, can refresh the worker summary, and prints the next `briefops continue` command.
+
+`continue` prepares the same worker for a fresh thread.
+
+It inspects continuity health, warns about pending memory proposals, refreshes the worker summary, generates a handoff, and saves a Codex resume prompt. Add `--pack` when you also want one self-contained markdown file.
 
 ```bash
-briefops skill propose-patch --skill risk-review --from-log latest
+briefops finish \
+  --worker quant-reviewer \
+  --project atlas-q \
+  --skill risk-review \
+  --task "Review rebalance logic." \
+  --result "Found missing turnover warning check." \
+  --lesson "Always verify turnover warning threshold." \
+  --next-step "Continue unresolved slippage checks."
+
+briefops memory proposal-show latest
+briefops memory proposal-apply latest
+
+briefops continue \
+  --worker quant-reviewer \
+  --task "Continue unresolved slippage checks." \
+  --pack
 ```
 
-BriefOps proposes a patch. It does not auto-apply skill changes.
+If pending memory proposals exist, `continue` prints explicit review, apply, and reject commands. It never applies memory automatically.
 
-Apply only after review:
+## Portable Resume Pack
 
-```bash
-briefops skill apply-patch risk-review --patch <patch-id>
-```
-
-### Portable resume pack
-
-`.briefops/` is local and private by default. Codex does not automatically read ignored local memory unless you paste or attach a generated resume prompt.
-
-For a self-contained markdown file that does not require Codex to access `.briefops` directly:
+Use `pack resume` when Codex cannot access your local `.briefops` workspace or when you want one markdown file to paste or attach to a fresh thread.
 
 ```bash
 briefops pack resume \
   --worker quant-reviewer \
-  --task "Continue the review and finish unresolved slippage checks."
+  --task "Continue unresolved slippage checks."
 ```
+
+Portable packs are self-contained and include continuity context directly. Review packs before sharing outside your local machine. They may include local project memory, decisions, lessons, risks, and worker history.
+
+By default, packs include private memory because pack generation is an explicit local user action. Memory still stores `visibility` and `exportable` metadata for future filtering:
+
+```bash
+briefops memory add \
+  --type lessons \
+  --content "Always verify turnover warning threshold." \
+  --visibility shared \
+  --exportable
+```
+
+Defaults:
+
+```yaml
+visibility: private
+exportable: false
+```
+
+BriefOps does not add cloud sync or encryption.
+
+## Approvals
+
+Memory and skill changes are human-approved.
+
+Use explicit proposal commands:
+
+```bash
+briefops memory proposal-show latest
+briefops memory proposal-apply latest
+briefops memory proposal-reject latest
+
+briefops skill patch-show latest
+briefops skill apply-patch risk-review --patch latest
+briefops skill reject-patch latest
+```
+
+Or use the convenience approval command:
+
+```bash
+briefops approve latest
+briefops approve memory latest
+briefops approve skill-patch latest
+```
+
+`briefops approve <id|latest>` tries memory first. If no matching memory proposal exists, it tries a skill patch. It applies at most one item.
+
+## Inbox
+
+Use `inbox` to see pending memory proposals, skill patches, open risks, stale or deprecated memory counts, and recommended next commands.
+
+```bash
+briefops inbox
+briefops inbox --project atlas-q
+briefops inbox --worker quant-reviewer
+briefops inbox --skill risk-review
+```
+
+`inbox` is read-only. It does not mutate files.
 
 ## Core Concepts
 
-| Concept | What it is | Stored at |
+| Concept | What It Is | Stored At |
 |---|---|---|
 | Skill | Reusable task protocol | `.briefops/skills/*.skill.md` |
 | Project | Durable project facts and constraints | `.briefops/projects/*.project.md` |
-| Memory | Curated facts, decisions, lessons, incidents | `.briefops/memory/*.yaml` |
-| Memory Proposal | Human-approved promotion candidate from logs | `.briefops/memory-proposals/*.yaml` |
-| Brief | Compiled task instructions | `.briefops/briefs/*.md` |
-| Handoff | Fresh-thread continuity brief | `.briefops/handoffs/*.md` |
-| Codex Mission | Codex-favored execution prompt | `.briefops/codex/prompts/*.md` |
-| Worker | Skill bundle plus default project and style | `.briefops/workers/*.worker.yaml` |
-| Worker Summary | Persistent worker intelligence summary | `.briefops/workers/summaries/*.summary.md` |
+| Worker | Persistent skill bundle and judgment profile | `.briefops/workers/*.worker.yaml` |
+| Worker Summary | Refreshed worker intelligence | `.briefops/workers/summaries/*.summary.md` |
 | Work Log | Completed task record | `.briefops/logs/*.yaml` |
-| Skill Patch | Human-approved skill improvement proposal | `.briefops/patches/*.patch.yaml` |
+| Memory | Curated facts, decisions, lessons, incidents | `.briefops/memory/*.yaml` |
+| Memory Proposal | Human-reviewed memory candidate | `.briefops/memory-proposals/*.yaml` |
+| Skill Patch | Human-reviewed skill improvement | `.briefops/patches/*.patch.yaml` |
+| Handoff | Fresh-thread continuity brief | `.briefops/handoffs/*.md` |
+| Codex Prompt | Mission or resume prompt | `.briefops/codex/prompts/*.md` |
+| Portable Pack | Self-contained resume markdown | `.briefops/codex/prompts/*resume-pack*.md` |
 | Eval | Deterministic checklist case | `.briefops/evals/*.eval.yaml` |
-
-## Recommended Operating Loop
-
-Use this loop for repeated Codex work:
-
-```text
-1. Update Skill, Project, or Memory if durable context changed.
-2. Generate a Codex plan when the work is ambiguous.
-3. Generate a Codex mission when the work is ready.
-4. Paste the mission into Codex.
-5. Let Codex inspect, act, and verify.
-6. Run briefops finish.
-7. Review and apply the generated memory proposal when it is useful.
-8. Run briefops continue for the next thread.
-9. Use briefops pack resume when the next thread cannot access local .briefops files.
-10. Propose skill patches from lessons when the working protocol should change.
-11. Run evals for important skills.
-```
-
-The goal is not to maximize context. The goal is to minimize repeated explanation.
-
-## Codex-Favored Mode
-
-Codex-favored mode is the main "wow point" of BriefOps.
-
-It gives Codex a stronger mission wrapper than a plain brief, while keeping BriefOps local and simple.
-
-### Install the Codex prompt pack
-
-```bash
-briefops codex install
-```
-
-This writes BriefOps guidance into `AGENTS.md` and creates prompt templates under `.briefops/codex/prompts/`.
-
-If `AGENTS.md` already exists:
-
-```bash
-briefops codex install --force
-```
-
-### Generate a planning prompt
-
-Use this before implementation when the task is still fuzzy.
-
-```bash
-briefops codex plan \
-  --project atlas-q \
-  --idea "Add a release-readiness worker profile." \
-  --save
-```
-
-The plan prompt tells Codex:
-
-- plan only
-- do not edit product code
-- identify assumptions
-- identify codebase areas to inspect
-- produce implementation and verification checklists
-
-### Generate an execution mission
-
-Use this when the task is ready to run.
-
-```bash
-briefops codex mission \
-  --worker quant-reviewer \
-  --task "Review the latest PR for governance drift." \
-  --mode loop \
-  --budget 2500 \
-  --save
-```
-
-Modes:
-
-| Mode | Use when |
-|---|---|
-| `loop` | Codex should inspect, act, verify, and continue if verification fails |
-| `execute` | Codex should execute directly with concise verification |
-| `plan` | Codex should produce a plan and avoid product-code edits |
-
-### Completion signal
-
-Codex missions include:
-
-```text
-<briefops-complete>DONE</briefops-complete>
-```
-
-Codex should only emit this after the evidence gates pass.
-
-### Evidence gates
-
-A mission asks Codex to finish with evidence:
-
-- context gate: files or docs inspected
-- change gate: smallest useful change set
-- verification gate: command output or manual QA evidence
-- risk gate: unverified or deferred items
-
-## Generate a Plain Brief
-
-If you do not need a full Codex mission, generate a plain brief:
-
-```bash
-briefops brief generate \
-  --skill risk-review \
-  --project atlas-q \
-  --task "Review recent rebalance logic changes." \
-  --budget 2000 \
-  --adapter codex
-```
-
-Save it:
-
-```bash
-briefops brief generate \
-  --skill risk-review \
-  --project atlas-q \
-  --task "Review recent rebalance logic changes." \
-  --budget 2000 \
-  --adapter codex \
-  --save
-```
-
-Generate from a worker:
-
-```bash
-briefops brief generate \
-  --worker quant-reviewer \
-  --task "Review this PR for risk policy violations." \
-  --budget 2500 \
-  --adapter codex
-```
-
-Available adapters:
-
-- `codex`
-- `claude-code`
-- `generic`
-
-## Skills
-
-Create:
-
-```bash
-briefops skill create risk-review \
-  --description "Review changes for risk and governance violations" \
-  --tags "review,risk,governance" \
-  --max-tokens 700
-```
-
-List:
-
-```bash
-briefops skill list
-```
-
-Show:
-
-```bash
-briefops skill show risk-review
-```
-
-Patch from a work log:
-
-```bash
-briefops skill propose-patch --skill risk-review --from-log latest
-briefops skill patch-list
-briefops skill patch-show <patch-id>
-briefops skill apply-patch risk-review --patch <patch-id>
-```
-
-Reject a patch:
-
-```bash
-briefops skill reject-patch <patch-id>
-```
-
-Show skill history:
-
-```bash
-briefops skill history risk-review
-```
-
-## Projects
-
-Create:
-
-```bash
-briefops project create atlas-q \
-  --description "Rule-based non-ML quantitative trading system" \
-  --tags "quant,trading,governance" \
-  --max-tokens 500
-```
-
-List and show:
-
-```bash
-briefops project list
-briefops project show atlas-q
-```
-
-Edit the generated `.briefops/projects/atlas-q.project.md` file to add:
-
-- active facts
-- active constraints
-- read-if-needed source files
 
 ## Memory
 
-Add memory:
+Manual memory add:
 
 ```bash
 briefops memory add \
@@ -498,22 +313,6 @@ Memory types:
 - `incidents`
 - `deprecated`
 
-List memory:
-
-```bash
-briefops memory list
-briefops memory list --project atlas-q
-briefops memory list --skill risk-review --status active
-briefops memory list --tag turnover
-```
-
-Show and update status:
-
-```bash
-briefops memory show <memory-id>
-briefops memory update-status <memory-id> --status archived
-```
-
 Statuses:
 
 - `active`
@@ -522,250 +321,162 @@ Statuses:
 - `superseded`
 - `archived`
 
-Promote useful work-log items into durable memory through a human-reviewed proposal:
+Visibility:
+
+- `private`
+- `shared`
+- `public`
+
+List, show, and update memory:
+
+```bash
+briefops memory list
+briefops memory list --project atlas-q --status active
+briefops memory show <memory-id>
+briefops memory update-status <memory-id> --status archived
+```
+
+Promote useful work-log items through a proposal:
 
 ```bash
 briefops memory propose-from-log latest
-briefops memory proposal-list
+briefops memory proposal-list --status proposed
 briefops memory proposal-show <proposal-id|latest>
 briefops memory proposal-apply <proposal-id|latest>
 briefops memory proposal-reject <proposal-id|latest>
 ```
 
-Extraction is deterministic and local. Lessons, decisions, incidents, open risks, and policy-like next steps can become proposal items.
+Extraction is deterministic and local. Lessons, decisions, incidents, open risks, prefixed notes, and policy-like next steps can become proposal items.
 
-## Workers
+## Skills And Skill Patches
 
-Create:
+Create and inspect skills:
 
 ```bash
-briefops worker create quant-reviewer \
-  --description "Risk-focused quantitative strategy reviewer." \
-  --project atlas-q \
-  --skills "risk-review,backtest-validation,rebalance-review" \
-  --style "skeptical,governance-first,no strategy drift without approval" \
-  --max-tokens 300
+briefops skill create risk-review
+briefops skill list
+briefops skill show risk-review
+briefops skill history risk-review
 ```
 
-List and show:
+Propose, review, apply, or reject skill patches:
 
 ```bash
+briefops skill propose-patch --skill risk-review --from-log latest
+briefops skill patch-list
+briefops skill patch-show <patch-id|latest>
+briefops skill apply-patch risk-review --patch <patch-id|latest>
+briefops skill reject-patch <patch-id|latest>
+```
+
+Skill patches are generated from work-log lessons and are never auto-applied.
+
+## Projects And Workers
+
+Projects:
+
+```bash
+briefops project create atlas-q
+briefops project list
+briefops project show atlas-q
+```
+
+Workers:
+
+```bash
+briefops worker create quant-reviewer --project atlas-q --skills "risk-review"
 briefops worker list
 briefops worker show quant-reviewer
-```
-
-Summarize worker history from logs:
-
-```bash
-briefops worker summary quant-reviewer
-briefops worker intelligence quant-reviewer
 briefops worker refresh-summary quant-reviewer
+briefops worker intelligence quant-reviewer
 briefops worker inspect quant-reviewer
 ```
 
-Use a worker in a brief or Codex mission:
+Use a worker for fresh-thread continuity:
 
 ```bash
-briefops brief generate --worker quant-reviewer --task "Review this PR." --adapter codex
-briefops codex mission --worker quant-reviewer --task "Review this PR." --mode loop
+briefops codex mission --worker quant-reviewer --task "Review this PR." --mode loop --save
+briefops continue --worker quant-reviewer --task "Continue prior work." --pack
 ```
 
-## Work Logs
+## Briefs, Handoffs, And Codex Prompts
 
-After a task finishes, add a structured log:
+Generate a plain brief:
 
 ```bash
-briefops log add \
-  --project atlas-q \
-  --skill risk-review \
+briefops brief generate \
   --worker quant-reviewer \
-  --task "Review rebalance logic changes." \
-  --result "Found missing turnover warning check." \
-  --lesson "Add turnover warning verification to the review checklist." \
-  --decision "Treat unverified slippage assumptions as blocking." \
-  --incident "Missing turnover warning check was found during review." \
-  --open-risk "Slippage assumptions remain unverified." \
-  --next-step "Verify slippage assumptions against policy." \
-  --files "src/rebalance.ts,tests/rebalance.test.ts" \
-  --commands "npm test,npm run build"
+  --task "Review this PR for risk policy violations." \
+  --adapter codex
 ```
 
-`--lesson`, `--decision`, `--incident`, `--open-risk`, and `--next-step` can be repeated.
-
-## Handoffs and Codex Resume
-
-Generate a compact fresh-thread handoff:
+Generate a handoff:
 
 ```bash
 briefops handoff generate \
   --project atlas-q \
   --worker quant-reviewer \
-  --task "Continue the previous review and finish unresolved slippage checks." \
-  --budget 2500 \
+  --task "Continue unresolved slippage checks." \
   --save
 ```
 
-List, show, and inspect saved handoffs:
-
-```bash
-briefops handoff list
-briefops handoff show <handoff-id|latest>
-briefops handoff inspect <handoff-id|latest>
-```
-
-Generate a Codex resume mission from a saved or generated handoff:
+Generate a Codex resume prompt:
 
 ```bash
 briefops codex resume \
   --worker quant-reviewer \
-  --task "Continue the previous review and finish unresolved slippage checks." \
+  --task "Continue unresolved slippage checks." \
   --from-handoff latest \
   --mode loop \
   --save
 ```
 
-Handoffs are generic continuity documents. Codex-specific behavior lives in `briefops codex resume`.
-
-Create a self-contained portable pack:
+List and inspect saved artifacts:
 
 ```bash
-briefops pack resume \
-  --worker quant-reviewer \
-  --task "Continue the previous review and finish unresolved slippage checks."
+briefops brief list
+briefops brief show latest
+briefops brief inspect latest
+
+briefops handoff list
+briefops handoff show latest
+briefops handoff inspect latest
 ```
 
-Use a pack when you need to paste or attach one markdown file to a fresh thread. It includes the continuity context directly, so the receiving agent does not need direct access to `.briefops`.
-
-List logs:
+## Inspect, Doctor, And Evals
 
 ```bash
-briefops log list
-briefops log list --project atlas-q
-briefops log list --skill risk-review --limit 5
+briefops doctor
+briefops inspect workspace
+briefops inspect memory
+briefops inspect tokens --worker quant-reviewer --task "Review this PR." --budget 2500
+briefops inspect retrieval --project atlas-q --worker quant-reviewer --task "Continue slippage checks."
+briefops inspect continuity --project atlas-q --worker quant-reviewer
 ```
 
-Show a log:
-
-```bash
-briefops log show latest
-briefops log show <log-id>
-```
-
-## Evals
-
-BriefOps evals are deterministic checklist checks. They do not call an LLM judge.
-
-Create an eval case:
+Evals are deterministic checklist checks. They do not call an LLM judge.
 
 ```bash
 briefops eval create turnover-missing-case \
   --skill risk-review \
   --project atlas-q \
   --input "Review rebalance logic." \
-  --expected "turnover warning threshold" \
-  --expected "blocking issue" \
-  --pass-threshold 1
-```
+  --expected "turnover warning threshold"
 
-Run evals:
-
-```bash
 briefops eval run --skill risk-review --project atlas-q
-```
-
-List and show:
-
-```bash
 briefops eval list
 briefops eval show turnover-missing-case
 ```
 
-## Inspect and Doctor
-
-Check workspace structure:
-
-```bash
-briefops doctor
-```
-
-Inspect token usage before generating a full brief:
-
-```bash
-briefops inspect tokens \
-  --skill risk-review \
-  --project atlas-q \
-  --task "Review recent rebalance logic changes." \
-  --budget 2000
-```
-
-Inspect worker-based token usage:
-
-```bash
-briefops inspect tokens \
-  --worker quant-reviewer \
-  --task "Review this PR." \
-  --budget 2500
-```
-
-Inspect workspace and memory:
-
-```bash
-briefops inspect workspace
-briefops inspect memory
-briefops inspect memory --project atlas-q
-```
-
-Inspect task-aware memory retrieval and continuity readiness:
-
-```bash
-briefops inspect retrieval \
-  --project atlas-q \
-  --worker quant-reviewer \
-  --task "Continue rebalance review and finish slippage checks."
-
-briefops inspect continuity \
-  --project atlas-q \
-  --worker quant-reviewer
-```
-
-## Saved Briefs and Prompts
-
-List saved briefs:
-
-```bash
-briefops brief list
-```
-
-Show or inspect a saved brief:
-
-```bash
-briefops brief show latest
-briefops brief inspect latest
-```
-
-Codex mission and plan prompts are saved under:
-
-```text
-.briefops/codex/prompts/
-```
-
 ## Token Budget Philosophy
 
-BriefOps uses a simple deterministic estimate:
+BriefOps uses a deterministic estimate:
 
 ```text
 estimated_tokens = ceil(character_count / 4)
 ```
 
-This is approximate by design.
-
-When a generated brief is too large, BriefOps trims in this order:
-
-```text
-memory -> worker history -> project context -> skill content
-```
-
-The task itself is never removed.
+When generated briefs, handoffs, or resumes are too large, BriefOps trims lower-priority context while preserving the task and core continuity contract. If a portable pack exceeds the requested budget, BriefOps prints a warning and preserves core continuity content.
 
 ## File Structure
 
@@ -808,8 +519,19 @@ Because `.briefops/` is local/private, Codex does not automatically see it. Prov
 ```bash
 briefops init
 briefops doctor
-briefops finish --worker <name> --project <name> --skill <name> --task "<task>" --result "<result>"
-briefops continue --worker <name> --task "<task>"
+briefops inbox
+briefops inbox --project <project>
+briefops inbox --worker <worker>
+briefops inbox --skill <skill>
+
+briefops finish --worker <worker> --project <project> --skill <skill> --task "<task>" --result "<result>"
+briefops continue --worker <worker> --task "<task>"
+briefops continue --worker <worker> --task "<task>" --pack
+briefops pack resume --worker <worker> --task "<task>"
+
+briefops approve <id|latest>
+briefops approve memory <id|latest>
+briefops approve skill-patch <id|latest>
 
 briefops skill create <name>
 briefops skill list
@@ -817,55 +539,50 @@ briefops skill show <name>
 briefops skill diff <name>
 briefops skill history <name>
 briefops skill propose-patch --skill <name> --from-log <log-id|latest>
-briefops skill apply-patch <name> --patch <patch-id>
-briefops skill reject-patch <patch-id>
 briefops skill patch-list
-briefops skill patch-show <patch-id>
+briefops skill patch-show <patch-id|latest>
+briefops skill apply-patch <name> --patch <patch-id|latest>
+briefops skill reject-patch <patch-id|latest>
 
 briefops project create <name>
 briefops project list
 briefops project show <name>
 
-briefops memory add
+briefops memory add --type <type> --content "<content>"
+briefops memory add --type lessons --content "<content>" --visibility shared --exportable
 briefops memory list
 briefops memory show <id>
 briefops memory update-status <id> --status <status>
 briefops memory propose-from-log <log-id|latest>
-briefops memory proposal-list
+briefops memory proposal-list --status proposed
 briefops memory proposal-show <proposal-id|latest>
 briefops memory proposal-apply <proposal-id|latest>
 briefops memory proposal-reject <proposal-id|latest>
 
 briefops brief generate --skill <name> --project <name> --task "<task>" --adapter codex
-briefops brief generate --worker <name> --task "<task>" --adapter codex
+briefops brief generate --worker <worker> --task "<task>" --adapter codex
 briefops brief list
 briefops brief show <id|latest>
 briefops brief inspect <id|latest>
 
 briefops codex install
-briefops codex mission --worker <name> --task "<task>" --mode loop --save
-briefops codex plan --project <name> --idea "<what to build>" --save
-briefops codex resume --worker <name> --task "<task>" --from-handoff <id|latest> --mode loop --save
-briefops pack resume --worker <name> --task "<task>"
+briefops codex mission --worker <worker> --task "<task>" --mode loop --save
+briefops codex plan --project <project> --idea "<what to build>" --save
+briefops codex resume --worker <worker> --task "<task>" --from-handoff <id|latest> --mode loop --save
 
 briefops log add
 briefops log list
 briefops log show <id|latest>
 
-briefops eval create <name>
-briefops eval list
-briefops eval run --skill <name> --project <name>
-briefops eval show <id>
-
-briefops worker create <name>
+briefops worker create <worker>
 briefops worker list
-briefops worker show <name>
-briefops worker summary <name>
-briefops worker intelligence <name>
-briefops worker refresh-summary <name>
-briefops worker inspect <name>
+briefops worker show <worker>
+briefops worker summary <worker>
+briefops worker intelligence <worker>
+briefops worker refresh-summary <worker>
+briefops worker inspect <worker>
 
-briefops handoff generate --project <name> --worker <name> --task "<task>" --save
+briefops handoff generate --project <project> --worker <worker> --task "<task>" --save
 briefops handoff list
 briefops handoff show <id|latest>
 briefops handoff inspect <id|latest>
@@ -873,40 +590,13 @@ briefops handoff inspect <id|latest>
 briefops inspect tokens
 briefops inspect workspace
 briefops inspect memory
-briefops inspect retrieval --project <name> --worker <name> --task "<task>"
-briefops inspect continuity --project <name> --worker <name>
-```
+briefops inspect retrieval --project <project> --worker <worker> --task "<task>"
+briefops inspect continuity --project <project> --worker <worker>
 
-## Example: PR Review With Codex
-
-```bash
-briefops codex mission \
-  --worker quant-reviewer \
-  --task "Review the latest PR for governance drift, missing tests, and risk policy violations." \
-  --mode loop \
-  --completion-promise "Return blocking findings, required fixes, verification evidence, and merge recommendation." \
-  --save
-```
-
-Paste the generated prompt into Codex.
-
-After Codex finishes:
-
-```bash
-briefops log add \
-  --project atlas-q \
-  --skill risk-review \
-  --worker quant-reviewer \
-  --task "Review the latest PR for governance drift, missing tests, and risk policy violations." \
-  --result "<what Codex found>" \
-  --lesson "<what should be remembered next time>" \
-  --commands "<commands Codex ran>"
-```
-
-Then:
-
-```bash
-briefops skill propose-patch --skill risk-review --from-log latest
+briefops eval create <name>
+briefops eval list
+briefops eval run --skill <skill> --project <project>
+briefops eval show <id>
 ```
 
 ## Troubleshooting
@@ -917,58 +607,37 @@ Workspace not found:
 briefops init
 ```
 
-Check missing workspace pieces:
+Pending memory before continuing:
 
 ```bash
-briefops doctor
+briefops memory proposal-list --status proposed
+briefops memory proposal-show latest
+briefops memory proposal-apply latest
 ```
 
-Brief is too long:
+Need a fresh thread without `.briefops` access:
+
+```bash
+briefops continue --worker <worker> --task "<task>" --pack
+```
+
+Brief or resume is too long:
 
 ```bash
 briefops inspect tokens --worker <worker> --task "<task>" --budget 2500
 ```
 
-Then reduce memory, project, worker, or skill token budgets.
-
-`AGENTS.md` already exists:
+Check continuity health:
 
 ```bash
-briefops codex install --force
+briefops inspect continuity --project <project> --worker <worker>
 ```
-
-No memory appears in a brief:
-
-```bash
-briefops memory list --project <project> --skill <skill> --status active
-```
-
-Eval fails:
-
-```bash
-briefops eval show <case-id>
-briefops brief generate --skill <skill> --project <project> --task "<eval input>" --adapter codex
-```
-
-Check whether the expected phrases are actually present in the generated brief.
 
 ## Development
 
-Install dependencies:
-
 ```bash
 npm install
-```
-
-Build:
-
-```bash
 npm run build
-```
-
-Run tests:
-
-```bash
 npm test
 ```
 
@@ -977,16 +646,3 @@ Run the CLI in development:
 ```bash
 npm run dev -- --help
 ```
-
-## Roadmap
-
-Future versions may add:
-
-- optional LLM-based patch suggestions
-- optional LLM eval judges
-- better tokenizer integrations
-- Git diff-aware briefs
-- PR review mode
-- external integrations
-
-The long-term direction is a persistent worker layer for human-led AI coding workflows, while the current alpha stays focused on one useful job: compile compact, reusable briefs and Codex missions within a visible token budget.

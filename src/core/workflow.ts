@@ -4,7 +4,11 @@ import { inspectContinuityHealth } from "./continuity.js";
 import { BriefOpsError } from "./errors.js";
 import { generateHandoff } from "./handoff.js";
 import { addWorkLog, type AddWorkLogOptions } from "./log.js";
-import { listMemoryProposals, proposeMemoryFromLog } from "./memoryProposal.js";
+import {
+  isNoMemoryProposalCandidatesError,
+  listMemoryProposals,
+  proposeMemoryFromLog
+} from "./memoryProposal.js";
 import { proposeSkillPatch } from "./patch.js";
 import { normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { writeTextFile } from "./storage.js";
@@ -21,12 +25,13 @@ export type FinishWorkOptions = AddWorkLogOptions & {
 export type FinishWorkResult = {
   logId: string;
   logPath: string;
-  memoryProposalId: string;
-  memoryProposalPath: string;
+  memoryProposalId?: string;
+  memoryProposalPath?: string;
   skillPatchId?: string;
   skillPatchPath?: string;
   workerSummaryPath?: string;
   nextCommand: string;
+  warnings: string[];
 };
 
 export type ContinueWorkOptions = {
@@ -38,6 +43,7 @@ export type ContinueWorkOptions = {
   mode?: string;
   completionPromise?: string;
   outputPath?: string;
+  pack?: boolean;
 };
 
 export type ContinueWorkResult = {
@@ -46,6 +52,7 @@ export type ContinueWorkResult = {
   workerSummaryPath: string;
   handoffPath?: string;
   resumePath?: string;
+  packPath?: string;
   nextCommand: string;
   warnings: string[];
 };
@@ -63,6 +70,7 @@ export type PackResumeResult = {
   path: string;
   tokens: number;
   content: string;
+  warnings: string[];
 };
 
 function shellQuote(value: string): string {
@@ -86,10 +94,22 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
   const cwd = options.cwd ?? process.cwd();
   await requireWorkspace(cwd);
   const logResult = await addWorkLog(options);
-  const memoryProposal = await proposeMemoryFromLog({
-    cwd,
-    fromLog: logResult.log.id
-  });
+  const warnings: string[] = [];
+  let memoryProposalId: string | undefined;
+  let memoryProposalPath: string | undefined;
+  try {
+    const memoryProposal = await proposeMemoryFromLog({
+      cwd,
+      fromLog: logResult.log.id
+    });
+    memoryProposalId = memoryProposal.proposal.id;
+    memoryProposalPath = memoryProposal.path;
+  } catch (error) {
+    if (!isNoMemoryProposalCandidatesError(error)) {
+      throw error;
+    }
+    warnings.push("No durable memory proposal candidates found.");
+  }
   let skillPatchId: string | undefined;
   let skillPatchPath: string | undefined;
   if (options.proposeSkillPatch && !options.skill) {
@@ -123,12 +143,13 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
   return {
     logId: logResult.log.id,
     logPath: logResult.path,
-    memoryProposalId: memoryProposal.proposal.id,
-    memoryProposalPath: memoryProposal.path,
+    memoryProposalId,
+    memoryProposalPath,
     skillPatchId,
     skillPatchPath,
     workerSummaryPath,
-    nextCommand
+    nextCommand,
+    warnings
   };
 }
 
@@ -179,6 +200,15 @@ export async function continueWork(options: ContinueWorkOptions): Promise<Contin
     save: true,
     outputPath: options.outputPath
   });
+  const pack = options.pack
+    ? await packResume({
+        cwd,
+        project,
+        worker,
+        task: options.task,
+        budget: options.budget
+      })
+    : undefined;
 
   return {
     readiness: health.readiness,
@@ -186,6 +216,7 @@ export async function continueWork(options: ContinueWorkOptions): Promise<Contin
     workerSummaryPath: summary.path,
     handoffPath: handoff.savedPath,
     resumePath: resume.savedPath,
+    packPath: pack?.path,
     nextCommand: continueCommand({
       project,
       worker,
@@ -193,10 +224,44 @@ export async function continueWork(options: ContinueWorkOptions): Promise<Contin
     }),
     warnings: [
       health.readiness === "WARN" ? "Continuity health is WARN; prompt was still generated." : undefined,
-      pending.length > 0 ? `${pending.length} pending memory proposal(s) should be reviewed.` : undefined,
-      ...handoff.warnings
+      pending.length > 0 ? "Pending memory proposals should be reviewed before continuing." : undefined,
+      ...handoff.warnings,
+      ...(pack?.warnings ?? [])
     ].filter((warning): warning is string => Boolean(warning))
   };
+}
+
+function scrubLocalBriefOpsReferences(content: string): string {
+  return content
+    .replace(
+      /^Project file:\s*\.briefops\/[^\r\n]+$/gim,
+      "Project context is included in this pack; no local BriefOps project file access is required."
+    )
+    .replace(
+      /`?\.briefops\/[^`\s)]+`?/g,
+      "included local BriefOps context"
+    );
+}
+
+function renderPortablePackHeader(options: {
+  worker: string;
+  task: string;
+  generatedAt: string;
+  tokens: number;
+}): string {
+  return [
+    "# BriefOps Portable Resume Pack",
+    "",
+    "This pack is self-contained. Paste it into Codex or attach it to a fresh thread.",
+    "",
+    "Review before sharing outside your local machine. It may include local project memory, decisions, lessons, risks, and worker history.",
+    "",
+    `Worker: ${options.worker}`,
+    `Task: ${options.task}`,
+    `Generated: ${options.generatedAt}`,
+    `Estimated tokens: ${options.tokens}`,
+    ""
+  ].join("\n");
 }
 
 export async function packResume(options: PackResumeOptions): Promise<PackResumeResult> {
@@ -211,18 +276,32 @@ export async function packResume(options: PackResumeOptions): Promise<PackResume
     budget: options.budget ?? 3000,
     save: false
   });
-  const portableResume = resume.content.replace(
-    /Project file: \.briefops\/projects\/[^\n]+/g,
-    "Project context is included in this pack; no `.briefops` access is required."
-  );
-  const content = [
-    "# BriefOps Portable Resume Pack",
-    "",
-    "This pack is self-contained. Paste it into Codex or attach it to a fresh thread; the receiving agent does not need direct access to `.briefops`.",
-    "",
-    portableResume.trim(),
-    ""
-  ].join("\n");
+  const portableResume = scrubLocalBriefOpsReferences(resume.content).trim();
+  const generatedAt = new Date().toISOString();
+  let tokens = 0;
+  const buildContent = (estimatedTokens: number) => [
+      renderPortablePackHeader({
+        worker,
+        task: options.task.trim(),
+        generatedAt,
+        tokens: estimatedTokens
+      }),
+      portableResume,
+      ""
+    ].join("\n");
+  let content = buildContent(tokens);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const nextTokens = estimateTokens(content);
+    if (nextTokens === tokens) {
+      break;
+    }
+    tokens = nextTokens;
+    content = buildContent(tokens);
+  }
+  const budget = options.budget ?? 3000;
+  const warnings = tokens > budget
+    ? [`Portable resume pack exceeds token budget by ${tokens - budget} estimated tokens; core continuity content was preserved.`]
+    : [];
   const targetPath = options.outputPath ?? path.join(
     workspacePaths(cwd).codexPrompts,
     `${slugForFilename(worker)}-resume-pack-${Date.now()}.md`
@@ -231,7 +310,8 @@ export async function packResume(options: PackResumeOptions): Promise<PackResume
 
   return {
     path: targetPath,
-    tokens: estimateTokens(content),
-    content
+    tokens,
+    content,
+    warnings
   };
 }

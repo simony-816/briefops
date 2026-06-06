@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { registerApproveCommand } from "./commands/approve.js";
 import { registerBriefCommands } from "./commands/brief.js";
 import { registerCodexCommands } from "./commands/codex.js";
 import { registerContinueCommand } from "./commands/continue.js";
@@ -7,6 +8,7 @@ import { registerEvalCommands } from "./commands/eval.js";
 import { registerFinishCommand } from "./commands/finish.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerHandoffCommands } from "./commands/handoff.js";
+import { registerInboxCommand } from "./commands/inbox.js";
 import { registerInspectCommands } from "./commands/inspect.js";
 import { registerLogCommands } from "./commands/log.js";
 import { registerMemoryCommands } from "./commands/memory.js";
@@ -25,8 +27,10 @@ export function buildProgram(): Command {
 
   registerInitCommand(program);
   registerDoctorCommand(program);
+  registerApproveCommand(program);
   registerFinishCommand(program);
   registerContinueCommand(program);
+  registerInboxCommand(program);
   registerSkillCommands(program);
   registerProjectCommands(program);
   registerMemoryCommands(program);

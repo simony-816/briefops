@@ -28,5 +28,12 @@ export function registerPackCommands(program: Command): void {
       });
       console.log(`Saved portable resume pack: ${result.path}`);
       console.log(`Estimated tokens: ${result.tokens}`);
+      if (result.warnings.length > 0) {
+        console.log("");
+        console.log("Warnings:");
+        for (const warning of result.warnings) {
+          console.log(`- ${warning}`);
+        }
+      }
     });
 }

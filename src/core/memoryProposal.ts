@@ -25,6 +25,13 @@ export type ListMemoryProposalFilters = {
   skill?: string;
 };
 
+export const NO_MEMORY_PROPOSAL_CANDIDATES_PREFIX = "No memory proposal candidates found in log:";
+
+export function isNoMemoryProposalCandidatesError(error: unknown): boolean {
+  return error instanceof BriefOpsError &&
+    error.message.startsWith(NO_MEMORY_PROPOSAL_CANDIDATES_PREFIX);
+}
+
 function proposalId(date = new Date()): string {
   return `memprop_${formatDateStamp(date)}`;
 }
@@ -63,6 +70,8 @@ function extractPrefixedNotes(notes: string, prefix: "decision" | "fact"): Memor
       status: "active" as const,
       content,
       tags: tagsFromText(content),
+      visibility: "private" as const,
+      exportable: false,
       rationale: `Extracted from work log note prefix: ${prefix}.`
     }));
 }
@@ -95,6 +104,8 @@ function entry(options: {
     content: options.content.trim(),
     source: options.source,
     tags: tagsFromText(options.content),
+    visibility: "private",
+    exportable: false,
     rationale: options.rationale
   };
 }
@@ -174,7 +185,7 @@ export async function proposeMemoryFromLog(
   }
 
   if (proposals.length === 0) {
-    throw new BriefOpsError(`No memory proposal candidates found in log: ${log.id}`);
+    throw new BriefOpsError(`${NO_MEMORY_PROPOSAL_CANDIDATES_PREFIX} ${log.id}`);
   }
 
   const proposal = memoryProposalSchema.parse({
@@ -266,7 +277,9 @@ export async function applyMemoryProposal(options: {
       content: entry.content,
       status: entry.status,
       tags: entry.tags,
-      source: entry.source ?? proposal.from_log
+      source: entry.source ?? proposal.from_log,
+      visibility: entry.visibility,
+      exportable: entry.exportable
     });
     if (result.created) {
       created += 1;

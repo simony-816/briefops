@@ -11,10 +11,13 @@ import { parseCommaList, readYamlFile, writeYamlFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
 import {
   memoryFileSchema,
+  memoryItemSchema,
   memoryStatuses,
+  memoryVisibilities,
   type MemoryFile,
   type MemoryItem,
-  type MemoryStatus
+  type MemoryStatus,
+  type MemoryVisibility
 } from "../schemas/memory.js";
 
 const categoryToItemType: Record<MemoryCategory, MemoryItem["type"]> = {
@@ -42,6 +45,8 @@ export type AddMemoryOptions = {
   status?: string;
   tags?: string[] | string;
   source?: string;
+  visibility?: string;
+  exportable?: boolean;
 };
 
 export type ListMemoryFilters = {
@@ -96,6 +101,15 @@ export function normalizeMemoryStatus(value?: string): MemoryStatus {
   throw new BriefOpsError(`Invalid memory status: ${value}`);
 }
 
+export function normalizeMemoryVisibility(value?: string): MemoryVisibility {
+  const visibility = (value ?? "private").trim().toLowerCase();
+  if ((memoryVisibilities as readonly string[]).includes(visibility)) {
+    return visibility as MemoryVisibility;
+  }
+
+  throw new BriefOpsError(`Invalid memory visibility: ${value}`);
+}
+
 async function readMemoryFile(cwd: string, category: MemoryCategory): Promise<MemoryFile> {
   return readYamlFile(memoryFilePath(cwd, category), memoryFileSchema, { items: [] });
 }
@@ -145,7 +159,7 @@ export async function addMemory(options: AddMemoryOptions): Promise<MemoryItem> 
   const memoryFile = await readMemoryFile(cwd, category);
   const tags = Array.isArray(options.tags) ? options.tags : parseCommaList(options.tags);
   const createdAt = new Date().toISOString();
-  const item = {
+  const item = memoryItemSchema.parse({
     id: `mem_${createdAt.replace(/[-:.TZ]/g, "").slice(0, 17)}_${randomBytes(3).toString(
       "hex"
     )}`,
@@ -156,8 +170,10 @@ export async function addMemory(options: AddMemoryOptions): Promise<MemoryItem> 
     content: options.content.trim(),
     source: options.source ?? "manual",
     created_at: createdAt,
-    tags
-  } satisfies MemoryItem;
+    tags,
+    visibility: normalizeMemoryVisibility(options.visibility),
+    exportable: options.exportable ?? false
+  });
 
   memoryFile.items.push(item);
   await writeMemoryFile(cwd, category, memoryFile);
