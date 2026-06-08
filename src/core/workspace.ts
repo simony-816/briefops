@@ -194,8 +194,12 @@ export async function initWorkspace(cwd = process.cwd()): Promise<InitResult> {
   const configCreated = await writeFileIfAbsent(
     paths.config,
     [
-      "version: 0.1.0",
+      "version: 0.2.0",
       `created_at: "${new Date().toISOString()}"`,
+      "defaults: {}",
+      "token_budgets:",
+      "  prime: 800",
+      "  resume: 3000",
       "memory_categories:",
       ...memoryCategories.map((category) => `  - ${category}`),
       ""

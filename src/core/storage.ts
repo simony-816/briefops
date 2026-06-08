@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
@@ -37,7 +38,23 @@ export async function writeTextFile(
   }
 
   await ensureDirectory(path.dirname(filePath));
-  await fs.writeFile(filePath, content, "utf8");
+  await writeTextFileAtomic(filePath, content);
+}
+
+export async function writeTextFileAtomic(filePath: string, content: string): Promise<void> {
+  await ensureDirectory(path.dirname(filePath));
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.tmp-${path.basename(filePath)}-${process.pid}-${randomBytes(4).toString("hex")}`
+  );
+
+  try {
+    await fs.writeFile(tempPath, content, "utf8");
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function readTextFile(filePath: string): Promise<string> {
@@ -72,8 +89,11 @@ export async function readYamlFile<TSchema extends z.ZodTypeAny>(
 }
 
 export async function writeYamlFile(filePath: string, value: unknown): Promise<void> {
-  await ensureDirectory(path.dirname(filePath));
-  await fs.writeFile(filePath, `${YAML.stringify(value).trim()}\n`, "utf8");
+  await writeYamlFileAtomic(filePath, value);
+}
+
+export async function writeYamlFileAtomic(filePath: string, value: unknown): Promise<void> {
+  await writeTextFileAtomic(filePath, `${YAML.stringify(value).trim()}\n`);
 }
 
 export function stringifyMarkdownWithFrontmatter(data: unknown, body: string): string {

@@ -2,6 +2,10 @@
 
 Near-term priorities:
 
+- Codex skill-only plugin
+- compact first-context `briefops prime`
+- local safety locks and atomic writes
+- token-savings eval fixtures
 - stronger continuity eval fixtures
 - richer handoff budget trimming
 - more worker summary heuristics
@@ -15,3 +19,5 @@ Out of scope:
 - vector database
 - cloud sync
 - web dashboard
+- hosted server
+- required marketplace

@@ -13,6 +13,7 @@ import { registerInspectCommands } from "./commands/inspect.js";
 import { registerLogCommands } from "./commands/log.js";
 import { registerMemoryCommands } from "./commands/memory.js";
 import { registerPackCommands } from "./commands/pack.js";
+import { registerPrimeCommand } from "./commands/prime.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerSkillCommands } from "./commands/skill.js";
 import { registerWorkerCommands } from "./commands/worker.js";
@@ -27,6 +28,7 @@ export function buildProgram(): Command {
 
   registerInitCommand(program);
   registerDoctorCommand(program);
+  registerPrimeCommand(program);
   registerApproveCommand(program);
   registerFinishCommand(program);
   registerContinueCommand(program);

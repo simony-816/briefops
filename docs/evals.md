@@ -10,3 +10,9 @@ briefops eval run --worker quant-reviewer
 ```
 
 Continuity evals should check for prior lessons, decisions, and sections that a fresh thread needs before acting.
+
+Prime-context evals should also check that the compact output is materially smaller than a manual history dump:
+
+```bash
+npm test -- tests/prime.test.ts
+```

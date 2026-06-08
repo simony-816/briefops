@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
+import { runSecurityDoctor } from "../core/securityDoctor.js";
 import { pathExists } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
@@ -7,7 +8,20 @@ export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
     .description("Check the local BriefOps workspace structure.")
-    .action(async () => {
+    .option("--security", "Run security, export, and local conflict checks.")
+    .action(async (options: Record<string, unknown>) => {
+      if (options.security) {
+        const result = await runSecurityDoctor();
+        printTable([
+          ["Check", "Status", "Detail"],
+          ...result.checks.map((check) => [check.name, check.status, check.detail])
+        ]);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+        return;
+      }
+
       const paths = workspacePaths(process.cwd());
       const checks = [
         ["Workspace", paths.root],

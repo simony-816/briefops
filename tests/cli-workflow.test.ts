@@ -145,4 +145,105 @@ describe("CLI persistent worker workflow", () => {
       }
     });
   });
+
+  it("installs and checks the local Codex plugin bundle", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+
+      const installed = await expectCli(dir, ["codex", "plugin", "install"]);
+      expect(installed.stdout).toContain("BriefOps Codex plugin bundle installed.");
+      expect(installed.stdout).toContain(".briefops/codex/plugin/briefops");
+
+      const checked = await expectCli(dir, ["codex", "plugin", "doctor"]);
+      expect(checked.stdout).toContain("skills/briefops-prime-context/SKILL.md");
+      expect(checked.stdout).toContain("ok");
+    });
+  });
+
+  it("sets and prints the default worker for new thread starts", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+
+      const selected = await expectCli(dir, ["worker", "use", "quant-reviewer"]);
+      expect(selected.stdout).toContain("Default worker: quant-reviewer");
+      expect(selected.stdout).toContain("Default project: atlas-q");
+
+      const current = await expectCli(dir, ["worker", "current"]);
+      expect(current.stdout).toContain("Default worker: quant-reviewer");
+      expect(current.stdout).toContain("Default project: atlas-q");
+    });
+  });
+
+  it("prints compact prime context from the CLI", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+      await expectCli(dir, ["worker", "use", "quant-reviewer"]);
+
+      const primed = await expectCli(dir, [
+        "prime",
+        "--task",
+        "Continue unresolved checks.",
+        "--max-tokens",
+        "800"
+      ]);
+      expect(primed.stdout).toContain("BriefOps Prime Context");
+      expect(primed.stdout).toContain("Token Budget");
+      expect(primed.stderr).toContain("Estimated tokens:");
+
+      const codexPrimed = await expectCli(dir, [
+        "codex",
+        "prime",
+        "--task",
+        "Continue unresolved checks.",
+        "--max-tokens",
+        "800"
+      ]);
+      expect(codexPrimed.stdout).toContain("BriefOps Prime Context");
+      expect(codexPrimed.stderr).toContain("Estimated tokens:");
+    });
+  });
+
+  it("runs security doctor from the CLI", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+      await expectCli(dir, ["worker", "use", "quant-reviewer"]);
+
+      const checked = await expectCli(dir, ["doctor", "--security"]);
+      expect(checked.stdout).toContain("Default worker");
+      expect(checked.stdout).toContain("Stale lock files");
+    });
+  });
 });

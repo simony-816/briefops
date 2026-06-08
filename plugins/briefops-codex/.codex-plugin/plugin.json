@@ -1,0 +1,39 @@
+{
+  "name": "briefops",
+  "version": "0.2.0-alpha.0",
+  "description": "Local-first, token-aware persistent work history for Codex workflows.",
+  "author": {
+    "name": "BriefOps contributors",
+    "url": "https://github.com/simony-816/briefops"
+  },
+  "homepage": "https://github.com/simony-816/briefops",
+  "repository": "https://github.com/simony-816/briefops",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "local-first",
+    "context",
+    "memory",
+    "handoff",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "BriefOps",
+    "shortDescription": "local-first context priming and continuity for Codex",
+    "longDescription": "Use BriefOps to prime Codex with compact local context, record task outcomes, review durable memory proposals, and resume persistent workers without hosted services.",
+    "developerName": "BriefOps contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start this task with the smallest useful BriefOps context.",
+      "Finish this task and prepare memory for the next thread."
+    ],
+    "websiteURL": "https://github.com/simony-816/briefops",
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}
