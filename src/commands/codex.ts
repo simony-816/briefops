@@ -7,6 +7,7 @@ import {
   installCodexPack
 } from "../core/codex.js";
 import { inspectCodexPlugin, installCodexPlugin } from "../core/codexPlugin.js";
+import { normalizeExportPolicy } from "../core/exportPolicy.js";
 import { runPrimeCommand } from "./prime.js";
 import { parsePositiveInt, printTable } from "./shared.js";
 
@@ -85,6 +86,7 @@ export function registerCodexCommands(program: Command): void {
     .option("--budget <tokens>", "Resume token budget.", parsePositiveInt, 3000)
     .option("--mode <mode>", "loop|execute|plan", "loop")
     .option("--completion-promise <text>", "Concrete completion promise.")
+    .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--save", "Save to .briefops/codex/prompts.")
     .option("--output <path>", "Write the prompt to a specific path.")
     .action(async (options: Record<string, unknown>) => {
@@ -96,6 +98,7 @@ export function registerCodexCommands(program: Command): void {
         budget: options.budget as number,
         mode: options.mode as string | undefined,
         completionPromise: options.completionPromise as string | undefined,
+        exportPolicy: normalizeExportPolicy(options.exportPolicy as string | undefined),
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)

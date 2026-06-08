@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { BriefOpsError } from "./errors.js";
+import { withWorkspaceLock } from "./lock.js";
 import { readWorkLog } from "./log.js";
 import {
   normalizeName,
@@ -25,6 +26,13 @@ export type ProposeSkillPatchOptions = {
   skill: string;
   fromLog?: string;
 };
+
+export const NO_SKILL_PATCH_CANDIDATES_PREFIX = "No skill patch candidates found in log:";
+
+export function isNoSkillPatchCandidatesError(error: unknown): boolean {
+  return error instanceof BriefOpsError &&
+    error.message.startsWith(NO_SKILL_PATCH_CANDIDATES_PREFIX);
+}
 
 function patchId(date = new Date()): string {
   return `patch_${date.toISOString().replace(/[-:.TZ]/g, "").slice(0, 17)}_${randomBytes(3).toString(
@@ -120,7 +128,7 @@ export async function proposeSkillPatch(
   }
 
   if (lessons.length === 0) {
-    throw new BriefOpsError(`Work log ${log.id} has no lessons to propose as a skill patch.`);
+    throw new BriefOpsError(`${NO_SKILL_PATCH_CANDIDATES_PREFIX} ${log.id}`);
   }
 
   const createdAt = new Date();
@@ -172,6 +180,15 @@ export async function readSkillPatch(cwd: string, id: string): Promise<SkillPatc
   }
 }
 
+export async function readLatestProposedSkillPatch(cwd = process.cwd()): Promise<SkillPatch> {
+  const patches = (await listSkillPatches(cwd)).filter((patch) => patch.status === "proposed");
+  const latest = patches[0];
+  if (!latest) {
+    throw new BriefOpsError("No proposed skill patches found.");
+  }
+  return latest;
+}
+
 export async function listSkillPatches(cwd = process.cwd()): Promise<SkillPatch[]> {
   await requireWorkspace(cwd);
   const files = await listFilesBySuffix(workspacePaths(cwd).patches, ".patch.yaml");
@@ -196,8 +213,24 @@ export async function applySkillPatch(options: {
   patch: string;
 }): Promise<{ patch: SkillPatch; skillPath: string }> {
   const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "skill-patch" }, async () =>
+    applySkillPatchUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+export async function applySkillPatchUnlocked(options: {
+  cwd?: string;
+  skill: string;
+  patch: string;
+}): Promise<{ patch: SkillPatch; skillPath: string }> {
+  const cwd = options.cwd ?? process.cwd();
   const skillName = normalizeName(options.skill);
-  const patch = await readSkillPatch(cwd, options.patch);
+  const patch = options.patch.trim().toLowerCase() === "latest"
+    ? await readLatestProposedSkillPatch(cwd)
+    : await readSkillPatch(cwd, options.patch);
   if (patch.skill !== skillName) {
     throw new BriefOpsError(`Patch ${patch.id} targets ${patch.skill}, not ${skillName}.`);
   }
@@ -235,16 +268,18 @@ export async function rejectSkillPatch(options: {
   patch: string;
 }): Promise<SkillPatch> {
   const cwd = options.cwd ?? process.cwd();
-  const patch = await readSkillPatch(cwd, options.patch);
-  if (patch.status !== "proposed") {
-    throw new BriefOpsError(`Patch ${patch.id} is already ${patch.status}.`);
-  }
+  return withWorkspaceLock({ cwd, name: "skill-patch" }, async () => {
+    const patch = await readSkillPatch(cwd, options.patch);
+    if (patch.status !== "proposed") {
+      throw new BriefOpsError(`Patch ${patch.id} is already ${patch.status}.`);
+    }
 
-  const rejectedPatch = skillPatchSchema.parse({
-    ...patch,
-    status: "rejected",
-    rejected_at: new Date().toISOString()
+    const rejectedPatch = skillPatchSchema.parse({
+      ...patch,
+      status: "rejected",
+      rejected_at: new Date().toISOString()
+    });
+    await writeSkillPatch(cwd, rejectedPatch);
+    return rejectedPatch;
   });
-  await writeSkillPatch(cwd, rejectedPatch);
-  return rejectedPatch;
 }

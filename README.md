@@ -83,6 +83,7 @@ briefops codex plugin install
 ```
 
 This creates or updates `AGENTS.md` with BriefOps guidance and creates `.briefops/codex/prompts/`.
+`briefops codex plugin install` writes a deterministic local plugin bundle under `.briefops/codex/plugin/briefops`. It does not publish to a marketplace and does not write to global Codex folders by default.
 
 ### 3. Create A Skill
 
@@ -127,6 +128,8 @@ briefops prime \
 ```
 
 Paste the compact prime context into Codex first. It is smaller than a full resume pack and is designed to reduce repeated history/context lookup.
+
+Codex-format prime output includes an operating note for Codex: use the selected worker/project context, inspect only files needed for the task, and never apply memory or skill patches without user approval.
 
 ### 7. Start A Codex Mission When Needed
 
@@ -191,6 +194,23 @@ briefops continue \
 ```
 
 `continue --pack` checks continuity health, warns about pending memory proposals, refreshes worker intelligence, saves a handoff, saves a Codex resume prompt, saves a portable resume pack, and prints all generated paths.
+
+## Shared-Only Export Path
+
+Use shared-only output when context may leave the local terminal or local Codex session:
+
+```bash
+briefops prime --task "Continue unresolved checks." --format codex --export-policy shared-only
+briefops pack resume --worker quant-reviewer --task "Continue unresolved checks." --export-policy shared-only
+```
+
+`shared-only` includes only memory items where `visibility: shared` and `exportable: true`.
+
+It omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
+
+`local-private` is intended for local terminal/Codex use only and may include local private continuity context.
+
+BriefOps skills must never auto-approve memory proposals or skill patches.
 
 ## Finish / Continue UX
 
@@ -437,6 +457,8 @@ briefops handoff generate \
   --task "Continue unresolved slippage checks." \
   --save
 ```
+
+Add `--export-policy shared-only` to handoff or Codex resume output when the artifact may leave the local workspace.
 
 Generate a Codex resume prompt:
 

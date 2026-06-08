@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { BriefOpsError } from "./errors.js";
+import { withWorkspaceLock } from "./lock.js";
 import {
   memoryCategories,
   memoryFilePath,
@@ -127,6 +128,19 @@ export async function addMemoryIfMissing(options: AddMemoryOptions): Promise<{
   created: boolean;
 }> {
   const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "memory" }, async () =>
+    addMemoryIfMissingUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+export async function addMemoryIfMissingUnlocked(options: AddMemoryOptions): Promise<{
+  item: MemoryItem;
+  created: boolean;
+}> {
+  const cwd = options.cwd ?? process.cwd();
   await requireWorkspace(cwd);
 
   const category = normalizeMemoryCategory(options.type);
@@ -146,12 +160,25 @@ export async function addMemoryIfMissing(options: AddMemoryOptions): Promise<{
   }
 
   return {
-    item: await addMemory(options),
+    item: await addMemoryUnlocked({
+      ...options,
+      cwd
+    }),
     created: true
   };
 }
 
 export async function addMemory(options: AddMemoryOptions): Promise<MemoryItem> {
+  const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "memory" }, async () =>
+    addMemoryUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+export async function addMemoryUnlocked(options: AddMemoryOptions): Promise<MemoryItem> {
   const cwd = options.cwd ?? process.cwd();
   await requireWorkspace(cwd);
 
@@ -235,14 +262,16 @@ export async function updateMemoryStatus(options: {
   status: string;
 }): Promise<MemoryItem> {
   const cwd = options.cwd ?? process.cwd();
-  const found = await findMemoryById(cwd, options.id);
-  const updated = {
-    ...found.item,
-    status: normalizeMemoryStatus(options.status)
-  };
-  found.file.items[found.index] = updated;
-  await writeMemoryFile(cwd, found.category, found.file);
-  return updated;
+  return withWorkspaceLock({ cwd, name: "memory" }, async () => {
+    const found = await findMemoryById(cwd, options.id);
+    const updated = {
+      ...found.item,
+      status: normalizeMemoryStatus(options.status)
+    };
+    found.file.items[found.index] = updated;
+    await writeMemoryFile(cwd, found.category, found.file);
+    return updated;
+  });
 }
 
 export function formatMemoryItem(item: MemoryItem): string {

@@ -1,6 +1,13 @@
 import path from "node:path";
 import { BriefOpsError } from "./errors.js";
+import {
+  filterMemoryForExport,
+  normalizeExportPolicy,
+  sharedOnlyOmissionNote,
+  type ExportPolicy
+} from "./exportPolicy.js";
 import { listWorkLogs } from "./log.js";
+import { withWorkspaceLock } from "./lock.js";
 import { formatMemoryItem, selectContinuityContext, taskKeywords } from "./memory.js";
 import { readProject } from "./project.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
@@ -40,7 +47,7 @@ export type GenerateHandoffOptions = {
   fromHandoff?: string;
   mode?: string;
   completionPromise?: string;
-  exportPolicy?: "local-private" | "shared-only";
+  exportPolicy?: ExportPolicy;
   save?: boolean;
   outputPath?: string;
 };
@@ -78,7 +85,7 @@ async function renderWorkerForExport(options: {
   cwd: string;
   worker?: string;
   budget: number;
-  exportPolicy: "local-private" | "shared-only";
+  exportPolicy: ExportPolicy;
 }): Promise<string> {
   if (!options.worker) {
     return "No worker selected.";
@@ -89,11 +96,15 @@ async function renderWorkerForExport(options: {
     return [
       `# Worker Intelligence: ${worker.name}`,
       "",
-      "Shared-only export policy is active. Durable private memory and local work history are omitted from this worker section.",
+      sharedOnlyOmissionNote,
       "",
       "## Identity",
       "",
       worker.description || "No worker description recorded.",
+      "",
+      "## Project",
+      "",
+      worker.project ?? "No default project recorded.",
       "",
       "## Default Operating Style",
       "",
@@ -249,7 +260,7 @@ function trimMarkdownSection(markdown: string, heading: string, minTokens: numbe
 
 export async function generateHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
-  const exportPolicy = options.exportPolicy ?? "local-private";
+  const exportPolicy = normalizeExportPolicy(options.exportPolicy);
   const id = `handoff_${formatDateStamp()}`;
   let projectText = context.project
     ? truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
@@ -261,18 +272,20 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
     exportPolicy
   });
   let workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
-  const logs = await listWorkLogs({
+  const logs = exportPolicy === "shared-only" ? [] : await listWorkLogs({
     cwd: context.cwd,
     project: context.project,
     worker: context.worker,
     limit: 12
   });
-  let logsText = selectLogItems({
-    logs,
-    task: context.task,
-    maxTokens: defaultPolicy.recent_logs,
-    quota: 5
-  });
+  let logsText = exportPolicy === "shared-only"
+    ? sharedOnlyOmissionNote
+    : selectLogItems({
+        logs,
+        task: context.task,
+        maxTokens: defaultPolicy.recent_logs,
+        quota: 5
+      });
   const memory = await selectContinuityContext({
     cwd: context.cwd,
     project: context.project,
@@ -292,9 +305,7 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
       deprecated: 0
     }
   });
-  const memoryItems = exportPolicy === "shared-only"
-    ? memory.items.filter((item) => item.visibility === "shared" && item.exportable)
-    : memory.items;
+  const memoryItems = filterMemoryForExport(memory.items, exportPolicy);
   const byType = (type: string) =>
     memoryItems.filter((item) => item.type === type).map(formatMemoryItem);
   const taskText = truncateToTokenBudget(context.task ?? "No next task provided.", defaultPolicy.task).text;
@@ -303,12 +314,16 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
   let decisionsText = formatMemory(byType("decision"));
   let lessonsText = formatMemory(byType("lesson"));
   let incidentsText = formatMemory(byType("incident"));
-  const openRisksText = openRisks.length > 0
-    ? openRisks.map((risk) => `- ${risk}`).join("\n")
-    : "No unresolved open risks found.";
-  const nextActionsText = nextSteps.length > 0
-    ? nextSteps.map((step) => `- ${step}`).join("\n")
-    : `- ${taskText}`;
+  const openRisksText = exportPolicy === "shared-only"
+    ? sharedOnlyOmissionNote
+    : openRisks.length > 0
+      ? openRisks.map((risk) => `- ${risk}`).join("\n")
+      : "No unresolved open risks found.";
+  const nextActionsText = exportPolicy === "shared-only"
+    ? sharedOnlyOmissionNote
+    : nextSteps.length > 0
+      ? nextSteps.map((step) => `- ${step}`).join("\n")
+      : `- ${taskText}`;
   const readIfNeededText = context.project
     ? `Project file: .briefops/projects/${context.project}.project.md`
     : "No project references listed.";
@@ -476,16 +491,18 @@ export async function saveGeneratedHandoff(options: {
   content: string;
   outputPath?: string;
 }): Promise<string> {
-  const targetPath =
-    options.outputPath ??
-    path.join(
-      workspacePaths(options.cwd).handoffs,
-      `${options.id}-${slugForFilename(options.project ?? "global")}-${slugForFilename(
-        options.worker ?? "handoff"
-      )}.md`
-    );
-  await writeTextFile(targetPath, options.content, { force: true });
-  return targetPath;
+  return withWorkspaceLock({ cwd: options.cwd, name: "handoff" }, async () => {
+    const targetPath =
+      options.outputPath ??
+      path.join(
+        workspacePaths(options.cwd).handoffs,
+        `${options.id}-${slugForFilename(options.project ?? "global")}-${slugForFilename(
+          options.worker ?? "handoff"
+        )}.md`
+      );
+    await writeTextFile(targetPath, options.content, { force: true });
+    return targetPath;
+  });
 }
 
 function handoffIdFromPath(filePath: string): string {
@@ -546,8 +563,8 @@ export async function inspectSavedHandoff(cwd: string, idOrLatest: string): Prom
 
 export async function generateCodexResumeFromHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
-  const exportPolicy = options.exportPolicy ?? "local-private";
-  const handoff = options.fromHandoff
+  const exportPolicy = normalizeExportPolicy(options.exportPolicy);
+  const handoff = options.fromHandoff && exportPolicy !== "shared-only"
     ? await showSavedHandoff(context.cwd, options.fromHandoff)
     : (await generateHandoff({
         ...options,

@@ -2,8 +2,12 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { setDefaultWorker } from "../src/core/config.js";
-import { withWorkspaceLock } from "../src/core/lock.js";
-import { addMemory } from "../src/core/memory.js";
+import { generateCodexResume } from "../src/core/codex.js";
+import { cleanStaleLocks, withWorkspaceLock } from "../src/core/lock.js";
+import { addWorkLog } from "../src/core/log.js";
+import { addMemory, listMemory } from "../src/core/memory.js";
+import { applyMemoryProposal, proposeMemoryFromLog } from "../src/core/memoryProposal.js";
+import { applySkillPatch, proposeSkillPatch } from "../src/core/patch.js";
 import { primeContext } from "../src/core/prime.js";
 import { createProject } from "../src/core/project.js";
 import { runSecurityDoctor } from "../src/core/securityDoctor.js";
@@ -116,6 +120,16 @@ describe("local safety controls", () => {
         visibility: "shared",
         exportable: true
       });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review private pack work",
+        result: "Private raw log result should not leave local export.",
+        openRisks: ["Private open risk should not leave local export."],
+        nextSteps: ["Private next step should not leave local export."]
+      });
 
       const pack = await packResume({
         cwd: dir,
@@ -126,6 +140,85 @@ describe("local safety controls", () => {
 
       expect(pack.content).toContain("Shared pack lesson.");
       expect(pack.content).not.toContain("Private pack lesson.");
+      expect(pack.content).not.toContain("Private raw log result should not leave local export.");
+      expect(pack.content).not.toContain("Private open risk should not leave local export.");
+      expect(pack.content).not.toContain("Private next step should not leave local export.");
+      expect(pack.content).toContain("Shared-only export policy is active.");
+    });
+  });
+
+  it("filters private continuity context from Codex resume when export policy is shared-only", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Private resume lesson.",
+        visibility: "private",
+        exportable: false
+      });
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Shared resume lesson.",
+        visibility: "shared",
+        exportable: true
+      });
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review private resume work",
+        result: "Private resume raw result should not leave local export.",
+        openRisks: ["Private resume open risk should not leave local export."],
+        nextSteps: ["Private resume next step should not leave local export."]
+      });
+
+      const resume = await generateCodexResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue review.",
+        exportPolicy: "shared-only"
+      });
+
+      expect(resume.content).toContain("Shared resume lesson.");
+      expect(resume.content).not.toContain("Private resume lesson.");
+      expect(resume.content).not.toContain("Private resume raw result should not leave local export.");
+      expect(resume.content).not.toContain("Private resume open risk should not leave local export.");
+      expect(resume.content).not.toContain("Private resume next step should not leave local export.");
+      expect(resume.content).toContain("Shared-only export policy is active.");
+    });
+  });
+
+  it("preserves normal continuity context for local-private packs", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review local private work",
+        result: "Local raw log result remains available locally.",
+        openRisks: ["Local open risk remains available locally."],
+        nextSteps: ["Local next step remains available locally."]
+      });
+
+      const pack = await packResume({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue review.",
+        exportPolicy: "local-private"
+      });
+
+      expect(pack.content).toContain("Local raw log result remains available locally.");
+      expect(pack.content).toContain("Local open risk remains available locally.");
+      expect(pack.content).toContain("Local next step remains available locally.");
     });
   });
 
@@ -165,6 +258,111 @@ describe("local safety controls", () => {
       expect(result.ok).toBe(false);
       expect(result.checks.find((check) => check.name === "Default worker")?.status).toBe("fail");
       expect(result.checks.find((check) => check.name === "Stale lock files")?.status).toBe("fail");
+    });
+  });
+
+  it("cleans stale locks without removing fresh locks", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await ensureDirectory(`${dir}/.briefops/.locks`);
+      await writeTextFileAtomic(
+        `${dir}/.briefops/.locks/stale.lock`,
+        "name: stale\npid: 999999\ncreated_at: 2000-01-01T00:00:00.000Z\n"
+      );
+      await writeTextFileAtomic(
+        `${dir}/.briefops/.locks/fresh.lock`,
+        `name: fresh\npid: ${process.pid}\ncreated_at: ${new Date().toISOString()}\n`
+      );
+
+      expect((await runSecurityDoctor({ cwd: dir })).ok).toBe(false);
+      const removed = await cleanStaleLocks({ cwd: dir });
+      expect(removed.some((filePath) => filePath.endsWith("stale.lock"))).toBe(true);
+      await expect(fs.stat(`${dir}/.briefops/.locks/stale.lock`)).rejects.toThrow();
+      await expect(fs.stat(`${dir}/.briefops/.locks/fresh.lock`)).resolves.toBeTruthy();
+      expect((await runSecurityDoctor({ cwd: dir })).ok).toBe(true);
+    });
+  });
+
+  it("serializes concurrent direct memory adds", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+
+      await Promise.all(
+        Array.from({ length: 8 }, (_, index) =>
+          addMemory({
+            cwd: dir,
+            type: "lessons",
+            project: "atlas-q",
+            skill: "risk-review",
+            content: `Concurrent memory lesson ${index}.`
+          })
+        )
+      );
+
+      const lessons = await listMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review"
+      });
+      expect(lessons.filter((item) => item.content.startsWith("Concurrent memory lesson")).length)
+        .toBe(8);
+    });
+  });
+
+  it("does not corrupt memory files when applying the same proposal concurrently", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Record durable lesson",
+        result: "Completed review.",
+        lessons: ["Concurrent proposal lesson."]
+      });
+      const proposed = await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      const results = await Promise.allSettled([
+        applyMemoryProposal({ cwd: dir, id: proposed.proposal.id }),
+        applyMemoryProposal({ cwd: dir, id: proposed.proposal.id })
+      ]);
+
+      expect(results.filter((result) => result.status === "fulfilled").length).toBe(1);
+      const lessons = await listMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review"
+      });
+      expect(lessons.filter((item) => item.content === "Concurrent proposal lesson.").length)
+        .toBe(1);
+    });
+  });
+
+  it("uses the skill-patch lock for direct skill patch apply", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Record patch lesson",
+        result: "Completed review.",
+        lessons: ["Apply direct skill patch with lock."]
+      });
+      const patch = await proposeSkillPatch({
+        cwd: dir,
+        skill: "risk-review",
+        fromLog: "latest"
+      });
+
+      await withWorkspaceLock({ cwd: dir, name: "skill-patch" }, async () => {
+        await expect(
+          applySkillPatch({ cwd: dir, skill: "risk-review", patch: patch.patch.id })
+        ).rejects.toThrow("BriefOps workspace lock is already held");
+      });
     });
   });
 });

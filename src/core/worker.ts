@@ -1,4 +1,5 @@
 import { BriefOpsError } from "./errors.js";
+import { withWorkspaceLock } from "./lock.js";
 import { listWorkLogs } from "./log.js";
 import { listMemory } from "./memory.js";
 import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
@@ -162,6 +163,20 @@ export async function summarizeWorker(cwd: string, name: string, limit = 5): Pro
 }
 
 export async function refreshWorkerSummary(options: {
+  cwd?: string;
+  name: string;
+  limit?: number;
+}): Promise<{ path: string; content: string; tokens: number }> {
+  const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "worker-summary" }, async () =>
+    refreshWorkerSummaryUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+export async function refreshWorkerSummaryUnlocked(options: {
   cwd?: string;
   name: string;
   limit?: number;

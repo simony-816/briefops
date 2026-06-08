@@ -1,5 +1,11 @@
 import { readBriefOpsConfig } from "./config.js";
 import { inspectContinuityHealth } from "./continuity.js";
+import {
+  filterMemoryForExport,
+  normalizeExportPolicy,
+  sharedOnlyOmissionNote,
+  type ExportPolicy
+} from "./exportPolicy.js";
 import { getInboxSummary } from "./inbox.js";
 import { listWorkLogs } from "./log.js";
 import { formatMemoryItem, selectContinuityContext } from "./memory.js";
@@ -15,7 +21,7 @@ export type PrimeContextOptions = {
   task?: string;
   maxTokens?: number;
   format?: "markdown" | "codex";
-  exportPolicy?: "local-private" | "shared-only";
+  exportPolicy?: ExportPolicy;
 };
 
 export type PrimeContextResult = {
@@ -52,6 +58,11 @@ function setupRequiredContent(maxTokens: number): PrimeContextResult {
       "```bash",
       "briefops init",
       "briefops codex install",
+      "briefops codex plugin install",
+      "briefops skill create <skill>",
+      "briefops project create <project>",
+      "briefops worker create <worker> --project <project> --skills \"<skill>\"",
+      "briefops worker use <worker>",
       "```",
       ""
     ].join("\n"),
@@ -153,7 +164,7 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
   const maxTokens = options.maxTokens ?? 800;
   const task = options.task?.trim() || "No current task provided.";
   const format = options.format ?? "markdown";
-  const exportPolicy = options.exportPolicy ?? "local-private";
+  const exportPolicy = normalizeExportPolicy(options.exportPolicy);
 
   if (!(await pathExists(workspacePaths(cwd).root))) {
     return setupRequiredContent(maxTokens);
@@ -209,10 +220,7 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
       deprecated: 0
     }
   });
-  const memoryItems =
-    exportPolicy === "shared-only"
-      ? memory.items.filter((item) => item.visibility === "shared" && item.exportable)
-      : memory.items;
+  const memoryItems = filterMemoryForExport(memory.items, exportPolicy);
   const memoryText =
     memoryItems.length > 0
       ? memoryItems.map(formatMemoryItem).join("\n")
@@ -223,8 +231,8 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     worker: workerName,
     limit: 8
   });
-  const openRisks = logs.flatMap((log) => log.open_risks);
-  const nextSteps = logs.flatMap((log) => log.next_steps);
+  const openRisks = exportPolicy === "shared-only" ? [] : logs.flatMap((log) => log.open_risks);
+  const nextSteps = exportPolicy === "shared-only" ? [] : logs.flatMap((log) => log.next_steps);
   const pendingReview: string[] = [
     inbox.pendingMemoryProposals > 0
       ? `${inbox.pendingMemoryProposals} pending memory proposal(s).`
@@ -232,6 +240,9 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     inbox.pendingSkillPatches > 0 ? `${inbox.pendingSkillPatches} pending skill patch(es).` : undefined,
     exportPolicy === "local-private"
       ? "This context may include private local BriefOps memory. Review before sharing outside this machine."
+      : sharedOnlyOmissionNote,
+    format === "codex"
+      ? "Codex format is active; follow the operating note below before broad repo/history inspection."
       : undefined
   ].filter((item): item is string => Boolean(item));
   const warnings = [
@@ -239,6 +250,26 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     inbox.pendingMemoryProposals > 0 ? "Pending memory proposals should be reviewed." : undefined,
     exportPolicy === "local-private" ? "Prime context may include private local memory." : undefined
   ].filter((warning): warning is string => Boolean(warning));
+  const codexOperatingNote = format === "codex"
+    ? [
+        "## Codex Operating Note",
+        "",
+        "Use this as a routing brief before broad repo/history inspection.",
+        "",
+        "Do:",
+        "- Restate the current task.",
+        "- Use the selected worker/project context.",
+        "- Inspect only the files needed for the task.",
+        "- Review pending memory proposals with the user before applying.",
+        `- Use \`briefops continue --worker ${workerName} --task ${quote(task)} --pack\` when a fresh-thread resume is needed.`,
+        "",
+        "Do not:",
+        "- Dump the entire `.briefops` workspace.",
+        "- Apply memory or skill patches without user approval.",
+        "- Treat this prime context as a substitute for relevant code inspection.",
+        ""
+      ]
+    : [];
   const content = [
     "# BriefOps Prime Context",
     "",
@@ -259,6 +290,7 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     `- Project: ${project}`,
     `- Skills: ${worker.default_skills.length > 0 ? worker.default_skills.join(", ") : "none"}`,
     "",
+    ...codexOperatingNote,
     "## Continuity Status",
     "",
     `- Readiness: ${health.readiness}`,
@@ -272,10 +304,14 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     "## Open Risks And Next Steps",
     "",
     "Open risks:",
-    renderList(openRisks, "- No open risks found.", 4),
+    exportPolicy === "shared-only"
+      ? `- ${sharedOnlyOmissionNote}`
+      : renderList(openRisks, "- No open risks found.", 4),
     "",
     "Next steps:",
-    renderList(nextSteps, "- No next steps found.", 4),
+    exportPolicy === "shared-only"
+      ? `- ${sharedOnlyOmissionNote}`
+      : renderList(nextSteps, "- No next steps found.", 4),
     "",
     "## Pending User Review",
     "",

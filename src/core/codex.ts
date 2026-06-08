@@ -1,7 +1,9 @@
 import path from "node:path";
 import { generateBrief } from "./brief.js";
+import type { ExportPolicy } from "./exportPolicy.js";
 import { generateCodexResumeFromHandoff } from "./handoff.js";
 import { BriefOpsError } from "./errors.js";
+import { withWorkspaceLock } from "./lock.js";
 import { readProject } from "./project.js";
 import { readWorker } from "./worker.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
@@ -48,7 +50,7 @@ export type CodexResumeOptions = {
   budget?: number;
   mode?: string;
   completionPromise?: string;
-  exportPolicy?: "local-private" | "shared-only";
+  exportPolicy?: ExportPolicy;
   save?: boolean;
   outputPath?: string;
 };
@@ -228,14 +230,16 @@ async function saveCodexPrompt(options: {
   content: string;
   outputPath?: string;
 }): Promise<string> {
-  const targetPath =
-    options.outputPath ??
-    path.join(
-      workspacePaths(options.cwd).codexPrompts,
-      `${formatDateStamp()}-${options.kind}-${slugForFilename(options.name)}.md`
-    );
-  await writeTextFile(targetPath, options.content, { force: true });
-  return targetPath;
+  return withWorkspaceLock({ cwd: options.cwd, name: "codex-prompt" }, async () => {
+    const targetPath =
+      options.outputPath ??
+      path.join(
+        workspacePaths(options.cwd).codexPrompts,
+        `${formatDateStamp()}-${options.kind}-${slugForFilename(options.name)}.md`
+      );
+    await writeTextFile(targetPath, options.content, { force: true });
+    return targetPath;
+  });
 }
 
 export async function generateCodexMission(

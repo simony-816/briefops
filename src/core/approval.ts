@@ -1,6 +1,10 @@
 import { BriefOpsError } from "./errors.js";
-import { applyMemoryProposal, readMemoryProposal } from "./memoryProposal.js";
-import { applySkillPatch, readSkillPatch } from "./patch.js";
+import {
+  applyMemoryProposal,
+  readLatestProposedMemoryProposal,
+  readMemoryProposal
+} from "./memoryProposal.js";
+import { applySkillPatch, readLatestProposedSkillPatch, readSkillPatch } from "./patch.js";
 import type { MemoryProposal } from "../schemas/memoryProposal.js";
 import type { SkillPatch } from "../schemas/patch.js";
 
@@ -27,6 +31,14 @@ function isSkillPatchNotFound(error: unknown): boolean {
   return error instanceof BriefOpsError && error.message.startsWith("Skill patch not found:");
 }
 
+function isNoProposedMemoryProposal(error: unknown): boolean {
+  return error instanceof BriefOpsError && error.message === "No proposed memory proposals found.";
+}
+
+function isNoProposedSkillPatch(error: unknown): boolean {
+  return error instanceof BriefOpsError && error.message === "No proposed skill patches found.";
+}
+
 export async function approveMemory(options: {
   cwd?: string;
   id: string;
@@ -48,7 +60,9 @@ export async function approveSkillPatch(options: {
   id: string;
 }): Promise<ApproveSkillPatchResult> {
   const cwd = options.cwd ?? process.cwd();
-  const patch = await readSkillPatch(cwd, options.id);
+  const patch = options.id.trim().toLowerCase() === "latest"
+    ? await readLatestProposedSkillPatch(cwd)
+    : await readSkillPatch(cwd, options.id);
   const result = await applySkillPatch({
     cwd,
     skill: patch.skill,
@@ -66,6 +80,27 @@ export async function approveAny(options: {
   id: string;
 }): Promise<ApproveResult> {
   const cwd = options.cwd ?? process.cwd();
+  if (options.id.trim().toLowerCase() === "latest") {
+    try {
+      const proposal = await readLatestProposedMemoryProposal(cwd);
+      return await approveMemory({ cwd, id: proposal.id });
+    } catch (error) {
+      if (!isNoProposedMemoryProposal(error)) {
+        throw error;
+      }
+    }
+
+    try {
+      const patch = await readLatestProposedSkillPatch(cwd);
+      return await approveSkillPatch({ cwd, id: patch.id });
+    } catch (error) {
+      if (isNoProposedSkillPatch(error)) {
+        throw new BriefOpsError("No proposed memory proposal or skill patch found for approval.");
+      }
+      throw error;
+    }
+  }
+
   try {
     await readMemoryProposal(cwd, options.id);
     return await approveMemory({ cwd, id: options.id });

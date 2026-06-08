@@ -1,7 +1,8 @@
 import path from "node:path";
 import { BriefOpsError } from "./errors.js";
 import { readWorkLog } from "./log.js";
-import { addMemoryIfMissing } from "./memory.js";
+import { withWorkspaceLock } from "./lock.js";
+import { addMemoryIfMissingUnlocked } from "./memory.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { listFilesBySuffix, readTextFile, writeYamlFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
@@ -230,6 +231,18 @@ export async function readMemoryProposal(cwd: string, id: string): Promise<Memor
   }
 }
 
+export async function readLatestProposedMemoryProposal(cwd = process.cwd()): Promise<MemoryProposal> {
+  const proposals = await listMemoryProposals({
+    cwd,
+    status: "proposed"
+  });
+  const latest = proposals[0];
+  if (!latest) {
+    throw new BriefOpsError("No proposed memory proposals found.");
+  }
+  return latest;
+}
+
 export async function listMemoryProposals(
   filters: ListMemoryProposalFilters = {}
 ): Promise<MemoryProposal[]> {
@@ -261,7 +274,22 @@ export async function applyMemoryProposal(options: {
   id: string;
 }): Promise<{ proposal: MemoryProposal; created: number; skipped: number }> {
   const cwd = options.cwd ?? process.cwd();
-  const proposal = await readMemoryProposal(cwd, options.id);
+  return withWorkspaceLock({ cwd, name: "memory" }, async () =>
+    applyMemoryProposalUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+export async function applyMemoryProposalUnlocked(options: {
+  cwd?: string;
+  id: string;
+}): Promise<{ proposal: MemoryProposal; created: number; skipped: number }> {
+  const cwd = options.cwd ?? process.cwd();
+  const proposal = options.id.trim().toLowerCase() === "latest"
+    ? await readLatestProposedMemoryProposal(cwd)
+    : await readMemoryProposal(cwd, options.id);
   if (proposal.status !== "proposed") {
     throw new BriefOpsError(`Memory proposal is already ${proposal.status}: ${proposal.id}`);
   }
@@ -269,7 +297,7 @@ export async function applyMemoryProposal(options: {
   let created = 0;
   let skipped = 0;
   for (const entry of proposal.items) {
-    const result = await addMemoryIfMissing({
+    const result = await addMemoryIfMissingUnlocked({
       cwd,
       type: entry.type,
       project: proposal.project,
@@ -302,16 +330,18 @@ export async function rejectMemoryProposal(options: {
   id: string;
 }): Promise<MemoryProposal> {
   const cwd = options.cwd ?? process.cwd();
-  const proposal = await readMemoryProposal(cwd, options.id);
-  if (proposal.status !== "proposed") {
-    throw new BriefOpsError(`Memory proposal is already ${proposal.status}: ${proposal.id}`);
-  }
+  return withWorkspaceLock({ cwd, name: "memory" }, async () => {
+    const proposal = await readMemoryProposal(cwd, options.id);
+    if (proposal.status !== "proposed") {
+      throw new BriefOpsError(`Memory proposal is already ${proposal.status}: ${proposal.id}`);
+    }
 
-  const updated = {
-    ...proposal,
-    status: "rejected" as const,
-    rejected_at: new Date().toISOString()
-  };
-  await writeProposal(cwd, updated);
-  return updated;
+    const updated = {
+      ...proposal,
+      status: "rejected" as const,
+      rejected_at: new Date().toISOString()
+    };
+    await writeProposal(cwd, updated);
+    return updated;
+  });
 }

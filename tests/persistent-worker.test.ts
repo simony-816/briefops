@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approveMemory, approveSkillPatch } from "../src/core/approval.js";
+import { approveAny, approveMemory, approveSkillPatch } from "../src/core/approval.js";
 import { inspectContinuityHealth } from "../src/core/continuity.js";
 import { generateCodexResume } from "../src/core/codex.js";
 import { generateHandoff } from "../src/core/handoff.js";
@@ -336,10 +336,49 @@ describe("persistent worker continuity", () => {
       expect(finished.logPath).toContain(".briefops/logs");
       expect(finished.memoryProposalId).toBeUndefined();
       expect(finished.memoryProposalPath).toBeUndefined();
-      expect(finished.warnings).toEqual(["No durable memory proposal candidates found."]);
+      expect(finished.warnings).toContain("No durable memory proposal candidates found.");
+      expect(finished.warnings).toContain(
+        "Worker reviewer does not exist yet. Run: briefops worker create reviewer"
+      );
       expect(finished.nextCommand).toBe(
         'briefops continue --worker reviewer --task "Fix typo"'
       );
+    });
+  });
+
+  it("finishWork warns instead of failing when no skill patch candidates exist", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+
+      const finished = await finishWork({
+        cwd: dir,
+        worker: "quant-reviewer",
+        project: "atlas-q",
+        skill: "risk-review",
+        task: "Fix typo",
+        result: "Fixed typo.",
+        proposeSkillPatch: true
+      });
+
+      expect(finished.logId).toContain("log_");
+      expect(finished.skillPatchId).toBeUndefined();
+      expect(finished.warnings).toContain("No skill patch candidates found.");
+    });
+  });
+
+  it("finishWork still fails propose-skill-patch for invalid skills", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+
+      await expect(finishWork({
+        cwd: dir,
+        worker: "quant-reviewer",
+        project: "atlas-q",
+        skill: "missing-skill",
+        task: "Fix typo",
+        result: "Fixed typo.",
+        proposeSkillPatch: true
+      })).rejects.toThrow("Skill not found");
     });
   });
 
@@ -481,6 +520,50 @@ describe("persistent worker continuity", () => {
       expect(approvedPatch.kind).toBe("skill-patch");
       expect(approvedPatch.patch.status).toBe("applied");
       expect(approvedPatch.skillPath).toContain("risk-review.skill.md");
+    });
+  });
+
+  it("approves latest proposed skill patch when newer memory proposal is already applied", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Record patch lesson",
+        result: "Completed review.",
+        lessons: ["Add patch lesson to skill checklist."]
+      });
+      const patch = await proposeSkillPatch({
+        cwd: dir,
+        skill: "risk-review",
+        fromLog: "latest"
+      });
+
+      await addWorkLog({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Record memory lesson",
+        result: "Completed review.",
+        lessons: ["Memory proposal lesson."]
+      });
+      await proposeMemoryFromLog({ cwd: dir, fromLog: "latest" });
+      await approveMemory({ cwd: dir, id: "latest" });
+
+      await expect(approveMemory({ cwd: dir, id: "latest" })).rejects.toThrow(
+        "No proposed memory proposals found"
+      );
+
+      const approved = await approveAny({ cwd: dir, id: "latest" });
+      expect(approved.kind).toBe("skill-patch");
+      expect(approved.kind === "skill-patch" ? approved.patch.id : "").toBe(patch.patch.id);
+
+      await expect(approveSkillPatch({ cwd: dir, id: "latest" })).rejects.toThrow(
+        "No proposed skill patches found"
+      );
     });
   });
 

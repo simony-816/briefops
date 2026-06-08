@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { cleanStaleLocks } from "../core/lock.js";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
 import { runSecurityDoctor } from "../core/securityDoctor.js";
 import { pathExists } from "../core/storage.js";
@@ -9,8 +10,22 @@ export function registerDoctorCommand(program: Command): void {
     .command("doctor")
     .description("Check the local BriefOps workspace structure.")
     .option("--security", "Run security, export, and local conflict checks.")
+    .option("--fix-stale-locks", "Remove stale BriefOps workspace locks before reporting security checks.")
     .action(async (options: Record<string, unknown>) => {
       if (options.security) {
+        if (options.fixStaleLocks) {
+          const removed = await cleanStaleLocks();
+          if (removed.length > 0) {
+            console.log("Removed stale lock files:");
+            for (const filePath of removed) {
+              console.log(`- ${filePath}`);
+            }
+            console.log("");
+          } else {
+            console.log("No stale lock files removed.");
+            console.log("");
+          }
+        }
         const result = await runSecurityDoctor();
         printTable([
           ["Check", "Status", "Detail"],

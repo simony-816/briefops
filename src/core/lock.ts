@@ -25,6 +25,10 @@ function lockPath(cwd: string, name: string): string {
   return path.join(workspacePaths(cwd).root, ".locks", `${normalizeName(name)}.lock`);
 }
 
+function lockDir(cwd: string): string {
+  return path.join(workspacePaths(cwd).root, ".locks");
+}
+
 async function isStale(filePath: string, staleMs: number): Promise<boolean> {
   if (!(await pathExists(filePath))) {
     return false;
@@ -95,4 +99,28 @@ export async function withWorkspaceLock<T>(
   } finally {
     await fs.unlink(lockFile).catch(() => undefined);
   }
+}
+
+export async function cleanStaleLocks(options: {
+  cwd?: string;
+  staleMs?: number;
+} = {}): Promise<string[]> {
+  const cwd = options.cwd ?? process.cwd();
+  await requireWorkspace(cwd);
+  const dirPath = lockDir(cwd);
+  if (!(await pathExists(dirPath))) {
+    return [];
+  }
+
+  const removed: string[] = [];
+  const entries = await fs.readdir(dirPath);
+  for (const entry of entries.filter((item) => item.endsWith(".lock"))) {
+    const filePath = path.join(dirPath, entry);
+    if (await isStale(filePath, options.staleMs ?? defaultStaleMs)) {
+      await fs.unlink(filePath).catch(() => undefined);
+      removed.push(filePath);
+    }
+  }
+
+  return removed;
 }

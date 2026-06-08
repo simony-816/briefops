@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { normalizeExportPolicy } from "../core/exportPolicy.js";
 import { primeContext, type PrimeContextOptions } from "../core/prime.js";
 import { parsePositiveInt } from "./shared.js";
 
@@ -9,15 +10,6 @@ function normalizeFormat(value?: string): PrimeContextOptions["format"] {
   }
 
   throw new Error(`Invalid prime format: ${value}`);
-}
-
-function normalizeExportPolicy(value?: string): PrimeContextOptions["exportPolicy"] {
-  const policy = (value ?? "local-private").trim().toLowerCase();
-  if (policy === "local-private" || policy === "shared-only") {
-    return policy;
-  }
-
-  throw new Error(`Invalid export policy: ${value}`);
 }
 
 export async function runPrimeCommand(

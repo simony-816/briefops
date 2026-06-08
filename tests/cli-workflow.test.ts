@@ -65,6 +65,9 @@ describe("CLI persistent worker workflow", () => {
       expect(finished.stdout).toContain("Added work log:");
       expect(finished.stdout).toContain("Warnings:");
       expect(finished.stdout).toContain("- No durable memory proposal candidates found.");
+      expect(finished.stdout).toContain(
+        "- Worker reviewer does not exist yet. Run: briefops worker create reviewer"
+      );
       expect(finished.stdout).toContain("Next command:");
       expect(finished.stdout).toContain('briefops continue --worker reviewer --task "Fix typo"');
     });
@@ -221,7 +224,51 @@ describe("CLI persistent worker workflow", () => {
         "800"
       ]);
       expect(codexPrimed.stdout).toContain("BriefOps Prime Context");
+      expect(codexPrimed.stdout).toContain("Codex Operating Note");
       expect(codexPrimed.stderr).toContain("Estimated tokens:");
+    });
+  });
+
+  it("accepts shared-only export policy for handoff and Codex resume CLI output", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+      await expectCli(dir, ["worker", "use", "quant-reviewer"]);
+
+      const handoff = await expectCli(dir, [
+        "handoff",
+        "generate",
+        "--worker",
+        "quant-reviewer",
+        "--task",
+        "Continue unresolved checks.",
+        "--export-policy",
+        "shared-only"
+      ]);
+      expect(handoff.stdout).toContain("Shared-only export policy is active.");
+
+      const resume = await expectCli(dir, [
+        "codex",
+        "resume",
+        "--worker",
+        "quant-reviewer",
+        "--task",
+        "Continue unresolved checks.",
+        "--export-policy",
+        "shared-only"
+      ]);
+      expect(resume.stdout).toContain("Shared-only export policy is active.");
+      expect(resume.stdout).toContain("Continuity Contract");
     });
   });
 
@@ -244,6 +291,9 @@ describe("CLI persistent worker workflow", () => {
       const checked = await expectCli(dir, ["doctor", "--security"]);
       expect(checked.stdout).toContain("Default worker");
       expect(checked.stdout).toContain("Stale lock files");
+
+      const fixed = await expectCli(dir, ["doctor", "--security", "--fix-stale-locks"]);
+      expect(fixed.stdout).toContain("Stale lock files");
     });
   });
 });

@@ -6,6 +6,7 @@ import {
   listSavedHandoffs,
   showSavedHandoff
 } from "../core/handoff.js";
+import { normalizeExportPolicy } from "../core/exportPolicy.js";
 import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerHandoffCommands(program: Command): void {
@@ -20,6 +21,7 @@ export function registerHandoffCommands(program: Command): void {
     .option("--worker <worker>", "Worker profile name.")
     .option("--task <task>", "Optional next task.")
     .option("--budget <tokens>", "Overall token budget.", parsePositiveInt, 2500)
+    .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--save", "Save to .briefops/handoffs.")
     .option("--output <path>", "Write the handoff to a specific path.")
     .action(async (options: Record<string, unknown>) => {
@@ -28,6 +30,7 @@ export function registerHandoffCommands(program: Command): void {
         worker: options.worker as string | undefined,
         task: options.task as string | undefined,
         budget: options.budget as number,
+        exportPolicy: normalizeExportPolicy(options.exportPolicy as string | undefined),
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)

@@ -2,6 +2,11 @@ import path from "node:path";
 import { generateCodexResume } from "./codex.js";
 import { inspectContinuityHealth } from "./continuity.js";
 import { BriefOpsError } from "./errors.js";
+import {
+  normalizeExportPolicy,
+  sharedOnlyOmissionNote,
+  type ExportPolicy
+} from "./exportPolicy.js";
 import { generateHandoff } from "./handoff.js";
 import { withWorkspaceLock } from "./lock.js";
 import { addWorkLog, type AddWorkLogOptions } from "./log.js";
@@ -10,7 +15,7 @@ import {
   listMemoryProposals,
   proposeMemoryFromLog
 } from "./memoryProposal.js";
-import { proposeSkillPatch } from "./patch.js";
+import { isNoSkillPatchCandidatesError, proposeSkillPatch } from "./patch.js";
 import { normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { writeTextFile } from "./storage.js";
 import { readWorker, refreshWorkerSummary } from "./worker.js";
@@ -65,7 +70,7 @@ export type PackResumeOptions = {
   task: string;
   budget?: number;
   outputPath?: string;
-  exportPolicy?: "local-private" | "shared-only";
+  exportPolicy?: ExportPolicy;
 };
 
 export type PackResumeResult = {
@@ -92,6 +97,10 @@ function continueCommand(options: {
   ].filter((part): part is string => Boolean(part)).join(" ");
 }
 
+function isMissingWorkerError(error: unknown): boolean {
+  return error instanceof BriefOpsError && error.message.startsWith("Worker not found:");
+}
+
 export async function finishWork(options: FinishWorkOptions): Promise<FinishWorkResult> {
   const cwd = options.cwd ?? process.cwd();
   return withWorkspaceLock({ cwd, name: "workflow" }, async () => {
@@ -101,6 +110,18 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
       cwd
     });
     const warnings: string[] = [];
+    if (logResult.log.worker) {
+      try {
+        await readWorker(cwd, logResult.log.worker);
+      } catch (error) {
+        if (!isMissingWorkerError(error)) {
+          throw error;
+        }
+        warnings.push(
+          `Worker ${logResult.log.worker} does not exist yet. Run: briefops worker create ${logResult.log.worker}`
+        );
+      }
+    }
     let memoryProposalId: string | undefined;
     let memoryProposalPath: string | undefined;
     try {
@@ -122,13 +143,20 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
       throw new BriefOpsError("Skill patch proposal requires --skill.");
     }
     if (options.proposeSkillPatch && options.skill) {
-      const patch = await proposeSkillPatch({
-        cwd,
-        skill: options.skill,
-        fromLog: logResult.log.id
-      });
-      skillPatchId = patch.patch.id;
-      skillPatchPath = patch.path;
+      try {
+        const patch = await proposeSkillPatch({
+          cwd,
+          skill: options.skill,
+          fromLog: logResult.log.id
+        });
+        skillPatchId = patch.patch.id;
+        skillPatchPath = patch.path;
+      } catch (error) {
+        if (!isNoSkillPatchCandidatesError(error)) {
+          throw error;
+        }
+        warnings.push("No skill patch candidates found.");
+      }
     }
 
     let workerSummaryPath: string | undefined;
@@ -257,10 +285,10 @@ function renderPortablePackHeader(options: {
   task: string;
   generatedAt: string;
   tokens: number;
-  exportPolicy: "local-private" | "shared-only";
+  exportPolicy: ExportPolicy;
 }): string {
   const reviewLine = options.exportPolicy === "shared-only"
-    ? "Shared-only export policy is active. Private local memory is omitted."
+    ? sharedOnlyOmissionNote
     : "Review before sharing outside your local machine. It may include local project memory, decisions, lessons, risks, and worker history.";
   return [
     "# BriefOps Portable Resume Pack",
@@ -282,13 +310,14 @@ export async function packResume(options: PackResumeOptions): Promise<PackResume
   return withWorkspaceLock({ cwd, name: "pack" }, async () => {
     await requireWorkspace(cwd);
     const worker = normalizeName(options.worker);
+    const exportPolicy = normalizeExportPolicy(options.exportPolicy);
     const resume = await generateCodexResume({
       cwd,
       worker,
       project: options.project,
       task: options.task,
       budget: options.budget ?? 3000,
-      exportPolicy: options.exportPolicy,
+      exportPolicy,
       save: false
     });
     const portableResume = scrubLocalBriefOpsReferences(resume.content).trim();
@@ -300,7 +329,7 @@ export async function packResume(options: PackResumeOptions): Promise<PackResume
         task: options.task.trim(),
         generatedAt,
         tokens: estimatedTokens,
-        exportPolicy: options.exportPolicy ?? "local-private"
+        exportPolicy
       }),
         portableResume,
         ""

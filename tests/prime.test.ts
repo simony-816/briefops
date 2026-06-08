@@ -44,6 +44,8 @@ describe("prime context", () => {
 
       expect(result.status).toBe("setup-required");
       expect(result.content).toContain("briefops init");
+      expect(result.content).toContain("briefops codex plugin install");
+      expect(result.content).toContain("briefops worker use <worker>");
       expect(result.tokens).toBeLessThanOrEqual(300);
     });
   });
@@ -84,6 +86,31 @@ describe("prime context", () => {
       expect(result.content).toContain("Always verify turnover warning");
       expect(result.content).not.toContain("# BriefOps Portable Resume Pack");
       expect(result.tokens).toBeLessThanOrEqual(800);
+    });
+  });
+
+  it("adds Codex-specific operating guidance only for codex format", async () => {
+    await withTempDir(async (dir) => {
+      await seedPrimeWorkspace(dir);
+      await setDefaultWorker({ cwd: dir, worker: "quant-reviewer" });
+
+      const codex = await primeContext({
+        cwd: dir,
+        task: "Continue unresolved checks.",
+        maxTokens: 800,
+        format: "codex"
+      });
+      const markdown = await primeContext({
+        cwd: dir,
+        task: "Continue unresolved checks.",
+        maxTokens: 800,
+        format: "markdown"
+      });
+
+      expect(codex.content).toContain("## Codex Operating Note");
+      expect(markdown.content).not.toContain("## Codex Operating Note");
+      expect(codex.tokens).toBeLessThanOrEqual(800);
+      expect(markdown.tokens).toBeLessThanOrEqual(800);
     });
   });
 
@@ -138,7 +165,7 @@ describe("prime context", () => {
         "",
         "Project README, all worker memory files, recent logs, handoff notes, and unresolved risks:",
         "",
-        ...Array.from({ length: 24 }, (_, index) =>
+        ...Array.from({ length: 40 }, (_, index) =>
           `- Entry ${index}: review rebalance turnover warnings, slippage assumptions, governance policy, release risk, prior reviewer lessons, current project facts, unresolved next steps, and evidence gates before continuing.`
         )
       ].join("\n");

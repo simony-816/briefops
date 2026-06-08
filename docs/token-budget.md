@@ -18,3 +18,8 @@ For sharing outside the local machine, use:
 briefops prime --task "Continue unresolved checks." --export-policy shared-only
 briefops pack resume --worker <worker> --task "Continue unresolved checks." --export-policy shared-only
 ```
+
+`shared-only` includes only memory items marked `visibility: shared` and `exportable: true`.
+It omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
+
+`local-private` is intended for local terminal/Codex use only.
