@@ -40,6 +40,7 @@ export type GenerateHandoffOptions = {
   fromHandoff?: string;
   mode?: string;
   completionPromise?: string;
+  exportPolicy?: "local-private" | "shared-only";
   save?: boolean;
   outputPath?: string;
 };
@@ -71,6 +72,47 @@ function renderTokenReport(lines: TokenReportLine[], total: number, budget: numb
 
 function formatMemory(items: ReturnType<typeof formatMemoryItem>[]): string {
   return items.length > 0 ? items.join("\n") : "No active matching memory found.";
+}
+
+async function renderWorkerForExport(options: {
+  cwd: string;
+  worker?: string;
+  budget: number;
+  exportPolicy: "local-private" | "shared-only";
+}): Promise<string> {
+  if (!options.worker) {
+    return "No worker selected.";
+  }
+
+  if (options.exportPolicy === "shared-only") {
+    const worker = await readWorker(options.cwd, options.worker);
+    return [
+      `# Worker Intelligence: ${worker.name}`,
+      "",
+      "Shared-only export policy is active. Durable private memory and local work history are omitted from this worker section.",
+      "",
+      "## Identity",
+      "",
+      worker.description || "No worker description recorded.",
+      "",
+      "## Default Operating Style",
+      "",
+      worker.style.length > 0 ? worker.style.map((style) => `- ${style}`).join("\n") : "- Verify before completion.",
+      "",
+      "## Skill Bundle",
+      "",
+      worker.default_skills.length > 0
+        ? worker.default_skills.map((skill) => `- ${skill}`).join("\n")
+        : "- No default skills recorded.",
+      ""
+    ].join("\n");
+  }
+
+  return (await generateWorkerIntelligence({
+    cwd: options.cwd,
+    name: options.worker,
+    budget: options.budget
+  })).content;
 }
 
 function formatLogItem(log: WorkLog): string {
@@ -207,17 +249,17 @@ function trimMarkdownSection(markdown: string, heading: string, minTokens: numbe
 
 export async function generateHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
+  const exportPolicy = options.exportPolicy ?? "local-private";
   const id = `handoff_${formatDateStamp()}`;
   let projectText = context.project
     ? truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
     : "No project selected.";
-  const workerSummary = context.worker
-    ? (await generateWorkerIntelligence({
-        cwd: context.cwd,
-        name: context.worker,
-        budget: defaultPolicy.worker
-      })).content
-    : "No worker selected.";
+  const workerSummary = await renderWorkerForExport({
+    cwd: context.cwd,
+    worker: context.worker,
+    budget: defaultPolicy.worker,
+    exportPolicy
+  });
   let workerText = truncateToTokenBudget(workerSummary, defaultPolicy.worker).text;
   const logs = await listWorkLogs({
     cwd: context.cwd,
@@ -250,8 +292,11 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
       deprecated: 0
     }
   });
+  const memoryItems = exportPolicy === "shared-only"
+    ? memory.items.filter((item) => item.visibility === "shared" && item.exportable)
+    : memory.items;
   const byType = (type: string) =>
-    memory.items.filter((item) => item.type === type).map(formatMemoryItem);
+    memoryItems.filter((item) => item.type === type).map(formatMemoryItem);
   const taskText = truncateToTokenBudget(context.task ?? "No next task provided.", defaultPolicy.task).text;
   const openRisks = logs.flatMap((log) => log.open_risks);
   const nextSteps = logs.flatMap((log) => log.next_steps);
@@ -501,20 +546,21 @@ export async function inspectSavedHandoff(cwd: string, idOrLatest: string): Prom
 
 export async function generateCodexResumeFromHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
   const context = await resolveHandoffContext(options);
+  const exportPolicy = options.exportPolicy ?? "local-private";
   const handoff = options.fromHandoff
     ? await showSavedHandoff(context.cwd, options.fromHandoff)
     : (await generateHandoff({
         ...options,
         cwd: context.cwd,
+        exportPolicy,
         save: false
       })).content;
-  let workerIntelligence = context.worker
-    ? (await generateWorkerIntelligence({
-        cwd: context.cwd,
-        name: context.worker,
-        budget: 800
-      })).content
-    : "No worker selected.";
+  let workerIntelligence = await renderWorkerForExport({
+    cwd: context.cwd,
+    worker: context.worker,
+    budget: 800,
+    exportPolicy
+  });
   let handoffText = handoff.trim();
   const renderResume = (warnings: string[] = []) => {
     const warningText = warnings.length > 0 ? `> ${warnings.join("\n> ")}\n\n` : "";

@@ -6,7 +6,9 @@ import {
   generateCodexResume,
   installCodexPack
 } from "../core/codex.js";
-import { parsePositiveInt } from "./shared.js";
+import { inspectCodexPlugin, installCodexPlugin } from "../core/codexPlugin.js";
+import { runPrimeCommand } from "./prime.js";
+import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerCodexCommands(program: Command): void {
   const codex = program
@@ -24,6 +26,53 @@ export function registerCodexCommands(program: Command): void {
       console.log("BriefOps Codex pack installed.");
       console.log(`AGENTS.md: ${result.agentsPath}`);
       console.log(`Prompts: ${result.promptDir}`);
+    });
+
+  const plugin = codex
+    .command("plugin")
+    .description("Manage local BriefOps Codex plugin assets.");
+
+  plugin
+    .command("install")
+    .description("Install the BriefOps Codex plugin bundle into .briefops/codex/plugin.")
+    .option("--force", "Overwrite generated plugin files.")
+    .action(async (options: Record<string, unknown>) => {
+      const result = await installCodexPlugin({
+        force: Boolean(options.force)
+      });
+      console.log("BriefOps Codex plugin bundle installed.");
+      console.log(`Plugin: ${result.root}`);
+      console.log(`Files: ${result.files.length}`);
+      console.log("Next: install this local plugin folder in Codex, or use the generated skills as repo guidance.");
+    });
+
+  plugin
+    .command("doctor")
+    .description("Check whether the local BriefOps Codex plugin bundle is installed and current.")
+    .action(async () => {
+      const result = await inspectCodexPlugin();
+      console.log(`Plugin: ${result.root}`);
+      printTable([
+        ["File", "Status"],
+        ...result.files.map((file) => [file.relativePath, file.status])
+      ]);
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    });
+
+  codex
+    .command("prime")
+    .description("Print compact BriefOps context for starting Codex work.")
+    .option("--worker <worker>", "Worker profile name.")
+    .option("--project <project>", "Project name.")
+    .option("--task <task>", "Current task.")
+    .option("--max-tokens <tokens>", "Prime context token budget.", parsePositiveInt, 800)
+    .option("--export-policy <policy>", "local-private|shared-only", "local-private")
+    .action(async (options: Record<string, unknown>) => {
+      await runPrimeCommand(options, {
+        format: "codex"
+      });
     });
 
   codex

@@ -5,6 +5,7 @@ BriefOps is a local-first, token-aware persistent work history layer for AI codi
 The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, promote useful work history into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
 
 ```bash
+briefops prime --task "Start the next task." --format codex --max-tokens 800
 briefops finish ...
 briefops memory proposal-show latest
 briefops memory proposal-apply latest
@@ -19,6 +20,7 @@ BriefOps does not run agents. It prepares deterministic local context for them.
 - a file-based skill, project, memory, worker, and work-log store
 - a deterministic memory proposal and approval workflow
 - a token-aware brief, handoff, Codex mission, and resume generator
+- a compact first-context primer for fresh Codex threads
 - a persistent worker continuity layer for fresh AI coding threads
 
 ## What BriefOps Is Not
@@ -35,6 +37,8 @@ BriefOps is intentionally scoped. It is not:
 - an MCP server
 
 Everything important lives in local files under `.briefops/`.
+
+BriefOps can generate Codex skill-plugin assets, but the plugin calls the local CLI and local `.briefops/` workspace. No hosted service or required marketplace is involved.
 
 ## Install
 
@@ -75,6 +79,7 @@ This creates a local `.briefops/` workspace.
 
 ```bash
 briefops codex install
+briefops codex plugin install
 ```
 
 This creates or updates `AGENTS.md` with BriefOps guidance and creates `.briefops/codex/prompts/`.
@@ -106,11 +111,24 @@ briefops worker create quant-reviewer \
   --project atlas-q \
   --skills "risk-review" \
   --style "governance-first,no strategy drift without approval"
+
+briefops worker use quant-reviewer
 ```
 
-A worker is the persistent identity BriefOps carries across fresh threads: default project, skill bundle, style, lessons, risks, and judgment profile.
+A worker is the persistent identity BriefOps carries across fresh threads: default project, skill bundle, style, lessons, risks, and judgment profile. `worker use` makes it the default worker for start-of-thread priming.
 
-### 6. Start A Codex Mission
+### 6. Prime A Fresh Codex Thread
+
+```bash
+briefops prime \
+  --task "Review this PR for risk policy violations." \
+  --format codex \
+  --max-tokens 800
+```
+
+Paste the compact prime context into Codex first. It is smaller than a full resume pack and is designed to reduce repeated history/context lookup.
+
+### 7. Start A Codex Mission When Needed
 
 ```bash
 briefops codex mission \
@@ -123,7 +141,7 @@ briefops codex mission \
 
 Paste the generated mission prompt into Codex.
 
-### 7. Finish The Task
+### 8. Finish The Task
 
 When Codex finishes, record what happened:
 
@@ -143,7 +161,7 @@ briefops finish \
 
 `finish` always writes a work log when `--task` and `--result` are valid. If the log has no durable memory candidates, `finish` warns and still prints the next `briefops continue` command.
 
-### 8. Review And Apply Memory
+### 9. Review And Apply Memory
 
 Memory is human-approved. Review the proposal:
 
@@ -163,7 +181,7 @@ You can also use the convenience command:
 briefops approve latest
 ```
 
-### 9. Continue In A Fresh Thread
+### 10. Continue In A Fresh Thread
 
 ```bash
 briefops continue \

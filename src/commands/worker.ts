@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { readBriefOpsConfig, setDefaultWorker } from "../core/config.js";
 import {
   createWorker,
   generateWorkerIntelligence,
@@ -13,6 +14,31 @@ import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerWorkerCommands(program: Command): void {
   const worker = program.command("worker").description("Manage worker profiles as skill bundles.");
+
+  worker
+    .command("use <name>")
+    .description("Select a default worker for future BriefOps thread starts.")
+    .action(async (name: string) => {
+      const config = await setDefaultWorker({
+        worker: name
+      });
+      console.log(`Default worker: ${config.defaults.worker ?? ""}`);
+      console.log(`Default project: ${config.defaults.project ?? ""}`);
+    });
+
+  worker
+    .command("current")
+    .description("Print the default worker used for future BriefOps thread starts.")
+    .action(async () => {
+      const config = await readBriefOpsConfig(process.cwd());
+      if (!config.defaults.worker) {
+        console.log("No default worker selected.");
+        return;
+      }
+
+      console.log(`Default worker: ${config.defaults.worker}`);
+      console.log(`Default project: ${config.defaults.project ?? ""}`);
+    });
 
   worker
     .command("intelligence <name>")

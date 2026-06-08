@@ -3,6 +3,15 @@ import type { Command } from "commander";
 import { packResume } from "../core/workflow.js";
 import { parsePositiveInt } from "./shared.js";
 
+function normalizeExportPolicy(value?: string): "local-private" | "shared-only" {
+  const policy = (value ?? "local-private").trim().toLowerCase();
+  if (policy === "local-private" || policy === "shared-only") {
+    return policy;
+  }
+
+  throw new Error(`Invalid export policy: ${value}`);
+}
+
 export function registerPackCommands(program: Command): void {
   const pack = program
     .command("pack")
@@ -15,6 +24,7 @@ export function registerPackCommands(program: Command): void {
     .option("--project <project>", "Project name.")
     .requiredOption("--task <task>", "Next task.")
     .option("--budget <tokens>", "Resume token budget.", parsePositiveInt, 3000)
+    .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--output <path>", "Write the pack to a specific path.")
     .action(async (options: Record<string, unknown>) => {
       const result = await packResume({
@@ -22,6 +32,7 @@ export function registerPackCommands(program: Command): void {
         project: options.project as string | undefined,
         task: options.task as string,
         budget: options.budget as number,
+        exportPolicy: normalizeExportPolicy(options.exportPolicy as string | undefined),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
           : undefined

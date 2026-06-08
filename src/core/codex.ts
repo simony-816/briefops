@@ -48,6 +48,7 @@ export type CodexResumeOptions = {
   budget?: number;
   mode?: string;
   completionPromise?: string;
+  exportPolicy?: "local-private" | "shared-only";
   save?: boolean;
   outputPath?: string;
 };
@@ -361,6 +362,7 @@ export async function generateCodexResume(options: CodexResumeOptions): Promise<
     budget: options.budget ?? 3000,
     mode: options.mode,
     completionPromise: options.completionPromise,
+    exportPolicy: options.exportPolicy,
     save: options.save,
     outputPath: options.outputPath
   });
