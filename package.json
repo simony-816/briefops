@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "dev": "tsx src/index.ts",
-    "verify:release": "npm run build && npm test && npm pack --dry-run"
+    "verify:release": "npm run build && npm test && npm audit --audit-level=moderate && npm pack --dry-run"
   },
   "repository": {
     "type": "git",

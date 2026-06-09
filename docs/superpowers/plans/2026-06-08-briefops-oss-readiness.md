@@ -1016,7 +1016,7 @@ git commit -m "docs: explain harness integrations"
 - Modify: `.github/workflows/ci.yml`
 - Modify: `package.json`
 
-- [ ] **Step 1: Add release checklist**
+- [x] **Step 1: Add release checklist**
 
 Create `docs/release-checklist.md`:
 
@@ -1059,7 +1059,7 @@ Confirm:
 - `npm pack --dry-run` includes docs, examples, plugins, dist, README, LICENSE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, CHANGELOG.
 ```
 
-- [ ] **Step 2: Add Dependabot**
+- [x] **Step 2: Add Dependabot**
 
 Create `.github/dependabot.yml`:
 
@@ -1073,7 +1073,7 @@ updates:
     open-pull-requests-limit: 5
 ```
 
-- [ ] **Step 3: Add CI audit**
+- [x] **Step 3: Add CI audit**
 
 Modify `.github/workflows/ci.yml`:
 
@@ -1084,7 +1084,7 @@ Modify `.github/workflows/ci.yml`:
 
 Place after `npm ci` and before build.
 
-- [ ] **Step 4: Add release verify script if not already present**
+- [x] **Step 4: Add release verify script if not already present**
 
 Ensure `package.json` has:
 
@@ -1092,7 +1092,7 @@ Ensure `package.json` has:
 "verify:release": "npm run build && npm test && npm audit --audit-level=moderate && npm pack --dry-run"
 ```
 
-- [ ] **Step 5: Run release verification**
+- [x] **Step 5: Run release verification**
 
 Run:
 
@@ -1102,7 +1102,7 @@ npm run verify:release
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/release-checklist.md .github/dependabot.yml .github/workflows/ci.yml package.json
