@@ -1,6 +1,10 @@
 # BriefOps
 
-BriefOps is a local-first, token-aware persistent work history layer for AI coding agents.
+[![npm version](https://img.shields.io/npm/v/briefops.svg)](https://www.npmjs.com/package/briefops)
+[![CI](https://github.com/simony-816/briefops/actions/workflows/ci.yml/badge.svg)](https://github.com/simony-816/briefops/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+BriefOps is a local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.
 
 The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, promote useful work history into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
 

@@ -1,10 +1,10 @@
 {
   "name": "briefops",
   "version": "1.0.0",
-  "description": "Local-first, token-aware skill and briefing layer for AI coding agents.",
+  "description": "Local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.",
   "type": "module",
   "bin": {
-    "briefops": "./dist/index.js"
+    "briefops": "dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -22,12 +22,21 @@
   "homepage": "https://github.com/simony-816/briefops#readme",
   "keywords": [
     "codex",
+    "claude-code",
+    "cursor",
     "ai-agents",
+    "coding-agents",
+    "agent-memory",
+    "context-engineering",
+    "prompt-engineering",
     "local-first",
+    "privacy-first",
     "memory",
     "context",
     "handoff",
-    "developer-tools"
+    "cli",
+    "developer-tools",
+    "typescript"
   ],
   "dependencies": {
     "commander": "^15.0.0",

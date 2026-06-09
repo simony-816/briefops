@@ -2,9 +2,11 @@
 
 ## Unreleased
 
-- No changes yet.
+- Clarify supported security versions for 1.x and 0.2.x alpha.
+- Polish repository discovery metadata, README badges, and npm package keywords.
+- Upgrade Commander to 15.0.0.
 
-## 1.0.0
+## 1.0.0 - 2026-06-09
 
 - Add local harness router exports for `AGENTS.md`, `CLAUDE.md`, Cursor rules, and `export all`.
 - Add context budget inspection and raw-vs-prime context comparison.
