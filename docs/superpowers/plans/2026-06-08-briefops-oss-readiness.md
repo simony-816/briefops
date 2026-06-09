@@ -909,7 +909,7 @@ git commit -m "fix: protect generated plugin files"
 - Modify: `README.md`
 - Modify: `examples/codex-first-context/README.md`
 
-- [ ] **Step 1: Create harness integration doc**
+- [x] **Step 1: Create harness integration doc**
 
 Create `docs/integrations/harnesses.md`:
 
@@ -979,7 +979,7 @@ BriefOps can coexist with `CLAUDE.md`. Keep `CLAUDE.md` for always-loaded projec
 BriefOps can coexist with Cursor rules and memories. Keep Cursor rules for editor behavior and use BriefOps for auditable cross-thread work history.
 ```
 
-- [ ] **Step 2: Link integration doc from README**
+- [x] **Step 2: Link integration doc from README**
 
 Add to `README.md`:
 
@@ -989,7 +989,7 @@ Add to `README.md`:
 BriefOps works best as a local memory ledger beside stronger harnesses such as Codex, LazyCodex, OmO, Claude Code, Cursor, and OpenCode. See `docs/integrations/harnesses.md`.
 ```
 
-- [ ] **Step 3: Run docs packaging check**
+- [x] **Step 3: Run docs packaging check**
 
 Run:
 
@@ -999,7 +999,7 @@ npm pack --dry-run
 
 Expected: tarball includes `docs/integrations/harnesses.md`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/integrations/harnesses.md README.md examples/codex-first-context/README.md

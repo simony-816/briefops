@@ -30,6 +30,8 @@ briefops pack resume --worker quant-reviewer --task "Continue unresolved slippag
 
 BriefOps skills must never auto-approve memory proposals or skill patches.
 
+Harnesses such as LazyCodex or OmO can use BriefOps as the first local context ledger before they run their own orchestration. Keep approval human-confirmed: do not let a harness auto-run `briefops approve latest`.
+
 Files:
 
 - `before-manual-history-dump.md` shows the kind of repeated context users often paste manually.

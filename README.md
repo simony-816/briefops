@@ -233,6 +233,10 @@ briefops doctor --privacy --fix-gitignore
 
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
 
+## Harness Integrations
+
+BriefOps works best as a local memory ledger beside stronger harnesses such as Codex, LazyCodex, OmO, Claude Code, Cursor, and OpenCode. See `docs/integrations/harnesses.md`.
+
 ## Finish / Continue UX
 
 `finish` records what happened.
