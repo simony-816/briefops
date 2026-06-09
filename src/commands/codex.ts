@@ -89,6 +89,7 @@ export function registerCodexCommands(program: Command): void {
     .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--save", "Save to .briefops/codex/prompts.")
     .option("--output <path>", "Write the prompt to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .action(async (options: Record<string, unknown>) => {
       const result = await generateCodexResume({
         worker: options.worker as string | undefined,
@@ -102,7 +103,8 @@ export function registerCodexCommands(program: Command): void {
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        force: Boolean(options.force)
       });
       console.log(result.content);
       if (result.savedPath) {
@@ -123,6 +125,7 @@ export function registerCodexCommands(program: Command): void {
     .option("--mode <mode>", "loop|execute|plan", "loop")
     .option("--save", "Save to .briefops/codex/prompts.")
     .option("--output <path>", "Write the prompt to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .action(async (options: Record<string, unknown>) => {
       const result = await generateCodexMission({
         skill: options.skill as string | undefined,
@@ -135,7 +138,8 @@ export function registerCodexCommands(program: Command): void {
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        force: Boolean(options.force)
       });
       console.log(result.content);
       if (result.savedPath) {
@@ -152,6 +156,7 @@ export function registerCodexCommands(program: Command): void {
     .requiredOption("--idea <idea>", "What to plan.")
     .option("--save", "Save to .briefops/codex/prompts.")
     .option("--output <path>", "Write the prompt to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .action(async (options: Record<string, unknown>) => {
       const result = await generateCodexPlan({
         project: options.project as string | undefined,
@@ -160,7 +165,8 @@ export function registerCodexCommands(program: Command): void {
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        force: Boolean(options.force)
       });
       console.log(result.content);
       if (result.savedPath) {

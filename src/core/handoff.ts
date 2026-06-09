@@ -9,14 +9,14 @@ import {
 import { listWorkLogs } from "./log.js";
 import { withWorkspaceLock } from "./lock.js";
 import { formatMemoryItem, selectContinuityContext, taskKeywords } from "./memory.js";
+import { writeGeneratedOutput } from "./output.js";
 import { readProject } from "./project.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import {
   listFilesBySuffix,
   parseMarkdownWithFrontmatter,
   readTextFile,
-  stringifyMarkdownWithFrontmatter,
-  writeTextFile
+  stringifyMarkdownWithFrontmatter
 } from "./storage.js";
 import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
 import { generateWorkerIntelligence, readWorker } from "./worker.js";
@@ -50,6 +50,7 @@ export type GenerateHandoffOptions = {
   exportPolicy?: ExportPolicy;
   save?: boolean;
   outputPath?: string;
+  force?: boolean;
 };
 
 export type HandoffResult = {
@@ -468,7 +469,8 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
         project: context.project,
         worker: context.worker,
         content,
-        outputPath: options.outputPath
+        outputPath: options.outputPath,
+        force: options.force
       })
     : undefined;
 
@@ -490,18 +492,20 @@ export async function saveGeneratedHandoff(options: {
   worker?: string;
   content: string;
   outputPath?: string;
+  force?: boolean;
 }): Promise<string> {
   return withWorkspaceLock({ cwd: options.cwd, name: "handoff" }, async () => {
-    const targetPath =
-      options.outputPath ??
-      path.join(
+    return writeGeneratedOutput({
+      defaultPath: path.join(
         workspacePaths(options.cwd).handoffs,
         `${options.id}-${slugForFilename(options.project ?? "global")}-${slugForFilename(
           options.worker ?? "handoff"
         )}.md`
-      );
-    await writeTextFile(targetPath, options.content, { force: true });
-    return targetPath;
+      ),
+      outputPath: options.outputPath,
+      content: options.content,
+      force: options.force
+    });
   });
 }
 
@@ -692,7 +696,8 @@ export async function generateCodexResumeFromHandoff(options: GenerateHandoffOpt
         id,
         worker: context.worker,
         content: resume.content,
-        outputPath: options.outputPath
+        outputPath: options.outputPath,
+        force: options.force
       })
     : undefined;
 
@@ -713,13 +718,17 @@ async function writeResumePrompt(options: {
   worker?: string;
   content: string;
   outputPath?: string;
+  force?: boolean;
 }): Promise<string> {
-  const targetPath =
-    options.outputPath ??
-    path.join(
-      workspacePaths(options.cwd).codexPrompts,
-      `${options.id}-resume-${slugForFilename(options.worker ?? "worker")}.md`
-    );
-  await writeTextFile(targetPath, options.content, { force: true });
-  return targetPath;
+  return withWorkspaceLock({ cwd: options.cwd, name: "codex-prompt" }, async () =>
+    writeGeneratedOutput({
+      defaultPath: path.join(
+        workspacePaths(options.cwd).codexPrompts,
+        `${options.id}-resume-${slugForFilename(options.worker ?? "worker")}.md`
+      ),
+      outputPath: options.outputPath,
+      content: options.content,
+      force: options.force
+    })
+  );
 }

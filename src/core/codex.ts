@@ -4,6 +4,7 @@ import type { ExportPolicy } from "./exportPolicy.js";
 import { generateCodexResumeFromHandoff } from "./handoff.js";
 import { BriefOpsError } from "./errors.js";
 import { withWorkspaceLock } from "./lock.js";
+import { writeGeneratedOutput } from "./output.js";
 import { readProject } from "./project.js";
 import { readWorker } from "./worker.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
@@ -30,6 +31,7 @@ export type CodexMissionOptions = {
   mode?: string;
   save?: boolean;
   outputPath?: string;
+  force?: boolean;
 };
 
 export type CodexPlanOptions = {
@@ -39,6 +41,7 @@ export type CodexPlanOptions = {
   idea: string;
   save?: boolean;
   outputPath?: string;
+  force?: boolean;
 };
 
 export type CodexResumeOptions = {
@@ -53,6 +56,7 @@ export type CodexResumeOptions = {
   exportPolicy?: ExportPolicy;
   save?: boolean;
   outputPath?: string;
+  force?: boolean;
 };
 
 export type CodexPromptResult = {
@@ -229,16 +233,18 @@ async function saveCodexPrompt(options: {
   name: string;
   content: string;
   outputPath?: string;
+  force?: boolean;
 }): Promise<string> {
   return withWorkspaceLock({ cwd: options.cwd, name: "codex-prompt" }, async () => {
-    const targetPath =
-      options.outputPath ??
-      path.join(
+    return writeGeneratedOutput({
+      defaultPath: path.join(
         workspacePaths(options.cwd).codexPrompts,
         `${formatDateStamp()}-${options.kind}-${slugForFilename(options.name)}.md`
-      );
-    await writeTextFile(targetPath, options.content, { force: true });
-    return targetPath;
+      ),
+      outputPath: options.outputPath,
+      content: options.content,
+      force: options.force
+    });
   });
 }
 
@@ -271,7 +277,8 @@ export async function generateCodexMission(
         kind: "mission",
         name: options.worker ?? options.skill ?? "codex",
         content,
-        outputPath: options.outputPath
+        outputPath: options.outputPath,
+        force: options.force
       })
     : undefined;
 
@@ -345,7 +352,8 @@ export async function generateCodexPlan(options: CodexPlanOptions): Promise<Code
         kind: "plan",
         name: workerName ?? projectName ?? "codex",
         content,
-        outputPath: options.outputPath
+        outputPath: options.outputPath,
+        force: options.force
       })
     : undefined;
 
@@ -368,7 +376,8 @@ export async function generateCodexResume(options: CodexResumeOptions): Promise<
     completionPromise: options.completionPromise,
     exportPolicy: options.exportPolicy,
     save: options.save,
-    outputPath: options.outputPath
+    outputPath: options.outputPath,
+    force: options.force
   });
 
   return {

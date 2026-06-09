@@ -16,8 +16,8 @@ import {
   proposeMemoryFromLog
 } from "./memoryProposal.js";
 import { isNoSkillPatchCandidatesError, proposeSkillPatch } from "./patch.js";
+import { writeGeneratedOutput } from "./output.js";
 import { normalizeName, slugForFilename, workspacePaths } from "./paths.js";
-import { writeTextFile } from "./storage.js";
 import { readWorker, refreshWorkerSummary } from "./worker.js";
 import { requireWorkspace } from "./workspace.js";
 import { estimateTokens } from "./tokens.js";
@@ -49,6 +49,7 @@ export type ContinueWorkOptions = {
   mode?: string;
   completionPromise?: string;
   outputPath?: string;
+  force?: boolean;
   pack?: boolean;
 };
 
@@ -70,6 +71,7 @@ export type PackResumeOptions = {
   task: string;
   budget?: number;
   outputPath?: string;
+  force?: boolean;
   exportPolicy?: ExportPolicy;
 };
 
@@ -234,7 +236,8 @@ export async function continueWork(options: ContinueWorkOptions): Promise<Contin
       mode: options.mode,
       completionPromise: options.completionPromise,
       save: true,
-      outputPath: options.outputPath
+      outputPath: options.outputPath,
+      force: options.force
     });
     const pack = options.pack
       ? await packResume({
@@ -347,11 +350,15 @@ export async function packResume(options: PackResumeOptions): Promise<PackResume
     const warnings = tokens > budget
       ? [`Portable resume pack exceeds token budget by ${tokens - budget} estimated tokens; core continuity content was preserved.`]
       : [];
-    const targetPath = options.outputPath ?? path.join(
-      workspacePaths(cwd).codexPrompts,
-      `${slugForFilename(worker)}-resume-pack-${Date.now()}.md`
-    );
-    await writeTextFile(targetPath, content, { force: true });
+    const targetPath = await writeGeneratedOutput({
+      defaultPath: path.join(
+        workspacePaths(cwd).codexPrompts,
+        `${slugForFilename(worker)}-resume-pack-${Date.now()}.md`
+      ),
+      outputPath: options.outputPath,
+      content,
+      force: options.force
+    });
 
     return {
       path: targetPath,

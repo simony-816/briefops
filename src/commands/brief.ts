@@ -23,6 +23,7 @@ export function registerBriefCommands(program: Command): void {
     .option("--adapter <adapter>", "generic|codex|claude-code", "generic")
     .option("--save", "Save to .briefops/briefs.")
     .option("--output <path>", "Write the brief to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .option("--copy", "Reserved for future clipboard support.")
     .action(async (options: Record<string, unknown>) => {
       const generated = await generateBrief({
@@ -49,7 +50,8 @@ export function registerBriefCommands(program: Command): void {
           worker: options.worker as string | undefined,
           outputPath: options.output
             ? path.resolve(process.cwd(), options.output as string)
-            : undefined
+            : undefined,
+          force: Boolean(options.force)
         });
         console.error(`Saved brief: ${savedPath}`);
       }

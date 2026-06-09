@@ -24,6 +24,7 @@ export function registerHandoffCommands(program: Command): void {
     .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--save", "Save to .briefops/handoffs.")
     .option("--output <path>", "Write the handoff to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .action(async (options: Record<string, unknown>) => {
       const result = await generateHandoff({
         project: options.project as string | undefined,
@@ -34,7 +35,8 @@ export function registerHandoffCommands(program: Command): void {
         save: Boolean(options.save) || Boolean(options.output),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        force: Boolean(options.force)
       });
       console.log(result.content);
       if (result.savedPath) {

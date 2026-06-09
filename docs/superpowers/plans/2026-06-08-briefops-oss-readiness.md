@@ -272,7 +272,7 @@ git commit -m "docs: add open-source trust documents"
 - Modify: `src/core/workflow.ts`
 - Modify: `tests/cli-workflow.test.ts`
 
-- [ ] **Step 1: Write failing tests for explicit output no-overwrite**
+- [x] **Step 1: Write failing tests for explicit output no-overwrite**
 
 Create `tests/output-safety.test.ts`:
 
@@ -376,7 +376,7 @@ describe("explicit output safety", () => {
 });
 ```
 
-- [ ] **Step 2: Run failing output safety tests**
+- [x] **Step 2: Run failing output safety tests**
 
 Run:
 
@@ -386,7 +386,7 @@ npm test -- tests/output-safety.test.ts
 
 Expected: FAIL because `force` is not yet supported and explicit outputs currently overwrite.
 
-- [ ] **Step 3: Add output helper**
+- [x] **Step 3: Add output helper**
 
 Create `src/core/output.ts`:
 
@@ -421,7 +421,7 @@ export function resolveCliOutputPath(cwd: string, value?: string): string | unde
 }
 ```
 
-- [ ] **Step 4: Thread `force?: boolean` through core option types**
+- [x] **Step 4: Thread `force?: boolean` through core option types**
 
 Add `force?: boolean` to:
 
@@ -447,7 +447,7 @@ export type ContinueWorkOptions = { /* existing fields */ force?: boolean };
 export type PackResumeOptions = { /* existing fields */ force?: boolean };
 ```
 
-- [ ] **Step 5: Use output helper in save functions**
+- [x] **Step 5: Use output helper in save functions**
 
 In `src/core/codex.ts`, replace `writeTextFile(targetPath, ..., { force: true })` inside `saveCodexPrompt()` with:
 
@@ -467,7 +467,7 @@ In `src/core/handoff.ts`, use the same pattern for `saveGeneratedHandoff()` and 
 
 In `src/core/workflow.ts`, use the same pattern for `packResume()`.
 
-- [ ] **Step 6: Add CLI `--force` flags**
+- [x] **Step 6: Add CLI `--force` flags**
 
 For each command with `--output`, add:
 
@@ -483,7 +483,7 @@ force: Boolean(options.force)
 
 to the corresponding core call.
 
-- [ ] **Step 7: Run output tests**
+- [x] **Step 7: Run output tests**
 
 Run:
 
@@ -493,7 +493,7 @@ npm test -- tests/output-safety.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 8: Run regression tests**
+- [x] **Step 8: Run regression tests**
 
 Run:
 
@@ -503,7 +503,7 @@ npm test -- tests/cli-workflow.test.ts tests/persistent-worker.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/core/output.ts src/core src/commands tests/output-safety.test.ts tests/cli-workflow.test.ts

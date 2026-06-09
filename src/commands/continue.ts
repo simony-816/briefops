@@ -14,6 +14,7 @@ export function registerContinueCommand(program: Command): void {
     .option("--mode <mode>", "loop|execute|plan", "loop")
     .option("--completion-promise <text>", "Concrete completion promise.")
     .option("--output <path>", "Write the resume prompt to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .option("--pack", "Also save a self-contained portable resume pack.")
     .action(async (options: Record<string, unknown>) => {
       const result = await continueWork({
@@ -26,6 +27,7 @@ export function registerContinueCommand(program: Command): void {
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
           : undefined,
+        force: Boolean(options.force),
         pack: Boolean(options.pack)
       });
 

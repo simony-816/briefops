@@ -6,12 +6,13 @@ import {
 } from "./adapter.js";
 import { BriefOpsError } from "./errors.js";
 import { formatMemoryItem, selectRelevantMemory } from "./memory.js";
+import { writeGeneratedOutput } from "./output.js";
 import { readProject } from "./project.js";
 import { readSkill } from "./skill.js";
 import { formatWorkerForBrief, readWorker } from "./worker.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
-import { listFilesBySuffix, readTextFile, writeTextFile } from "./storage.js";
+import { listFilesBySuffix, readTextFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
 import type { GeneratedBrief, TokenReportLine } from "../schemas/brief.js";
 import type { MemoryItem } from "../schemas/memory.js";
@@ -454,17 +455,19 @@ export async function saveGeneratedBrief(options: {
   skill?: string;
   worker?: string;
   outputPath?: string;
+  force?: boolean;
 }): Promise<string> {
-  const targetPath =
-    options.outputPath ??
-    path.join(
+  return writeGeneratedOutput({
+    defaultPath: path.join(
       workspacePaths(options.cwd).briefs,
       `${formatDateStamp()}-${slugForFilename(options.project ?? "global")}-${slugForFilename(
         options.worker ?? options.skill ?? "brief"
       )}.md`
-    );
-  await writeTextFile(targetPath, options.generated.content, { force: true });
-  return targetPath;
+    ),
+    outputPath: options.outputPath,
+    content: options.generated.content,
+    force: options.force
+  });
 }
 
 export async function inspectBriefTokens(input: GenerateBriefOptions): Promise<{

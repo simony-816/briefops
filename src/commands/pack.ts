@@ -18,6 +18,7 @@ export function registerPackCommands(program: Command): void {
     .option("--budget <tokens>", "Resume token budget.", parsePositiveInt, 3000)
     .option("--export-policy <policy>", "local-private|shared-only", "local-private")
     .option("--output <path>", "Write the pack to a specific path.")
+    .option("--force", "Overwrite an existing explicit output file.")
     .action(async (options: Record<string, unknown>) => {
       const result = await packResume({
         worker: options.worker as string,
@@ -27,7 +28,8 @@ export function registerPackCommands(program: Command): void {
         exportPolicy: normalizeExportPolicy(options.exportPolicy as string | undefined),
         outputPath: options.output
           ? path.resolve(process.cwd(), options.output as string)
-          : undefined
+          : undefined,
+        force: Boolean(options.force)
       });
       console.log(`Saved portable resume pack: ${result.path}`);
       console.log(`Estimated tokens: ${result.tokens}`);

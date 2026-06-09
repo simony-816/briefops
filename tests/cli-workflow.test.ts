@@ -272,6 +272,53 @@ describe("CLI persistent worker workflow", () => {
     });
   });
 
+  it("protects explicit CLI output files unless --force is passed", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+      const outputPath = path.join(dir, "resume.md");
+      await fs.writeFile(outputPath, "keep me\n", "utf8");
+
+      const blocked = await runCli(dir, [
+        "codex",
+        "resume",
+        "--worker",
+        "quant-reviewer",
+        "--task",
+        "Continue unresolved checks.",
+        "--output",
+        "resume.md"
+      ]);
+      expect(blocked.code).toBe(1);
+      expect(blocked.stderr).toContain("Output file already exists");
+      expect(await fs.readFile(outputPath, "utf8")).toBe("keep me\n");
+
+      const forced = await expectCli(dir, [
+        "codex",
+        "resume",
+        "--worker",
+        "quant-reviewer",
+        "--task",
+        "Continue unresolved checks.",
+        "--output",
+        "resume.md",
+        "--force"
+      ]);
+      expect(forced.stderr).toContain("Saved Codex resume:");
+      expect(await fs.readFile(outputPath, "utf8")).toContain("BriefOps Codex Resume");
+    });
+  });
+
   it("runs security doctor from the CLI", async () => {
     await withTempDir(async (dir) => {
       await expectCli(dir, ["init"]);
