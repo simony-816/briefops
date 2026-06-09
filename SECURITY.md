@@ -6,7 +6,8 @@ BriefOps is a local-first CLI. It stores project memory, work logs, generated pr
 
 | Version | Supported |
 | --- | --- |
-| 0.2.x alpha | Security fixes accepted |
+| 1.x | Security fixes accepted |
+| 0.2.x alpha | Not supported; upgrade to 1.x |
 
 ## Reporting A Vulnerability
 
