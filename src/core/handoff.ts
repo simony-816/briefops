@@ -264,7 +264,12 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
   const exportPolicy = normalizeExportPolicy(options.exportPolicy);
   const id = `handoff_${formatDateStamp()}`;
   let projectText = context.project
-    ? truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
+    ? exportPolicy === "shared-only"
+      ? [
+          `Project: ${context.project}`,
+          "Local project file details are omitted by shared-only policy."
+        ].join("\n")
+      : truncateToTokenBudget((await readProject(context.cwd, context.project)).body, defaultPolicy.project).text
     : "No project selected.";
   const workerSummary = await renderWorkerForExport({
     cwd: context.cwd,

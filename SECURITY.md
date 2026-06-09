@@ -34,3 +34,5 @@ briefops pack resume --export-policy shared-only
 ```
 
 before sharing generated context outside your local machine.
+
+`shared-only` omits private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts. `doctor --privacy` checks local memory sharing hazards. `doctor --security --fix-stale-locks` removes stale locks only.

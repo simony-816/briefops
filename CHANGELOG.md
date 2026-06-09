@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- No changes yet.
+- Hide private continuity metadata counts from shared-only prime, handoff, resume, and pack flows.
+- Protect memory proposal and skill patch generation with workspace locks.
+- Document privacy doctor, stale-lock cleanup, and shared-only export boundaries.
 
 ## 0.2.1-alpha.0
 

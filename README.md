@@ -225,7 +225,7 @@ briefops pack resume --worker quant-reviewer --task "Continue unresolved checks.
 
 `shared-only` includes only memory items where `visibility: shared` and `exportable: true`.
 
-It omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
+It omits private memory, local project file details, raw work logs, open risks, local next steps, private worker lessons, private incidents, recent work history, and private metadata counts.
 
 `local-private` is intended for local terminal/Codex use only and may include local private continuity context.
 
@@ -241,6 +241,8 @@ briefops doctor --privacy --fix-gitignore
 ```
 
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
+
+`doctor --privacy` checks local memory sharing hazards, including `.briefops/` gitignore coverage, private/exportable memory, and secret-like memory strings.
 
 ## Harness Integrations
 
@@ -418,7 +420,7 @@ briefops memory proposal-apply <proposal-id|latest>
 briefops memory proposal-reject <proposal-id|latest>
 ```
 
-Extraction is deterministic and local. Lessons, decisions, incidents, open risks, prefixed notes, and policy-like next steps can become proposal items.
+Extraction is deterministic and local. Lessons, decisions, incidents, open risks, prefixed notes, and policy-like next steps can become proposal items. Proposal generation and approval are local file-backed operations protected by workspace locks.
 
 ## Skills And Skill Patches
 
@@ -492,7 +494,7 @@ briefops handoff generate \
   --save
 ```
 
-Add `--export-policy shared-only` to handoff or Codex resume output when the artifact may leave the local workspace.
+Add `--export-policy shared-only` to handoff or Codex resume output when the artifact may leave the local workspace. Shared-only handoffs, resumes, and packs omit private continuity content and private metadata counts.
 
 Generate a Codex resume prompt:
 
@@ -521,12 +523,17 @@ briefops handoff inspect latest
 
 ```bash
 briefops doctor
+briefops doctor --privacy
+briefops doctor --security
+briefops doctor --security --fix-stale-locks
 briefops inspect workspace
 briefops inspect memory
 briefops inspect tokens --worker quant-reviewer --task "Review this PR." --budget 2500
 briefops inspect retrieval --project atlas-q --worker quant-reviewer --task "Continue slippage checks."
 briefops inspect continuity --project atlas-q --worker quant-reviewer
 ```
+
+`doctor --security --fix-stale-locks` removes stale locks only; it does not remove fresh locks or other workspace files.
 
 Evals are deterministic checklist checks. They do not call an LLM judge.
 
@@ -593,6 +600,8 @@ Because `.briefops/` is local/private, Codex does not automatically see it. Prov
 ```bash
 briefops init
 briefops doctor
+briefops doctor --privacy
+briefops doctor --security
 briefops inbox
 briefops inbox --project <project>
 briefops inbox --worker <worker>

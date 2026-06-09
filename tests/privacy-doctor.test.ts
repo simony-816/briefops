@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { addMemory } from "../src/core/memory.js";
-import { runPrivacyDoctor } from "../src/core/privacyDoctor.js";
+import { fixBriefOpsGitignore, runPrivacyDoctor } from "../src/core/privacyDoctor.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
-import { writeTextFile } from "../src/core/storage.js";
+import { readTextFile, writeTextFile } from "../src/core/storage.js";
 import { initWorkspace } from "../src/core/workspace.js";
 import { withTempDir } from "./helpers.js";
 
@@ -33,6 +33,21 @@ describe("privacy doctor", () => {
       const result = await runPrivacyDoctor({ cwd: dir });
 
       expect(result.checks.find((check) => check.name === "Gitignore")?.status).toBe("ok");
+    });
+  });
+
+  it("fix-gitignore adds .briefops without replacing existing entries", async () => {
+    await withTempDir(async (dir) => {
+      await seed(dir);
+      await writeTextFile(`${dir}/.gitignore`, "node_modules/\n");
+
+      await fixBriefOpsGitignore(dir);
+
+      const gitignore = await readTextFile(`${dir}/.gitignore`);
+      expect(gitignore).toContain("node_modules/");
+      expect(gitignore).toContain(".briefops/");
+      expect((await runPrivacyDoctor({ cwd: dir })).checks.find((check) => check.name === "Gitignore")?.status)
+        .toBe("ok");
     });
   });
 

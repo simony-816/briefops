@@ -32,4 +32,4 @@ briefops prime --task "Start this task." --format codex --export-policy shared-o
 briefops pack resume --worker <worker> --task "Start this task." --export-policy shared-only
 ```
 
-`shared-only` omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
+`shared-only` omits private memory, local project file details, raw work logs, open risks, local next steps, private worker lessons, private incidents, recent work history, and private metadata counts.

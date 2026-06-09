@@ -114,6 +114,91 @@ describe("prime context", () => {
     });
   });
 
+  it("hides private continuity counts in shared-only mode while keeping local-private counts", async () => {
+    await withTempDir(async (dir) => {
+      await seedPrimeWorkspace(dir);
+      await setDefaultWorker({ cwd: dir, worker: "quant-reviewer" });
+      await addMemory({
+        cwd: dir,
+        type: "facts",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Private fact count sentinel.",
+        visibility: "private",
+        exportable: false
+      });
+      await addMemory({
+        cwd: dir,
+        type: "decisions",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Private decision count sentinel.",
+        visibility: "private",
+        exportable: false
+      });
+      await addMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Shared exportable count sentinel.",
+        visibility: "shared",
+        exportable: true
+      });
+      for (let index = 0; index < 2; index += 1) {
+        await addWorkLog({
+          cwd: dir,
+          project: "atlas-q",
+          skill: "risk-review",
+          worker: "quant-reviewer",
+          task: `Review private count leak ${index}`,
+          result: `Private local work log result ${index}.`,
+          openRisks: [`Private open risk ${index}.`],
+          nextSteps: [`Private next step ${index}.`]
+        });
+      }
+
+      const shared = await primeContext({
+        cwd: dir,
+        task: "Continue shared exportable count sentinel review.",
+        maxTokens: 1200,
+        format: "codex",
+        exportPolicy: "shared-only"
+      });
+      const local = await primeContext({
+        cwd: dir,
+        task: "Continue shared exportable count sentinel review.",
+        maxTokens: 1200,
+        format: "codex",
+        exportPolicy: "local-private"
+      });
+
+      expect(shared.content).toContain("Shared-only export policy is active.");
+      expect(shared.content).toContain("Work logs: omitted by shared-only policy");
+      expect(shared.content).toContain("Active memory: shared/exportable selected only");
+      expect(shared.content).toContain("Shared/exportable memory selected: 1");
+      expect(shared.content).toContain("Shared exportable count sentinel.");
+      expect(shared.content).not.toContain("Work logs: 1");
+      expect(shared.content).not.toContain("Work logs: 2");
+      expect(shared.content).not.toContain("facts=");
+      expect(shared.content).not.toContain("decisions=");
+      expect(shared.content).not.toContain("lessons=");
+      expect(shared.content).not.toContain("incidents=");
+      expect(shared.content).not.toContain("Private fact count sentinel.");
+      expect(shared.content).not.toContain("Private decision count sentinel.");
+      expect(shared.content).not.toContain("Private local work log result");
+      expect(shared.content).not.toContain("Private open risk");
+      expect(shared.content).not.toContain("Private next step");
+
+      expect(local.content).toMatch(/Work logs: \d+/);
+      expect(local.content).toContain("facts=");
+      expect(local.content).toContain("decisions=");
+      expect(local.content).toContain("lessons=");
+      expect(local.content).toContain("Private open risk");
+      expect(local.content).toContain("Private next step");
+    });
+  });
+
   it("asks for a default worker when more than one worker exists and none is selected", async () => {
     await withTempDir(async (dir) => {
       await seedPrimeWorkspace(dir);

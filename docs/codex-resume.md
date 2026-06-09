@@ -8,4 +8,6 @@ briefops codex resume --worker quant-reviewer --task "Continue the rebalance rev
 
 Use `--export-policy shared-only` when the resume prompt may be pasted outside the local Codex workspace.
 
+Shared-only resume output includes selected shared/exportable memory and omits private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts.
+
 The generated prompt includes continuity rules, evidence gates, a completion signal, and after-completion logging instructions.

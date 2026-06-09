@@ -20,6 +20,6 @@ briefops pack resume --worker <worker> --task "Continue unresolved checks." --ex
 ```
 
 `shared-only` includes only memory items marked `visibility: shared` and `exportable: true`.
-It omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
+It omits private memory, local project file details, raw work logs, open risks, local next steps, private worker lessons, private incidents, recent work history, and private metadata counts.
 
 `local-private` is intended for local terminal/Codex use only.

@@ -117,6 +117,18 @@ export async function proposeSkillPatch(
   options: ProposeSkillPatchOptions
 ): Promise<{ path: string; patch: SkillPatch; diff: string }> {
   const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "skill-patch" }, async () =>
+    proposeSkillPatchUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+async function proposeSkillPatchUnlocked(
+  options: ProposeSkillPatchOptions
+): Promise<{ path: string; patch: SkillPatch; diff: string }> {
+  const cwd = options.cwd ?? process.cwd();
   await requireWorkspace(cwd);
   const skill = normalizeName(options.skill);
   await readSkill(cwd, skill);

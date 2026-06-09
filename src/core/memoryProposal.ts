@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { BriefOpsError } from "./errors.js";
 import { readWorkLog } from "./log.js";
@@ -34,7 +35,7 @@ export function isNoMemoryProposalCandidatesError(error: unknown): boolean {
 }
 
 function proposalId(date = new Date()): string {
-  return `memprop_${formatDateStamp(date)}`;
+  return `memprop_${formatDateStamp(date)}_${randomBytes(3).toString("hex")}`;
 }
 
 const tagKeywords = [
@@ -123,6 +124,18 @@ async function writeProposal(cwd: string, proposal: MemoryProposal): Promise<str
 }
 
 export async function proposeMemoryFromLog(
+  options: ProposeMemoryFromLogOptions
+): Promise<{ path: string; proposal: MemoryProposal }> {
+  const cwd = options.cwd ?? process.cwd();
+  return withWorkspaceLock({ cwd, name: "memory-proposal" }, async () =>
+    proposeMemoryFromLogUnlocked({
+      ...options,
+      cwd
+    })
+  );
+}
+
+async function proposeMemoryFromLogUnlocked(
   options: ProposeMemoryFromLogOptions
 ): Promise<{ path: string; proposal: MemoryProposal }> {
   const cwd = options.cwd ?? process.cwd();

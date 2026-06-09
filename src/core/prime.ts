@@ -233,18 +233,24 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
   });
   const openRisks = exportPolicy === "shared-only" ? [] : logs.flatMap((log) => log.open_risks);
   const nextSteps = exportPolicy === "shared-only" ? [] : logs.flatMap((log) => log.next_steps);
-  const pendingReview: string[] = [
-    inbox.pendingMemoryProposals > 0
-      ? `${inbox.pendingMemoryProposals} pending memory proposal(s).`
-      : undefined,
-    inbox.pendingSkillPatches > 0 ? `${inbox.pendingSkillPatches} pending skill patch(es).` : undefined,
-    exportPolicy === "local-private"
-      ? "This context may include private local BriefOps memory. Review before sharing outside this machine."
-      : sharedOnlyOmissionNote,
-    format === "codex"
-      ? "Codex format is active; follow the operating note below before broad repo/history inspection."
-      : undefined
-  ].filter((item): item is string => Boolean(item));
+  const pendingReview: string[] = exportPolicy === "shared-only"
+    ? [
+        sharedOnlyOmissionNote,
+        "Local pending review counts are omitted by shared-only policy.",
+        format === "codex"
+          ? "Codex format is active; follow the operating note below before broad repo/history inspection."
+          : undefined
+      ].filter((item): item is string => Boolean(item))
+    : [
+        inbox.pendingMemoryProposals > 0
+          ? `${inbox.pendingMemoryProposals} pending memory proposal(s).`
+          : undefined,
+        inbox.pendingSkillPatches > 0 ? `${inbox.pendingSkillPatches} pending skill patch(es).` : undefined,
+        "This context may include private local BriefOps memory. Review before sharing outside this machine.",
+        format === "codex"
+          ? "Codex format is active; follow the operating note below before broad repo/history inspection."
+          : undefined
+      ].filter((item): item is string => Boolean(item));
   const warnings = [
     health.readiness === "WARN" ? "Continuity health is WARN." : undefined,
     inbox.pendingMemoryProposals > 0 ? "Pending memory proposals should be reviewed." : undefined,
@@ -294,8 +300,15 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     "## Continuity Status",
     "",
     `- Readiness: ${health.readiness}`,
-    `- Work logs: ${health.history.workLogs}`,
-    `- Active memory: ${Object.entries(health.memory).map(([key, value]) => `${key}=${value}`).join(", ")}`,
+    exportPolicy === "shared-only"
+      ? "- Work logs: omitted by shared-only policy"
+      : `- Work logs: ${health.history.workLogs}`,
+    exportPolicy === "shared-only"
+      ? "- Active memory: shared/exportable selected only"
+      : `- Active memory: ${Object.entries(health.memory).map(([key, value]) => `${key}=${value}`).join(", ")}`,
+    exportPolicy === "shared-only"
+      ? `- Shared/exportable memory selected: ${memoryItems.length}`
+      : undefined,
     "",
     "## Highest-Value Memory",
     "",
