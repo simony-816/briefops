@@ -38,3 +38,14 @@ briefops pack resume --worker quant-reviewer --task "Continue unresolved checks.
 `shared-only` omits private memory, raw local work logs, open risks, local next steps, private worker lessons, private incidents, and recent work history.
 
 `local-private` is intended for local terminal/Codex use only.
+
+## Privacy Check
+
+Before publishing a repository or sharing generated context, run:
+
+```bash
+briefops doctor --privacy
+briefops doctor --privacy --fix-gitignore
+```
+
+`.briefops/` can contain private local work logs and memory. Keep it ignored unless you intentionally curated the contents for sharing.

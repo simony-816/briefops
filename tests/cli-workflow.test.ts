@@ -343,4 +343,19 @@ describe("CLI persistent worker workflow", () => {
       expect(fixed.stdout).toContain("Stale lock files");
     });
   });
+
+  it("runs privacy doctor and can add .briefops to gitignore", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+
+      const checked = await expectCli(dir, ["doctor", "--privacy"]);
+      expect(checked.stdout).toContain("Gitignore");
+      expect(checked.stdout).toContain("warn");
+
+      const fixed = await expectCli(dir, ["doctor", "--privacy", "--fix-gitignore"]);
+      expect(fixed.stdout).toContain("Updated gitignore:");
+      expect(fixed.stdout).toContain("Gitignore");
+      expect(await fs.readFile(path.join(dir, ".gitignore"), "utf8")).toContain(".briefops/");
+    });
+  });
 });

@@ -521,7 +521,7 @@ git commit -m "fix: protect explicit output files"
 - Modify: `README.md`
 - Modify: `docs/quickstart.md`
 
-- [ ] **Step 1: Write failing privacy doctor tests**
+- [x] **Step 1: Write failing privacy doctor tests**
 
 Create `tests/privacy-doctor.test.ts`:
 
@@ -608,7 +608,7 @@ describe("privacy doctor", () => {
 });
 ```
 
-- [ ] **Step 2: Run failing tests**
+- [x] **Step 2: Run failing tests**
 
 Run:
 
@@ -618,7 +618,7 @@ npm test -- tests/privacy-doctor.test.ts
 
 Expected: FAIL because `runPrivacyDoctor` does not exist.
 
-- [ ] **Step 3: Implement privacy doctor**
+- [x] **Step 3: Implement privacy doctor**
 
 Create `src/core/privacyDoctor.ts`:
 
@@ -713,7 +713,7 @@ export async function runPrivacyDoctor(options: {
 
 Remove the unused `fs` import if TypeScript reports it.
 
-- [ ] **Step 4: Add CLI flags**
+- [x] **Step 4: Add CLI flags**
 
 Modify `src/commands/doctor.ts`:
 
@@ -743,7 +743,7 @@ if (options.privacy) {
 }
 ```
 
-- [ ] **Step 5: Run privacy tests**
+- [x] **Step 5: Run privacy tests**
 
 Run:
 
@@ -753,7 +753,7 @@ npm test -- tests/privacy-doctor.test.ts tests/cli-workflow.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Document privacy workflow**
+- [x] **Step 6: Document privacy workflow**
 
 Add to `README.md`:
 
@@ -770,7 +770,7 @@ briefops doctor --privacy --fix-gitignore
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/core/privacyDoctor.ts src/commands/doctor.ts tests/privacy-doctor.test.ts tests/cli-workflow.test.ts README.md docs/quickstart.md

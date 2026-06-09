@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import { cleanStaleLocks } from "../core/lock.js";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
+import { fixBriefOpsGitignore, runPrivacyDoctor } from "../core/privacyDoctor.js";
 import { runSecurityDoctor } from "../core/securityDoctor.js";
 import { pathExists } from "../core/storage.js";
 import { printTable } from "./shared.js";
@@ -11,7 +12,26 @@ export function registerDoctorCommand(program: Command): void {
     .description("Check the local BriefOps workspace structure.")
     .option("--security", "Run security, export, and local conflict checks.")
     .option("--fix-stale-locks", "Remove stale BriefOps workspace locks before reporting security checks.")
+    .option("--privacy", "Run privacy checks for local memory and share safety.")
+    .option("--fix-gitignore", "Add `.briefops/` to .gitignore when running --privacy.")
     .action(async (options: Record<string, unknown>) => {
+      if (options.privacy) {
+        if (options.fixGitignore) {
+          const path = await fixBriefOpsGitignore();
+          console.log(`Updated gitignore: ${path}`);
+          console.log("");
+        }
+        const result = await runPrivacyDoctor();
+        printTable([
+          ["Check", "Status", "Detail"],
+          ...result.checks.map((check) => [check.name, check.status, check.detail])
+        ]);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+        return;
+      }
+
       if (options.security) {
         if (options.fixStaleLocks) {
           const removed = await cleanStaleLocks();

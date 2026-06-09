@@ -222,6 +222,17 @@ It omits private memory, raw local work logs, open risks, local next steps, priv
 
 BriefOps skills must never auto-approve memory proposals or skill patches.
 
+## Privacy Check
+
+Run this before publishing a repository, sharing a pack, or attaching BriefOps context outside your machine:
+
+```bash
+briefops doctor --privacy
+briefops doctor --privacy --fix-gitignore
+```
+
+BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
+
 ## Finish / Continue UX
 
 `finish` records what happened.
