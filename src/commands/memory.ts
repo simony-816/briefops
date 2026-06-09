@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { addMemory, listMemory, showMemory, updateMemoryStatus } from "../core/memory.js";
+import { inspectMemoryHygiene, planMemoryPrune } from "../core/memoryHygiene.js";
 import {
   applyMemoryProposal,
   listMemoryProposals,
@@ -7,11 +8,63 @@ import {
   readMemoryProposal,
   rejectMemoryProposal
 } from "../core/memoryProposal.js";
+import { BriefOpsError } from "../core/errors.js";
 import { parseCommaList } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
 export function registerMemoryCommands(program: Command): void {
   const memory = program.command("memory").description("Manage curated operational memory.");
+
+  memory
+    .command("hygiene")
+    .description("Report memory counts, duplicate-like items, stale items, and bloat warnings.")
+    .action(async () => {
+      const report = await inspectMemoryHygiene();
+      console.log("BriefOps Memory Hygiene");
+      console.log("");
+      console.log("Active memory:");
+      console.log(`- facts: ${report.counts.facts}`);
+      console.log(`- decisions: ${report.counts.decisions}`);
+      console.log(`- lessons: ${report.counts.lessons}`);
+      console.log(`- incidents: ${report.counts.incidents}`);
+      console.log("");
+      console.log("Warnings:");
+      if (report.warnings.length === 0) {
+        console.log("- none");
+      } else {
+        for (const warning of report.warnings) {
+          console.log(`- ${warning}`);
+        }
+      }
+      if (report.duplicateLike.length > 0) {
+        console.log("");
+        console.log("Duplicate-like memory:");
+        for (const duplicate of report.duplicateLike) {
+          console.log(`- ${duplicate.ids.join(", ")}: ${duplicate.content}`);
+        }
+      }
+    });
+
+  memory
+    .command("prune")
+    .description("Preview memory pruning suggestions. This pass is dry-run only.")
+    .option("--dry-run", "Preview suggested archive actions without writing files.")
+    .action(async (options: Record<string, unknown>) => {
+      if (!options.dryRun) {
+        throw new BriefOpsError("memory prune is dry-run only in this release. Pass --dry-run.");
+      }
+      const plan = await planMemoryPrune();
+      console.log("BriefOps Memory Prune Dry Run");
+      console.log("");
+      if (plan.archive.length === 0) {
+        console.log("Would archive: none");
+        return;
+      }
+      console.log("Would archive:");
+      for (const item of plan.archive) {
+        console.log(`- ${item.id}: ${item.reason} - ${item.content}`);
+      }
+    });
 
   memory
     .command("propose-from-log <log>")

@@ -19,6 +19,8 @@ export function registerFinishCommand(program: Command): void {
     .option("--files <files>", "Comma-separated files changed.")
     .option("--commands <commands>", "Comma-separated commands run.")
     .option("--notes <notes>", "Additional notes.")
+    .option("--importance <importance>", "trivial|normal|durable|incident", "normal")
+    .option("--no-memory-proposal", "Skip memory proposal generation.")
     .option("--propose-skill-patch", "Also propose a skill patch from log lessons.")
     .option("--refresh-worker", "Refresh the worker summary after logging.")
     .option("--continue-task <task>", "Task text to use in the printed continue command.")
@@ -37,6 +39,8 @@ export function registerFinishCommand(program: Command): void {
         files: options.files as string | undefined,
         commands: options.commands as string | undefined,
         notes: options.notes as string | undefined,
+        importance: options.importance as string | undefined,
+        noMemoryProposal: Boolean(options.noMemoryProposal),
         proposeSkillPatch: Boolean(options.proposeSkillPatch),
         refreshWorker: Boolean(options.refreshWorker),
         continueTask: options.continueTask as string | undefined

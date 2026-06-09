@@ -33,6 +33,17 @@ briefops prime --task "<task>" --format codex --export-policy shared-only
 briefops pack resume --worker <worker> --task "<task>" --export-policy shared-only
 ```
 
+To generate always-visible harness router files:
+
+```bash
+briefops export agents-md
+briefops export claude-md
+briefops export cursor-rules
+briefops export all
+```
+
+These files should stay compact. They teach harnesses how to call BriefOps and do not copy private memory, raw logs, handoffs, or worker summaries.
+
 ## LazyCodex / OmO
 
 Use LazyCodex or OmO for orchestration, hooks, LSP/MCP, and autonomous execution. Use BriefOps for durable local continuity.

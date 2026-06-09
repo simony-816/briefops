@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { inspectBriefTokens } from "../core/brief.js";
+import { defaultContextBudgets } from "../core/contextBudget.js";
 import { inspectContinuityHealth } from "../core/continuity.js";
 import { formatMemoryItem, listMemory, selectContinuityContext, selectRelevantMemory } from "../core/memory.js";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
@@ -9,6 +10,24 @@ import { parsePositiveInt, printTable } from "./shared.js";
 
 export function registerInspectCommands(program: Command): void {
   const inspect = program.command("inspect").description("Inspect BriefOps inputs.");
+
+  inspect
+    .command("budget")
+    .description("Print BriefOps context budget targets.")
+    .action(() => {
+      console.log("BriefOps Context Budget");
+      console.log("");
+      console.log("Exports:");
+      console.log(`- AGENTS.md: target ${defaultContextBudgets.exportAgentsMd} tokens`);
+      console.log(`- CLAUDE.md: target ${defaultContextBudgets.exportClaudeMd} tokens`);
+      console.log(`- Cursor rule: target ${defaultContextBudgets.exportCursorRule} tokens`);
+      console.log(`- Cursor rules total: target ${defaultContextBudgets.exportCursorTotal} tokens`);
+      console.log("");
+      console.log("Runtime:");
+      console.log(`- prime default: ${defaultContextBudgets.prime} tokens`);
+      console.log(`- handoff default: ${defaultContextBudgets.handoff} tokens`);
+      console.log(`- resume pack default: ${defaultContextBudgets.resumePack} tokens`);
+    });
 
   inspect
     .command("retrieval")

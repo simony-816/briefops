@@ -25,6 +25,15 @@ The generated local plugin copy is written to:
 
 BriefOps plugin skills must never auto-approve memory proposals or skill patches.
 
+For repo-level harness guidance, generate router files:
+
+```bash
+briefops export agents-md
+briefops export all
+```
+
+These exports route local harnesses back to `briefops prime`, `briefops finish`, `briefops approve`, and `briefops continue --pack`. They do not copy `.briefops` memory, logs, handoffs, or worker summaries.
+
 Use shared-only exports for portable context:
 
 ```bash

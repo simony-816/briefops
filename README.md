@@ -13,6 +13,7 @@ briefops continue --worker <worker> --task "<next task>" --pack
 ```
 
 BriefOps does not run agents. It prepares deterministic local context for them.
+It should not maximize context. It preserves continuity by selecting the smallest useful information that should survive into the next task.
 
 ## What BriefOps Is
 
@@ -22,6 +23,7 @@ BriefOps does not run agents. It prepares deterministic local context for them.
 - a token-aware brief, handoff, Codex mission, and resume generator
 - a compact first-context primer for fresh Codex threads
 - a persistent worker continuity layer for fresh AI coding threads
+- router exports for local harnesses like Codex, Claude Code, and Cursor
 
 ## What BriefOps Is Not
 
@@ -231,6 +233,50 @@ It omits private memory, local project file details, raw work logs, open risks, 
 
 BriefOps skills must never auto-approve memory proposals or skill patches.
 
+## Local Harness Export
+
+Generate local harness instruction files when you want Codex, Claude Code, or Cursor to know how to call BriefOps:
+
+```bash
+briefops export agents-md
+briefops export claude-md
+briefops export cursor-rules
+briefops export all
+```
+
+Exports are routers, not memory dumps. They tell local AI tools to run `briefops prime`, `briefops finish`, `briefops approve`, and `briefops continue --pack`.
+
+They do not copy `.briefops` memory, raw logs, private decisions, incidents, handoffs, or worker summaries into `AGENTS.md`, `CLAUDE.md`, or Cursor rules. Export commands default to `--export-policy shared-only` because these files are often committed.
+
+## Context Minimalism
+
+Inspect the built-in budget policy:
+
+```bash
+briefops inspect budget
+```
+
+Compare raw local candidate context to compact prime output:
+
+```bash
+briefops compare context --worker quant-reviewer --task "Review this PR."
+```
+
+BriefOps should not become the context bloat it was built to prevent. Use `prime` first, then generate a handoff or resume pack only when continuity needs more detail.
+
+## Memory Hygiene
+
+Not every task deserves durable memory. Use durable memory for decisions, lessons, incidents, open risks, and reusable constraints:
+
+```bash
+briefops finish --importance trivial --task "Fix typo" --result "Fixed typo."
+briefops finish --no-memory-proposal --task "Experiment" --result "Discarded."
+briefops memory hygiene
+briefops memory prune --dry-run
+```
+
+`memory hygiene` and `memory prune --dry-run` are read-only in this release. They report bloat, stale items, deprecated items, and duplicate-like memory without deleting anything.
+
 ## Privacy Check
 
 Run this before publishing a repository, sharing a pack, or attaching BriefOps context outside your machine:
@@ -243,6 +289,26 @@ briefops doctor --privacy --fix-gitignore
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
 
 `doctor --privacy` checks local memory sharing hazards, including `.briefops/` gitignore coverage, private/exportable memory, and secret-like memory strings.
+
+## Pre-Publish Readiness
+
+Before `npm publish`, run the local release checks and review the package contents:
+
+```bash
+npm run build
+npm test
+npm pack --dry-run
+```
+
+Run `npm audit --audit-level=moderate` or `npm run verify:release` only from an environment where sending dependency metadata to the npm registry is acceptable.
+
+Confirm:
+
+- generated harness files are routers, not `.briefops` memory dumps
+- `briefops --version` matches `package.json`
+- `.briefops/` is ignored or intentionally curated
+- `SECURITY.md`, `CHANGELOG.md`, and the release checklist reflect the shipped behavior
+- `npm pack --dry-run` includes `dist`, docs, examples, plugins, README, LICENSE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, and CHANGELOG
 
 ## Harness Integrations
 

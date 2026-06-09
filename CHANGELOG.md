@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add local harness router exports for `AGENTS.md`, `CLAUDE.md`, Cursor rules, and `export all`.
+- Add context budget inspection and raw-vs-prime context comparison.
+- Add finish importance controls plus read-only memory hygiene and prune dry-run reports.
+- Keep `briefops --version` in sync with package metadata through a shared version constant.
 - Hide private continuity metadata counts from shared-only prime, handoff, resume, and pack flows.
 - Protect memory proposal and skill patch generation with workspace locks.
 - Document privacy doctor, stale-lock cleanup, and shared-only export boundaries.

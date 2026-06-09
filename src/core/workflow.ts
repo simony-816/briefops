@@ -23,6 +23,8 @@ import { requireWorkspace } from "./workspace.js";
 import { estimateTokens } from "./tokens.js";
 
 export type FinishWorkOptions = AddWorkLogOptions & {
+  importance?: "trivial" | "normal" | "durable" | "incident" | string;
+  noMemoryProposal?: boolean;
   proposeSkillPatch?: boolean;
   refreshWorker?: boolean;
   continueTask?: string;
@@ -103,6 +105,32 @@ function isMissingWorkerError(error: unknown): boolean {
   return error instanceof BriefOpsError && error.message.startsWith("Worker not found:");
 }
 
+function normalizeImportance(value?: string): "trivial" | "normal" | "durable" | "incident" {
+  const importance = (value ?? "normal").trim().toLowerCase();
+  if (
+    importance === "trivial" ||
+    importance === "normal" ||
+    importance === "durable" ||
+    importance === "incident"
+  ) {
+    return importance;
+  }
+
+  throw new BriefOpsError(`Invalid finish importance: ${value}`);
+}
+
+function hasDurableFields(options: FinishWorkOptions): boolean {
+  return [
+    ...(options.lessons ?? []),
+    ...(options.openRisks ?? []),
+    ...(options.nextSteps ?? []),
+    ...(options.decisions ?? []),
+    ...(options.incidents ?? [])
+  ].some((value) => value.trim().length > 0) ||
+    /\b(decision|fact):/i.test(options.notes ?? "") ||
+    /\b(missing|missed|failed|blocked|unverified|risk|violation|regression|incident|error|bug|failure)\b/i.test(options.result);
+}
+
 export async function finishWork(options: FinishWorkOptions): Promise<FinishWorkResult> {
   const cwd = options.cwd ?? process.cwd();
   return withWorkspaceLock({ cwd, name: "workflow" }, async () => {
@@ -112,6 +140,7 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
       cwd
     });
     const warnings: string[] = [];
+    const importance = normalizeImportance(options.importance);
     if (logResult.log.worker) {
       try {
         await readWorker(cwd, logResult.log.worker);
@@ -126,18 +155,29 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
     }
     let memoryProposalId: string | undefined;
     let memoryProposalPath: string | undefined;
-    try {
-      const memoryProposal = await proposeMemoryFromLog({
-        cwd,
-        fromLog: logResult.log.id
-      });
-      memoryProposalId = memoryProposal.proposal.id;
-      memoryProposalPath = memoryProposal.path;
-    } catch (error) {
-      if (!isNoMemoryProposalCandidatesError(error)) {
-        throw error;
-      }
+    const durableFieldsPresent = hasDurableFields(options);
+    if (options.noMemoryProposal) {
+      warnings.push("Memory proposal skipped by --no-memory-proposal.");
+    } else if (importance === "trivial") {
+      warnings.push("Trivial work is not proposed as durable memory.");
+    } else if (importance === "durable" && !durableFieldsPresent) {
+      warnings.push("Durable finish requested, but no durable memory fields were provided.");
+    } else if (importance === "normal" && !durableFieldsPresent) {
       warnings.push("No durable memory proposal candidates found.");
+    } else {
+      try {
+        const memoryProposal = await proposeMemoryFromLog({
+          cwd,
+          fromLog: logResult.log.id
+        });
+        memoryProposalId = memoryProposal.proposal.id;
+        memoryProposalPath = memoryProposal.path;
+      } catch (error) {
+        if (!isNoMemoryProposalCandidatesError(error)) {
+          throw error;
+        }
+        warnings.push("No durable memory proposal candidates found.");
+      }
     }
     let skillPatchId: string | undefined;
     let skillPatchPath: string | undefined;

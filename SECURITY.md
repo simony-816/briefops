@@ -36,3 +36,22 @@ briefops pack resume --export-policy shared-only
 before sharing generated context outside your local machine.
 
 `shared-only` omits private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts. `doctor --privacy` checks local memory sharing hazards. `doctor --security --fix-stale-locks` removes stale locks only.
+
+## Harness Export Safety
+
+`briefops export agents-md`, `briefops export claude-md`, `briefops export cursor-rules`, and `briefops export all` generate router files for local AI coding harnesses.
+
+These files are intended to be safe to commit by default. They should contain command guidance and approval boundaries, not raw `.briefops/` memory, work logs, handoffs, resume packs, private decisions, private incidents, or worker summaries.
+
+If you use `--export-policy local-private`, review the generated files before sharing them outside the local machine.
+
+## Network And Release Checks
+
+Most BriefOps commands are local and deterministic. Release verification may call npm registry services:
+
+```bash
+npm audit --audit-level=moderate
+npm run verify:release
+```
+
+Run these commands only when it is acceptable to send package dependency/audit metadata to npm. `npm pack --dry-run` is the preferred local package-content check before publishing.

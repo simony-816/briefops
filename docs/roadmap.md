@@ -2,15 +2,14 @@
 
 ## Near Term
 
-- privacy doctor
-- explicit output overwrite protection
-- OSS trust docs
-- harness integration guide
+- polish harness router exports for Codex, Claude Code, Cursor, and similar local tools
+- expand context savings eval fixtures
+- improve memory hygiene suggestions beyond dry-run reporting
 - release readiness CI
 
 ## Later
 
-- optional cross-harness projection
+- optional cross-harness projection beyond router files
 - richer eval fixtures for token savings
 - curated shared-memory export bundles
 - signed release artifacts

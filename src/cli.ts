@@ -2,9 +2,11 @@ import { Command } from "commander";
 import { registerApproveCommand } from "./commands/approve.js";
 import { registerBriefCommands } from "./commands/brief.js";
 import { registerCodexCommands } from "./commands/codex.js";
+import { registerCompareCommands } from "./commands/compare.js";
 import { registerContinueCommand } from "./commands/continue.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerEvalCommands } from "./commands/eval.js";
+import { registerExportCommands } from "./commands/export.js";
 import { registerFinishCommand } from "./commands/finish.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerHandoffCommands } from "./commands/handoff.js";
@@ -17,6 +19,7 @@ import { registerPrimeCommand } from "./commands/prime.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerSkillCommands } from "./commands/skill.js";
 import { registerWorkerCommands } from "./commands/worker.js";
+import { briefopsVersion } from "./version.js";
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -24,7 +27,7 @@ export function buildProgram(): Command {
   program
     .name("briefops")
     .description("Local-first, token-aware brief compiler for AI coding workflows.")
-    .version("0.2.0-alpha.0");
+    .version(briefopsVersion);
 
   registerInitCommand(program);
   registerDoctorCommand(program);
@@ -32,6 +35,7 @@ export function buildProgram(): Command {
   registerApproveCommand(program);
   registerFinishCommand(program);
   registerContinueCommand(program);
+  registerExportCommands(program);
   registerInboxCommand(program);
   registerSkillCommands(program);
   registerProjectCommands(program);
@@ -44,6 +48,7 @@ export function buildProgram(): Command {
   registerEvalCommands(program);
   registerWorkerCommands(program);
   registerInspectCommands(program);
+  registerCompareCommands(program);
 
   return program;
 }
