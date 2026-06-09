@@ -9,8 +9,26 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "verify:release": "npm run build && npm test && npm pack --dry-run"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simony-816/briefops.git"
+  },
+  "bugs": {
+    "url": "https://github.com/simony-816/briefops/issues"
+  },
+  "homepage": "https://github.com/simony-816/briefops#readme",
+  "keywords": [
+    "codex",
+    "ai-agents",
+    "local-first",
+    "memory",
+    "context",
+    "handoff",
+    "developer-tools"
+  ],
   "dependencies": {
     "commander": "^12.1.0",
     "yaml": "^2.5.1",
@@ -31,7 +49,11 @@
     "examples",
     "docs",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md"
   ],
   "license": "MIT"
 }

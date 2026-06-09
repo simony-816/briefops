@@ -40,6 +40,16 @@ Everything important lives in local files under `.briefops/`.
 
 BriefOps can generate Codex skill-plugin assets, but the plugin calls the local CLI and local `.briefops/` workspace. No hosted service or required marketplace is involved.
 
+## Open Source Trust Boundary
+
+BriefOps is pre-1.0 and designed for local-first public alpha use. The core safety principles are stable: local files first, no hosted service required, no required MCP server, human-approved memory, shared-only export controls, and deterministic CLI behavior.
+
+Before publishing a repository or sharing generated context, review:
+
+- `SECURITY.md` for vulnerability reporting and local data handling.
+- `CONTRIBUTING.md` for development checks and safety rules.
+- `CHANGELOG.md` for release notes.
+
 ## Install
 
 From this repository:
