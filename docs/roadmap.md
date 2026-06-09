@@ -1,20 +1,21 @@
 # Roadmap
 
-Near-term priorities:
+## Near Term
 
-- Codex skill-only plugin
-- compact first-context `briefops prime`
-- local safety locks and atomic writes
-- stricter shared-only export policy
-- stale-lock cleanup via `doctor --security --fix-stale-locks`
-- token-savings eval fixtures
-- stronger continuity eval fixtures
-- richer handoff budget trimming
-- more worker summary heuristics
-- CLI E2E coverage for resume flows
-- adapters for Claude Code handoffs
+- privacy doctor
+- explicit output overwrite protection
+- OSS trust docs
+- harness integration guide
+- release readiness CI
 
-Out of scope:
+## Later
+
+- optional cross-harness projection
+- richer eval fixtures for token savings
+- curated shared-memory export bundles
+- signed release artifacts
+
+## Out Of Scope
 
 - agent runtime
 - LLM API calls

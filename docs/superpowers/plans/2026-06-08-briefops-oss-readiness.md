@@ -1117,8 +1117,10 @@ git commit -m "chore: add release readiness checks"
 - Modify: `README.md`
 - Modify: `docs/roadmap.md`
 - Modify: `CHANGELOG.md`
+- Modify: `package.json`
+- Modify: `package-lock.json`
 
-- [ ] **Step 1: Add release status to README**
+- [x] **Step 1: Add release status to README**
 
 Add:
 
@@ -1135,7 +1137,7 @@ BriefOps is pre-1.0. The current release is intended for developers who want a l
 - deterministic CLI behavior
 ```
 
-- [ ] **Step 2: Update roadmap**
+- [x] **Step 2: Update roadmap**
 
 In `docs/roadmap.md`, make the next milestones:
 
@@ -1156,7 +1158,7 @@ In `docs/roadmap.md`, make the next milestones:
 - signed release artifacts
 ```
 
-- [ ] **Step 3: Update changelog**
+- [x] **Step 3: Update changelog**
 
 Move completed items into `CHANGELOG.md`:
 
@@ -1171,7 +1173,7 @@ Move completed items into `CHANGELOG.md`:
 - Add release readiness checks.
 ```
 
-- [ ] **Step 4: Run complete verification**
+- [x] **Step 4: Run complete verification**
 
 Run:
 
@@ -1189,7 +1191,7 @@ Expected:
 - package dry-run includes expected files
 - diff check has no whitespace errors
 
-- [ ] **Step 5: Manual smoke test**
+- [x] **Step 5: Manual smoke test**
 
 Run:
 
@@ -1215,10 +1217,10 @@ Expected:
 - security doctor passes or gives actionable warnings
 - privacy doctor warns if `.briefops/` is not ignored
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add README.md docs/roadmap.md CHANGELOG.md
+git add README.md docs/roadmap.md CHANGELOG.md package.json package-lock.json
 git commit -m "docs: mark release candidate readiness"
 ```
 

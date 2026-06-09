@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-- Add OSS readiness hardening.
+- No changes yet.
+
+## 0.2.1-alpha.0
+
+- Add OSS trust documents.
+- Add privacy doctor.
+- Protect explicit output paths from accidental overwrite.
+- Protect generated Codex plugin files from silent local-change overwrite.
+- Add harness integration guidance.
+- Add release readiness checks.
 
 ## 0.2.0-alpha.0
 

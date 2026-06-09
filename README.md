@@ -40,9 +40,18 @@ Everything important lives in local files under `.briefops/`.
 
 BriefOps can generate Codex skill-plugin assets, but the plugin calls the local CLI and local `.briefops/` workspace. No hosted service or required marketplace is involved.
 
-## Open Source Trust Boundary
+## Release Status
 
-BriefOps is pre-1.0 and designed for local-first public alpha use. The core safety principles are stable: local files first, no hosted service required, no required MCP server, human-approved memory, shared-only export controls, and deterministic CLI behavior.
+BriefOps is pre-1.0. The current release is intended for developers who want a local-first memory and context ledger for AI coding agents. The public API and file formats may change before 1.0, but the core safety principles are stable:
+
+- local files first
+- no hosted service required
+- no required MCP server
+- human-approved memory
+- shared-only export controls
+- deterministic CLI behavior
+
+## Open Source Trust Boundary
 
 Before publishing a repository or sharing generated context, review:
 
