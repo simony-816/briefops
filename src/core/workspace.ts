@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import { workspaceSchemaVersion } from "./compatibility.js";
 import { BriefOpsError } from "./errors.js";
 import { memoryCategories, workspacePaths } from "./paths.js";
 import { ensureDirectory, pathExists, writeFileIfAbsent } from "./storage.js";
@@ -194,7 +195,7 @@ export async function initWorkspace(cwd = process.cwd()): Promise<InitResult> {
   const configCreated = await writeFileIfAbsent(
     paths.config,
     [
-      "version: 0.2.0",
+      `version: ${workspaceSchemaVersion}`,
       `created_at: "${new Date().toISOString()}"`,
       "defaults: {}",
       "token_budgets:",

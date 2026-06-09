@@ -1,5 +1,6 @@
 import YAML from "yaml";
 import { z } from "zod";
+import { assertCompatibleWorkspaceVersion, workspaceSchemaVersion } from "./compatibility.js";
 import { BriefOpsError } from "./errors.js";
 import { memoryCategories, normalizeName, workspacePaths } from "./paths.js";
 import { pathExists, readTextFile, writeYamlFile } from "./storage.js";
@@ -40,8 +41,10 @@ export type BriefOpsConfig = {
 };
 
 function normalizeConfig(raw: z.infer<typeof rawConfigSchema>): BriefOpsConfig {
+  const version = raw.version ?? workspaceSchemaVersion;
+  assertCompatibleWorkspaceVersion(version);
   return {
-    version: raw.version ?? "0.2.0",
+    version,
     created_at: raw.created_at,
     defaults: {
       project: raw.defaults.project ? normalizeName(raw.defaults.project) : undefined,
@@ -93,7 +96,7 @@ export async function setDefaultWorker(options: {
 
   return writeBriefOpsConfig(cwd, {
     ...config,
-    version: "0.2.0",
+    version: workspaceSchemaVersion,
     defaults: {
       ...config.defaults,
       project: worker.project,

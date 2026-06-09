@@ -37,6 +37,7 @@ describe("BriefOps config", () => {
       const config = await readBriefOpsConfig(dir);
 
       expect(config.defaults).toEqual({});
+      expect(config.version).toBe("1.0.0");
       expect(config.token_budgets.prime).toBe(800);
       expect(config.token_budgets.resume).toBe(3000);
       expect(config.memory_categories).toContain("lessons");
@@ -78,9 +79,28 @@ describe("BriefOps config", () => {
       await setDefaultWorker({ cwd: dir, worker: "quant-reviewer" });
       const config = await readBriefOpsConfig(dir);
 
-      expect(config.version).toBe("0.2.0");
+      expect(config.version).toBe("1.0.0");
       expect(config.defaults.worker).toBe("quant-reviewer");
       expect(config.token_budgets.prime).toBe(800);
+    });
+  });
+
+  it("rejects future incompatible workspace config versions", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await writeYamlFile(`${dir}/.briefops/config.yaml`, {
+        version: "2.0.0",
+        defaults: {},
+        token_budgets: {
+          prime: 800,
+          resume: 3000
+        },
+        memory_categories: ["facts", "decisions", "lessons", "incidents", "deprecated"]
+      });
+
+      await expect(readBriefOpsConfig(dir)).rejects.toThrow(
+        "Unsupported BriefOps workspace version"
+      );
     });
   });
 });

@@ -44,7 +44,7 @@ BriefOps can generate Codex skill-plugin assets, but the plugin calls the local 
 
 ## Release Status
 
-BriefOps is pre-1.0. The current release is intended for developers who want a local-first memory and context ledger for AI coding agents. The public API and file formats may change before 1.0, but the core safety principles are stable:
+BriefOps 1.0 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI and file-format compatibility policy is documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
 
 - local files first
 - no hosted service required
@@ -53,6 +53,8 @@ BriefOps is pre-1.0. The current release is intended for developers who want a l
 - shared-only export controls
 - deterministic CLI behavior
 
+For privacy guarantees, see `docs/privacy-model.md`.
+
 ## Open Source Trust Boundary
 
 Before publishing a repository or sharing generated context, review:
@@ -60,6 +62,8 @@ Before publishing a repository or sharing generated context, review:
 - `SECURITY.md` for vulnerability reporting and local data handling.
 - `CONTRIBUTING.md` for development checks and safety rules.
 - `CHANGELOG.md` for release notes.
+- `docs/file-format.md` and `docs/compatibility.md` for the 1.0 local data contract.
+- `docs/privacy-model.md` for export-policy and local data boundaries.
 
 ## Install
 

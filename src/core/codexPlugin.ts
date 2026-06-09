@@ -1,4 +1,5 @@
 import path from "node:path";
+import { briefopsVersion } from "../version.js";
 import { BriefOpsError } from "./errors.js";
 import { workspacePaths } from "./paths.js";
 import { pathExists, readTextFile, writeTextFile } from "./storage.js";
@@ -50,7 +51,7 @@ export type CodexPluginInspection = {
 export function buildCodexPluginManifest(): CodexPluginManifest {
   return {
     name: "briefops",
-    version: "0.2.0-alpha.0",
+    version: briefopsVersion,
     description: "Local-first, token-aware persistent work history for Codex workflows.",
     author: {
       name: "BriefOps contributors",

@@ -37,6 +37,8 @@ before sharing generated context outside your local machine.
 
 `shared-only` omits private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts. `doctor --privacy` checks local memory sharing hazards. `doctor --security --fix-stale-locks` removes stale locks only.
 
+See `docs/privacy-model.md` for the full 1.0 privacy contract.
+
 ## Harness Export Safety
 
 `briefops export agents-md`, `briefops export claude-md`, `briefops export cursor-rules`, and `briefops export all` generate router files for local AI coding harnesses.

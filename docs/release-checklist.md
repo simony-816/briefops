@@ -9,6 +9,7 @@ npm audit --audit-level=moderate
 npm pack --dry-run
 npm run verify:release
 briefops --help
+npm whoami
 ```
 
 `npm audit --audit-level=moderate` is included in `npm run verify:release`. It contacts the npm registry and sends dependency/audit metadata, so run it only from an environment where that network disclosure is acceptable.
@@ -43,6 +44,7 @@ briefops memory prune --dry-run
 Confirm:
 
 - `briefops --version` matches `package.json`.
+- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 1.0 public contract.
 - Harness exports are routers, not memory dumps.
 - `shared-only` exports omit private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts.
 - Memory and skill patches require human approval.
@@ -54,3 +56,13 @@ Confirm:
 - Generated Codex plugin files do not overwrite local changes without `--force`.
 - `.briefops/` is ignored or intentionally curated.
 - `npm pack --dry-run` includes docs, examples, plugins, dist, README, LICENSE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, and CHANGELOG.
+
+Publish:
+
+```bash
+git status --short --branch
+git tag v1.0.0
+git push origin HEAD
+git push origin v1.0.0
+npm publish
+```

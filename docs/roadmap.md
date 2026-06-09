@@ -1,10 +1,17 @@
 # Roadmap
 
-## Near Term
+## 1.0 Complete
 
-- polish harness router exports for Codex, Claude Code, Cursor, and similar local tools
+- local harness router exports for Codex, Claude Code, Cursor, and similar local tools
+- context savings inspection and comparison
+- read-only memory hygiene and prune planning
+- shared-only export privacy hardening
+- file format, compatibility, and privacy model documentation
+
+## Near Term After 1.0
+
 - expand context savings eval fixtures
-- improve memory hygiene suggestions beyond dry-run reporting
+- improve memory hygiene suggestions beyond dry-run reporting, without auto-pruning
 - release readiness CI
 
 ## Later
