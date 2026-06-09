@@ -5,6 +5,10 @@ description: Use when continuing a persistent BriefOps worker in a fresh Codex t
 
 # BriefOps Continue Worker
 
+The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.
+
+Use `--export-policy shared-only` before copying context outside the local workspace.
+
 Use this workflow when the user wants a fresh Codex thread to continue prior work with the same worker identity, project constraints, memory, and risks.
 
 Prepare a resume prompt and optional portable pack:

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { BriefOpsError } from "./errors.js";
 import { workspacePaths } from "./paths.js";
 import { pathExists, readTextFile, writeTextFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
@@ -83,6 +84,15 @@ function pluginManifestContent(): string {
   return `${JSON.stringify(buildCodexPluginManifest(), null, 2)}\n`;
 }
 
+function trustBoundaryLines(): string[] {
+  return [
+    "The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.",
+    "",
+    "Use `--export-policy shared-only` before copying context outside the local workspace.",
+    ""
+  ];
+}
+
 function briefopsPrimeContextSkill(): string {
   return [
     "---",
@@ -92,6 +102,7 @@ function briefopsPrimeContextSkill(): string {
     "",
     "# BriefOps Prime Context",
     "",
+    ...trustBoundaryLines(),
     "Use BriefOps before broad repo/history inspection when a `.briefops` workspace exists or may exist.",
     "",
     "Run:",
@@ -118,6 +129,7 @@ function briefopsFinishTaskSkill(): string {
     "",
     "# BriefOps Finish Task",
     "",
+    ...trustBoundaryLines(),
     "Use BriefOps at the end of meaningful work so future Codex threads do not spend tokens rediscovering the same decisions, risks, and lessons.",
     "",
     "Run a scoped finish command with the actual result and any durable candidates:",
@@ -142,6 +154,7 @@ function briefopsReviewMemorySkill(): string {
     "",
     "# BriefOps Review Memory",
     "",
+    ...trustBoundaryLines(),
     "BriefOps memory is human-approved. Pending proposals are local drafts until the user accepts or rejects them.",
     "",
     "Inspect proposals before applying:",
@@ -171,6 +184,7 @@ function briefopsContinueWorkerSkill(): string {
     "",
     "# BriefOps Continue Worker",
     "",
+    ...trustBoundaryLines(),
     "Use this workflow when the user wants a fresh Codex thread to continue prior work with the same worker identity, project constraints, memory, and risks.",
     "",
     "Prepare a resume prompt and optional portable pack:",
@@ -211,6 +225,26 @@ export function codexPluginFiles(): CodexPluginFile[] {
   ];
 }
 
+async function writeGeneratedPluginFile(options: {
+  target: string;
+  content: string;
+  force: boolean;
+}): Promise<void> {
+  if (await pathExists(options.target)) {
+    const existing = await readTextFile(options.target);
+    if (existing === options.content) {
+      return;
+    }
+    if (!options.force) {
+      throw new BriefOpsError(
+        `Generated plugin file has local changes: ${options.target}. Re-run with --force to overwrite.`
+      );
+    }
+  }
+
+  await writeTextFile(options.target, options.content, { force: true });
+}
+
 export async function installCodexPlugin(options: {
   cwd?: string;
   force?: boolean;
@@ -225,7 +259,11 @@ export async function installCodexPlugin(options: {
 
   for (const file of codexPluginFiles()) {
     const target = path.join(root, file.relativePath);
-    await writeTextFile(target, file.content, { force: options.force ?? true });
+    await writeGeneratedPluginFile({
+      target,
+      content: file.content,
+      force: Boolean(options.force)
+    });
     files.push(file.relativePath);
   }
 

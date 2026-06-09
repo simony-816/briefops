@@ -5,6 +5,8 @@ This is a skill-only Codex plugin bundle for BriefOps.
 It does not run a hosted service and does not sync data. The skills call the local `briefops` CLI and local `.briefops/` workspace.
 It does not publish to a marketplace and does not write to global Codex folders by default.
 
+The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches. Use `--export-policy shared-only` before copying context outside the local workspace.
+
 Recommended local setup:
 
 ```bash

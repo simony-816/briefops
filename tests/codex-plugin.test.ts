@@ -82,4 +82,38 @@ describe("Codex plugin package", () => {
       ).toBe("changed");
     });
   });
+
+  it("does not overwrite changed local plugin files without force", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await installCodexPlugin({ cwd: dir });
+      const skillPath = path.join(
+        dir,
+        ".briefops/codex/plugin/briefops/skills/briefops-prime-context/SKILL.md"
+      );
+      await fs.writeFile(skillPath, "custom local edit\n", "utf8");
+
+      await expect(installCodexPlugin({ cwd: dir })).rejects.toThrow(
+        "Generated plugin file has local changes"
+      );
+
+      expect(await fs.readFile(skillPath, "utf8")).toBe("custom local edit\n");
+    });
+  });
+
+  it("overwrites changed local plugin files with force", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await installCodexPlugin({ cwd: dir });
+      const skillPath = path.join(
+        dir,
+        ".briefops/codex/plugin/briefops/skills/briefops-prime-context/SKILL.md"
+      );
+      await fs.writeFile(skillPath, "custom local edit\n", "utf8");
+
+      await installCodexPlugin({ cwd: dir, force: true });
+
+      expect(await fs.readFile(skillPath, "utf8")).toContain("BriefOps Prime Context");
+    });
+  });
 });

@@ -5,6 +5,10 @@ description: Use when finishing a Codex task to record the outcome, propose dura
 
 # BriefOps Finish Task
 
+The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.
+
+Use `--export-policy shared-only` before copying context outside the local workspace.
+
 Use BriefOps at the end of meaningful work so future Codex threads do not spend tokens rediscovering the same decisions, risks, and lessons.
 
 Run a scoped finish command with the actual result and any durable candidates:

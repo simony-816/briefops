@@ -787,7 +787,7 @@ git commit -m "feat: add privacy doctor"
 - Modify: `plugins/briefops-codex/README.md`
 - Modify: `tests/codex-plugin.test.ts`
 
-- [ ] **Step 1: Write failing plugin changed-file test**
+- [x] **Step 1: Write failing plugin changed-file test**
 
 Add to `tests/codex-plugin.test.ts`:
 
@@ -827,7 +827,7 @@ it("overwrites changed local plugin files with force", async () => {
 });
 ```
 
-- [ ] **Step 2: Run failing plugin tests**
+- [x] **Step 2: Run failing plugin tests**
 
 Run:
 
@@ -837,7 +837,7 @@ npm test -- tests/codex-plugin.test.ts
 
 Expected: FAIL because plugin install currently overwrites generated files.
 
-- [ ] **Step 3: Make plugin install idempotent but changed-file safe**
+- [x] **Step 3: Make plugin install idempotent but changed-file safe**
 
 In `src/core/codexPlugin.ts`, add:
 
@@ -875,7 +875,7 @@ await writeGeneratedPluginFile({
 });
 ```
 
-- [ ] **Step 4: Narrow plugin trust messaging**
+- [x] **Step 4: Narrow plugin trust messaging**
 
 Update generated skill text and `plugins/briefops-codex/README.md` to include:
 
@@ -883,7 +883,7 @@ Update generated skill text and `plugins/briefops-codex/README.md` to include:
 The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches. Use `--export-policy shared-only` before copying context outside the local workspace.
 ```
 
-- [ ] **Step 5: Run plugin tests**
+- [x] **Step 5: Run plugin tests**
 
 Run:
 
@@ -893,7 +893,7 @@ npm test -- tests/codex-plugin.test.ts tests/cli-workflow.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/core/codexPlugin.ts src/commands/codex.ts plugins/briefops-codex/README.md tests/codex-plugin.test.ts
