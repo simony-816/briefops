@@ -61,8 +61,8 @@ Publish:
 
 ```bash
 git status --short --branch
-git tag v1.0.0
+git tag v<version>
 git push origin HEAD
-git push origin v1.0.0
+git push origin v<version>
 npm publish
 ```

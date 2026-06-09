@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- No changes yet.
+
+## 1.0.1 - 2026-06-09
+
 - Clarify supported security versions for 1.x and 0.2.x alpha.
 - Polish repository discovery metadata, README badges, and npm package keywords.
 - Upgrade Commander to 15.0.0.

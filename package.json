@@ -1,6 +1,6 @@
 {
   "name": "briefops",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.",
   "type": "module",
   "bin": {
