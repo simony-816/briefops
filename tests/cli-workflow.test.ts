@@ -229,6 +229,30 @@ describe("CLI persistent worker workflow", () => {
     });
   });
 
+  it("runs bounded stability doctor checks from the CLI", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+
+      const checked = await expectCli(dir, ["doctor", "--stability"]);
+
+      expect(checked.stdout).toContain("Required paths");
+      expect(checked.stdout).toContain("Memory ids");
+      expect(checked.stdout).toContain("References");
+      expect(checked.stdout).not.toContain(".briefops/memory/lessons.yaml:");
+    });
+  });
+
   it("accepts shared-only export policy for handoff and Codex resume CLI output", async () => {
     await withTempDir(async (dir) => {
       await expectCli(dir, ["init"]);

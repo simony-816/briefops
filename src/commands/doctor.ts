@@ -3,6 +3,7 @@ import { cleanStaleLocks } from "../core/lock.js";
 import { memoryCategories, workspacePaths } from "../core/paths.js";
 import { fixBriefOpsGitignore, runPrivacyDoctor } from "../core/privacyDoctor.js";
 import { runSecurityDoctor } from "../core/securityDoctor.js";
+import { runStabilityDoctor } from "../core/stabilityDoctor.js";
 import { pathExists } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
@@ -10,6 +11,8 @@ export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
     .description("Check the local BriefOps workspace structure.")
+    .option("--stability", "Run bounded workspace integrity checks without changing prompt context.")
+    .option("--verbose", "Show more stability examples while keeping output bounded.")
     .option("--security", "Run security, export, and local conflict checks.")
     .option("--fix-stale-locks", "Remove stale BriefOps workspace locks before reporting security checks.")
     .option("--privacy", "Run privacy checks for local memory and share safety.")
@@ -22,6 +25,20 @@ export function registerDoctorCommand(program: Command): void {
           console.log("");
         }
         const result = await runPrivacyDoctor();
+        printTable([
+          ["Check", "Status", "Detail"],
+          ...result.checks.map((check) => [check.name, check.status, check.detail])
+        ]);
+        if (!result.ok) {
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      if (options.stability) {
+        const result = await runStabilityDoctor({
+          maxExamples: options.verbose ? 25 : 5
+        });
         printTable([
           ["Check", "Status", "Detail"],
           ...result.checks.map((check) => [check.name, check.status, check.detail])

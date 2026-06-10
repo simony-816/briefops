@@ -58,11 +58,14 @@ Before publishing a repository or sharing generated context, run:
 ```bash
 briefops doctor --privacy
 briefops doctor --privacy --fix-gitignore
+briefops doctor --stability
 ```
 
 `.briefops/` can contain private local work logs and memory. Keep it ignored unless you intentionally curated the contents for sharing.
 
 `doctor --privacy` checks local memory sharing hazards, including `.briefops/` gitignore coverage, private/exportable memory, and secret-like memory strings.
+
+`doctor --stability` is a read-only local integrity check for schema validity, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts. Its detailed output is bounded and is not added to `prime`, handoff, resume, or pack context.
 
 ## Context Budget Check
 

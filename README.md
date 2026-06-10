@@ -292,11 +292,14 @@ Run this before publishing a repository, sharing a pack, or attaching BriefOps c
 ```bash
 briefops doctor --privacy
 briefops doctor --privacy --fix-gitignore
+briefops doctor --stability
 ```
 
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
 
 `doctor --privacy` checks local memory sharing hazards, including `.briefops/` gitignore coverage, private/exportable memory, and secret-like memory strings.
+
+`doctor --stability` checks local workspace integrity, schema validity, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts. It keeps diagnostics bounded and does not add detailed doctor output to `prime`, handoff, resume, or pack context.
 
 ## Pre-Publish Readiness
 
@@ -596,6 +599,7 @@ briefops handoff inspect latest
 
 ```bash
 briefops doctor
+briefops doctor --stability
 briefops doctor --privacy
 briefops doctor --security
 briefops doctor --security --fix-stale-locks
@@ -606,7 +610,7 @@ briefops inspect retrieval --project atlas-q --worker quant-reviewer --task "Con
 briefops inspect continuity --project atlas-q --worker quant-reviewer
 ```
 
-`doctor --security --fix-stale-locks` removes stale locks only; it does not remove fresh locks or other workspace files.
+`doctor --stability` is read-only and bounded: it reports counts plus a small set of examples instead of dumping workspace contents. `doctor --security --fix-stale-locks` removes stale locks only; it does not remove fresh locks or other workspace files.
 
 Evals are deterministic checklist checks. They do not call an LLM judge.
 
@@ -673,6 +677,7 @@ Because `.briefops/` is local/private, Codex does not automatically see it. Prov
 ```bash
 briefops init
 briefops doctor
+briefops doctor --stability
 briefops doctor --privacy
 briefops doctor --security
 briefops inbox

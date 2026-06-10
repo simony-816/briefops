@@ -37,4 +37,6 @@ BriefOps never auto-approves memory proposals or skill patches. Approval is alwa
 - private memory marked exportable,
 - secret-like local memory strings.
 
+`briefops doctor --stability` checks local workspace integrity, including schema validity, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts. It is read-only, reports bounded examples, and does not add detailed doctor output to generated prompt artifacts.
+
 `briefops doctor --security --fix-stale-locks` removes stale lock files only. It does not remove fresh locks or other workspace files.
