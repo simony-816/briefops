@@ -31,6 +31,7 @@ briefops export claude-md --force
 briefops export cursor-rules --force
 briefops prime --task "Start this task." --format codex --max-tokens 800
 briefops compare context --worker quant-reviewer --task "Start this task."
+briefops doctor --stability
 briefops doctor --security
 briefops doctor --security --fix-stale-locks
 briefops doctor --privacy
@@ -51,6 +52,7 @@ Confirm:
 - `finish --importance trivial` and `finish --no-memory-proposal` avoid durable memory proposals.
 - `memory hygiene` and `memory prune --dry-run` do not mutate memory.
 - Proposal generation and approval are local file-backed operations protected by workspace locks.
+- `doctor --stability` is read-only, bounds detailed examples, and does not add diagnostics to generated prompt artifacts.
 - `doctor --security --fix-stale-locks` removes stale locks only.
 - Explicit output paths do not overwrite without `--force`.
 - Generated Codex plugin files do not overwrite local changes without `--force`.

@@ -4,6 +4,12 @@
 
 - No changes yet.
 
+## 1.1.0 - 2026-06-10
+
+- Add `briefops doctor --stability` for bounded read-only workspace integrity checks.
+- Detect invalid workspace schemas, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts.
+- Keep detailed stability diagnostics out of `prime`, handoff, resume, and pack context so local checks do not increase prompt volume.
+
 ## 1.0.2 - 2026-06-10
 
 - Include work-log lessons in local handoff, Codex resume, and worker recent-work context before durable memory approval.
