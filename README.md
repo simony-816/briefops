@@ -6,7 +6,7 @@
 
 BriefOps is a local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.
 
-The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, promote useful work history into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
+The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, carry recent work into the next handoff immediately, promote only reviewed items into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
 
 ```bash
 briefops prime --task "Start the next task." --format codex --max-tokens 800
@@ -328,6 +328,8 @@ BriefOps works best as a local memory ledger beside stronger harnesses such as C
 
 It writes a work log, proposes durable memory when the log contains useful candidates, can propose a skill patch, can refresh the worker summary, and prints the next `briefops continue` command.
 
+Recent work logs are available to the next local handoff immediately. Durable memory is separate: lessons, decisions, incidents, and reusable rules become long-lived memory only after review.
+
 `continue` prepares the same worker for a fresh thread.
 
 It inspects continuity health, warns about pending memory proposals, refreshes the worker summary, generates a handoff, and saves a Codex resume prompt. Add `--pack` when you also want one self-contained markdown file.
@@ -342,16 +344,13 @@ briefops finish \
   --lesson "Always verify turnover warning threshold." \
   --next-step "Continue unresolved slippage checks."
 
-briefops memory proposal-show latest
-briefops memory proposal-apply latest
-
 briefops continue \
   --worker quant-reviewer \
   --task "Continue unresolved slippage checks." \
   --pack
 ```
 
-If pending memory proposals exist, `continue` prints explicit review, apply, and reject commands. It never applies memory automatically.
+You can continue before applying a memory proposal. The handoff still includes recent local work such as results, lessons, decisions, open risks, incidents, and next steps. If pending memory proposals exist, `continue` prints explicit review, apply, and reject commands. It never applies memory automatically.
 
 ## Portable Resume Pack
 

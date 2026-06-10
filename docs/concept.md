@@ -10,4 +10,4 @@ The core loop is:
 brief -> work -> log -> proposal -> approved memory -> worker summary -> handoff/resume
 ```
 
-Raw logs remain audit records. Memory is curated operational knowledge that requires human approval.
+Raw logs remain audit records and immediate handoff input. Memory is curated operational knowledge that requires human approval.

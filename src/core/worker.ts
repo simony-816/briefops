@@ -12,6 +12,7 @@ import {
   writeYamlFile
 } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
+import type { WorkLog } from "../schemas/log.js";
 import { workerProfileSchema, type WorkerProfile } from "../schemas/worker.js";
 import YAML from "yaml";
 
@@ -37,6 +38,19 @@ function normalizeList(value?: string[] | string): string[] {
   }
 
   return parseCommaList(value).map(normalizeName);
+}
+
+function formatRecentWork(log: WorkLog): string {
+  const details = [
+    log.result,
+    ...log.lessons.map((lesson) => `lesson: ${lesson}`),
+    ...log.decisions.map((decision) => `decision: ${decision}`),
+    ...log.open_risks.map((risk) => `open risk: ${risk}`),
+    ...log.incidents.map((incident) => `incident: ${incident}`),
+    ...log.next_steps.map((step) => `next: ${step}`)
+  ].join("; ");
+
+  return `- ${log.created_at.slice(0, 10)}: ${log.task}; ${details}`;
 }
 
 async function writeWorker(cwd: string, worker: WorkerProfile, force = true): Promise<string> {
@@ -157,7 +171,7 @@ export async function summarizeWorker(cwd: string, name: string, limit = 5): Pro
   return logs
     .map((log) => {
       const skill = log.skill ? `/${log.skill}` : "";
-      return `- ${log.created_at}: ${log.project ?? "global"}${skill} - ${log.result}`;
+      return `${formatRecentWork(log)} [${log.project ?? "global"}${skill}]`;
     })
     .join("\n");
 }
@@ -243,9 +257,7 @@ export async function refreshWorkerSummaryUnlocked(options: {
     "## Recent Work",
     "",
     recentLogs.length > 0
-      ? recentLogs
-          .map((log) => `- ${log.created_at.slice(0, 10)}: ${log.task}; ${log.result}`)
-          .join("\n")
+      ? recentLogs.map(formatRecentWork).join("\n")
       : "- No recent work recorded.",
     "",
     "## Accumulated Lessons",
@@ -304,7 +316,7 @@ export async function generateWorkerIntelligence(options: {
     ? worker.style.map((item) => `- ${item}`).join("\n")
     : "- Verify before completion.";
   const recent = logs.length > 0
-    ? logs.map((log) => `- ${log.created_at.slice(0, 10)}: ${log.result}`).join("\n")
+    ? logs.map(formatRecentWork).join("\n")
     : "- No items found yet.";
   const content = [
     `# Worker Intelligence: ${worker.name}`,

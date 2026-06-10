@@ -130,6 +130,7 @@ async function renderWorkerForExport(options: {
 function formatLogItem(log: WorkLog): string {
   const details = [
     log.result,
+    ...log.lessons.map((lesson) => `lesson: ${lesson}`),
     ...log.open_risks.map((risk) => `open risk: ${risk}`),
     ...log.decisions.map((decision) => `decision: ${decision}`),
     ...log.incidents.map((incident) => `incident: ${incident}`),
@@ -156,6 +157,7 @@ function scoreLogItem(log: WorkLog, task?: string): number {
   return (
     overlap * 8 +
     fresh +
+    log.lessons.length * 6 +
     log.open_risks.length * 12 +
     log.decisions.length * 10 +
     log.incidents.length * 8 +

@@ -764,4 +764,52 @@ describe("persistent worker continuity", () => {
       expect(pack.content).not.toContain("Project file: .briefops/");
     });
   });
+
+  it("carries unapproved work-log lessons into immediate handoffs without durable memory promotion", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const finished = await finishWork({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review cache invalidation follow-up.",
+        result: "Found stale cache risk in follow-up path.",
+        lessons: ["Carry task-specific lessons into immediate handoffs before approval."],
+        decisions: ["Keep durable memory approval separate from fresh-thread handoff."],
+        openRisks: ["Cache invalidation behavior still needs a regression test."],
+        nextSteps: ["Add regression coverage for cache invalidation."]
+      });
+
+      expect(finished.memoryProposalId).toContain("memprop_");
+      expect(await listMemory({
+        cwd: dir,
+        type: "lessons",
+        project: "atlas-q",
+        skill: "risk-review"
+      })).toEqual([]);
+
+      const continued = await continueWork({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue cache invalidation follow-up.",
+        budget: 3000,
+        pack: true
+      });
+      expect(continued.pendingMemoryProposals).toBe(1);
+
+      const resume = await readTextFile(continued.resumePath as string);
+      expect(resume).toContain("lesson: Carry task-specific lessons into immediate handoffs before approval.");
+      expect(resume).toContain("decision: Keep durable memory approval separate from fresh-thread handoff.");
+      expect(resume).toContain("open risk: Cache invalidation behavior still needs a regression test.");
+
+      const sharedOnly = await generateHandoff({
+        cwd: dir,
+        worker: "quant-reviewer",
+        task: "Continue cache invalidation follow-up.",
+        exportPolicy: "shared-only"
+      });
+      expect(sharedOnly.content).not.toContain("Carry task-specific lessons into immediate handoffs");
+    });
+  });
 });

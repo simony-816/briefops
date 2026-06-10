@@ -4,6 +4,12 @@
 
 - No changes yet.
 
+## 1.0.2 - 2026-06-10
+
+- Include work-log lessons in local handoff, Codex resume, and worker recent-work context before durable memory approval.
+- Keep shared-only handoffs and resumes from exposing raw work-log lessons or other private continuity details.
+- Clarify immediate handoff versus human-approved durable memory in docs.
+
 ## 1.0.1 - 2026-06-09
 
 - Clarify supported security versions for 1.x and 0.2.x alpha.
