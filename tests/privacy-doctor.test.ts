@@ -81,7 +81,7 @@ describe("privacy doctor", () => {
         type: "facts",
         project: "atlas-q",
         skill: "risk-review",
-        content: "Use API key sk-test-12345678901234567890 for local sandbox.",
+        content: "Use api_key: REDACTED_TEST_VALUE for local sandbox.",
         visibility: "private",
         exportable: false
       });
