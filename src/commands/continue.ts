@@ -41,16 +41,17 @@ export function registerContinueCommand(program: Command): void {
       }
       if (result.pendingMemoryProposals > 0) {
         console.log("");
-        console.log("Pending memory proposals should be reviewed before continuing.");
+        console.log("Pending local memory proposals found.");
+        console.log("They do not block continuing; apply or reject them when useful.");
         console.log("");
-        console.log("Review:");
+        console.log("Inspect:");
         console.log("briefops memory proposal-list --status proposed");
         console.log("briefops memory proposal-show latest");
         console.log("");
-        console.log("Apply if appropriate:");
+        console.log("Apply locally:");
         console.log("briefops memory proposal-apply latest");
         console.log("");
-        console.log("Reject if not useful:");
+        console.log("Reject:");
         console.log("briefops memory proposal-reject latest");
       }
       console.log("");

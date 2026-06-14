@@ -107,7 +107,7 @@ export function registerSkillCommands(program: Command): void {
 
   skill
     .command("propose-patch")
-    .description("Create a human-approved skill patch proposal from a work log lesson.")
+    .description("Create an explicit-review skill patch proposal from a work log lesson.")
     .requiredOption("--skill <skill>", "Skill name.")
     .option("--from-log <id>", "Work log id or latest.", "latest")
     .action(async (options: Record<string, unknown>) => {

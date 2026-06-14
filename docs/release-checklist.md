@@ -45,13 +45,13 @@ briefops memory prune --dry-run
 Confirm:
 
 - `briefops --version` matches `package.json`.
-- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 1.0 public contract.
+- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 2.0 public behavior and current workspace file contract.
 - Harness exports are routers, not memory dumps.
 - `shared-only` exports omit private memory, local project file details, raw work logs, open risks, local next steps, private worker history, and private metadata counts.
-- Memory and skill patches require human approval.
+- `finish` applies directory-local durable memory by default, while skill patches still require explicit direction.
 - `finish --importance trivial` and `finish --no-memory-proposal` avoid durable memory proposals.
 - `memory hygiene` and `memory prune --dry-run` do not mutate memory.
-- Proposal generation and approval are local file-backed operations protected by workspace locks.
+- Proposal generation and application are local file-backed operations protected by workspace locks.
 - `doctor --stability` is read-only, bounds detailed examples, and does not add diagnostics to generated prompt artifacts.
 - `doctor --security --fix-stale-locks` removes stale locks only.
 - Explicit output paths do not overwrite without `--force`.

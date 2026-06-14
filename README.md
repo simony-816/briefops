@@ -6,13 +6,11 @@
 
 BriefOps is a local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.
 
-The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, carry recent work into the next handoff immediately, promote only reviewed items into durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
+The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, carry recent work into the next handoff immediately, promote useful items into directory-local durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
 
 ```bash
 briefops prime --task "Start the next task." --format codex --max-tokens 800
 briefops finish ...
-briefops memory proposal-show latest
-briefops memory proposal-apply latest
 briefops continue --worker <worker> --task "<next task>" --pack
 ```
 
@@ -23,7 +21,7 @@ It should not maximize context. It preserves continuity by selecting the smalles
 
 - a local CLI
 - a file-based skill, project, memory, worker, and work-log store
-- a deterministic memory proposal and approval workflow
+- a deterministic directory-local memory promotion workflow
 - a token-aware brief, handoff, Codex mission, and resume generator
 - a compact first-context primer for fresh Codex threads
 - a persistent worker continuity layer for fresh AI coding threads
@@ -48,12 +46,12 @@ BriefOps can generate Codex skill-plugin assets, but the plugin calls the local 
 
 ## Release Status
 
-BriefOps 1.0 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI and file-format compatibility policy is documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
+BriefOps 2.0 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
 
 - local files first
 - no hosted service required
 - no required MCP server
-- human-approved memory
+- directory-local memory by default
 - shared-only export controls
 - deterministic CLI behavior
 
@@ -66,7 +64,7 @@ Before publishing a repository or sharing generated context, review:
 - `SECURITY.md` for vulnerability reporting and local data handling.
 - `CONTRIBUTING.md` for development checks and safety rules.
 - `CHANGELOG.md` for release notes.
-- `docs/file-format.md` and `docs/compatibility.md` for the 1.0 local data contract.
+- `docs/file-format.md` and `docs/compatibility.md` for the local data contract.
 - `docs/privacy-model.md` for export-policy and local data boundaries.
 
 ## Install
@@ -99,22 +97,22 @@ This is the primary BriefOps workflow.
 ### 1. Initialize
 
 ```bash
-briefops init
+briefops bootstrap
 ```
 
-This creates a local `.briefops/` workspace.
+This creates a local `.briefops/` workspace, installs Codex first-context guidance into `AGENTS.md`, writes `.briefops/codex/prompts/`, installs the deterministic local plugin bundle under `.briefops/codex/plugin/briefops`, adds `.briefops/` to `.gitignore`, and runs bounded privacy/stability checks.
 
-### 2. Install Codex Guidance
+If you want the manual path instead:
 
 ```bash
+briefops init
 briefops codex install
 briefops codex plugin install
+briefops doctor --privacy --fix-gitignore
+briefops doctor --stability
 ```
 
-This creates or updates `AGENTS.md` with BriefOps guidance and creates `.briefops/codex/prompts/`.
-`briefops codex plugin install` writes a deterministic local plugin bundle under `.briefops/codex/plugin/briefops`. It does not publish to a marketplace and does not write to global Codex folders by default.
-
-### 3. Create A Skill
+### 2. Create A Skill
 
 ```bash
 briefops skill create risk-review \
@@ -124,7 +122,7 @@ briefops skill create risk-review \
 
 A skill is a reusable working protocol.
 
-### 4. Create Project Context
+### 3. Create Project Context
 
 ```bash
 briefops project create atlas-q \
@@ -134,7 +132,7 @@ briefops project create atlas-q \
 
 A project stores durable facts and constraints.
 
-### 5. Create A Worker
+### 4. Create A Worker
 
 ```bash
 briefops worker create quant-reviewer \
@@ -147,7 +145,7 @@ briefops worker use quant-reviewer
 
 A worker is the persistent identity BriefOps carries across fresh threads: default project, skill bundle, style, lessons, risks, and judgment profile. `worker use` makes it the default worker for start-of-thread priming.
 
-### 6. Prime A Fresh Codex Thread
+### 5. Prime A Fresh Codex Thread
 
 ```bash
 briefops prime \
@@ -156,11 +154,11 @@ briefops prime \
   --max-tokens 800
 ```
 
-Paste the compact prime context into Codex first. It is smaller than a full resume pack and is designed to reduce repeated history/context lookup.
+Paste the compact prime context into Codex first. Repos bootstrapped with BriefOps also get `AGENTS.md` guidance that tells Codex to run this before broad repo/history inspection.
 
-Codex-format prime output includes an operating note for Codex: use the selected worker/project context, inspect only files needed for the task, and never apply memory or skill patches without user approval.
+Codex-format prime output includes an operating note for Codex: use the selected worker/project context, inspect only files needed for the task, treat `.briefops/` memory as local repo state, and ask before exporting private memory or applying skill patches.
 
-### 7. Start A Codex Mission When Needed
+### 6. Start A Codex Mission When Needed
 
 ```bash
 briefops codex mission \
@@ -173,7 +171,7 @@ briefops codex mission \
 
 Paste the generated mission prompt into Codex.
 
-### 8. Finish The Task
+### 7. Finish The Task
 
 When Codex finishes, record what happened:
 
@@ -193,27 +191,25 @@ briefops finish \
 
 `finish` always writes a work log when `--task` and `--result` are valid. If the log has no durable memory candidates, `finish` warns and still prints the next `briefops continue` command.
 
-### 9. Review And Apply Memory
+### 8. Local Memory Is Applied
 
-Memory is human-approved. Review the proposal:
+`finish` applies durable memory candidates into `.briefops/memory/` by default and keeps the proposal file as an audit trail. The output reports how many memory items were created or skipped as duplicates.
+
+Use review mode only when you explicitly want a pending local queue:
+
+```bash
+briefops finish --memory-review ...
+```
+
+Inspect, apply, or reject queued proposals when needed:
 
 ```bash
 briefops memory proposal-show latest
-```
-
-Apply it only when useful:
-
-```bash
 briefops memory proposal-apply latest
+briefops memory proposal-reject latest
 ```
 
-You can also use the convenience command:
-
-```bash
-briefops approve latest
-```
-
-### 10. Continue In A Fresh Thread
+### 9. Continue In A Fresh Thread
 
 ```bash
 briefops continue \
@@ -222,7 +218,7 @@ briefops continue \
   --pack
 ```
 
-`continue --pack` checks continuity health, warns about pending memory proposals, refreshes worker intelligence, saves a handoff, saves a Codex resume prompt, saves a portable resume pack, and prints all generated paths.
+`continue --pack` checks continuity health, notes any optional pending memory proposals, refreshes worker intelligence, saves a handoff, saves a Codex resume prompt, saves a portable resume pack, and prints all generated paths.
 
 ## Shared-Only Export Path
 
@@ -239,7 +235,7 @@ It omits private memory, local project file details, raw work logs, open risks, 
 
 `local-private` is intended for local terminal/Codex use only and may include local private continuity context.
 
-BriefOps skills must never auto-approve memory proposals or skill patches.
+BriefOps may update directory-local memory during normal local work. Explicit confirmation is reserved for sharing private memory outside the workspace or applying skill patches.
 
 ## Local Harness Export
 
@@ -252,7 +248,7 @@ briefops export cursor-rules
 briefops export all
 ```
 
-Exports are routers, not memory dumps. They tell local AI tools to run `briefops prime`, `briefops finish`, `briefops approve`, and `briefops continue --pack`.
+Exports are routers, not memory dumps. They tell local AI tools to run `briefops prime`, `briefops finish`, and `briefops continue --pack`.
 
 They do not copy `.briefops` memory, raw logs, private decisions, incidents, handoffs, or worker summaries into `AGENTS.md`, `CLAUDE.md`, or Cursor rules. Export commands default to `--export-policy shared-only` because these files are often committed.
 
@@ -329,13 +325,13 @@ BriefOps works best as a local memory ledger beside stronger harnesses such as C
 
 `finish` records what happened.
 
-It writes a work log, proposes durable memory when the log contains useful candidates, can propose a skill patch, can refresh the worker summary, and prints the next `briefops continue` command.
+It writes a work log, applies durable directory-local memory when the log contains useful candidates, keeps a proposal audit file, can propose a skill patch, can refresh the worker summary, and prints the next `briefops continue` command.
 
-Recent work logs are available to the next local handoff immediately. Durable memory is separate: lessons, decisions, incidents, and reusable rules become long-lived memory only after review.
+Recent work logs are available to the next local handoff immediately. Durable memory is the long-lived layer: lessons, decisions, incidents, and reusable rules are promoted locally by default unless `--memory-review` is used.
 
 `continue` prepares the same worker for a fresh thread.
 
-It inspects continuity health, warns about pending memory proposals, refreshes the worker summary, generates a handoff, and saves a Codex resume prompt. Add `--pack` when you also want one self-contained markdown file.
+It inspects continuity health, notes optional pending memory proposals, refreshes the worker summary, generates a handoff, and saves a Codex resume prompt. Add `--pack` when you also want one self-contained markdown file.
 
 ```bash
 briefops finish \
@@ -353,7 +349,7 @@ briefops continue \
   --pack
 ```
 
-You can continue before applying a memory proposal. The handoff still includes recent local work such as results, lessons, decisions, open risks, incidents, and next steps. If pending memory proposals exist, `continue` prints explicit review, apply, and reject commands. It never applies memory automatically.
+You can continue even if older or review-mode memory proposals are still pending. The handoff still includes recent local work such as results, lessons, decisions, open risks, incidents, and next steps. If pending memory proposals exist, `continue` prints inspect, apply, and reject commands without blocking the flow.
 
 ## Portable Resume Pack
 
@@ -386,11 +382,11 @@ exportable: false
 
 BriefOps does not add cloud sync or encryption.
 
-## Approvals
+## Local Memory Queue And Skill Patches
 
-Memory and skill changes are human-approved.
+`briefops finish` applies durable memory locally by default. Pending memory proposals still exist for audit/review mode and older workspaces.
 
-Use explicit proposal commands:
+Use explicit proposal commands when you choose to inspect the queue:
 
 ```bash
 briefops memory proposal-show latest
@@ -402,7 +398,7 @@ briefops skill apply-patch risk-review --patch latest
 briefops skill reject-patch latest
 ```
 
-Or use the convenience approval command:
+The convenience approval command remains available for pending queue items:
 
 ```bash
 briefops approve latest
@@ -410,7 +406,7 @@ briefops approve memory latest
 briefops approve skill-patch latest
 ```
 
-`briefops approve <id|latest>` tries memory first. If no matching memory proposal exists, it tries a skill patch. It applies at most one item.
+`briefops approve <id|latest>` tries memory first. If no matching memory proposal exists, it tries a skill patch. It applies at most one item. Skill patches should be applied only with explicit user direction.
 
 ## Inbox
 
@@ -435,8 +431,8 @@ briefops inbox --skill risk-review
 | Worker Summary | Refreshed worker intelligence | `.briefops/workers/summaries/*.summary.md` |
 | Work Log | Completed task record | `.briefops/logs/*.yaml` |
 | Memory | Curated facts, decisions, lessons, incidents | `.briefops/memory/*.yaml` |
-| Memory Proposal | Human-reviewed memory candidate | `.briefops/memory-proposals/*.yaml` |
-| Skill Patch | Human-reviewed skill improvement | `.briefops/patches/*.patch.yaml` |
+| Memory Proposal | Audit/review memory candidate | `.briefops/memory-proposals/*.yaml` |
+| Skill Patch | Explicit-review skill improvement | `.briefops/patches/*.patch.yaml` |
 | Handoff | Fresh-thread continuity brief | `.briefops/handoffs/*.md` |
 | Codex Prompt | Mission or resume prompt | `.briefops/codex/prompts/*.md` |
 | Portable Pack | Self-contained resume markdown | `.briefops/codex/prompts/*resume-pack*.md` |
@@ -486,7 +482,7 @@ briefops memory show <memory-id>
 briefops memory update-status <memory-id> --status archived
 ```
 
-Promote useful work-log items through a proposal:
+Promote useful work-log items through a proposal. `briefops finish` does this automatically by default; these commands are for manual or review-mode flows:
 
 ```bash
 briefops memory propose-from-log latest
@@ -496,7 +492,7 @@ briefops memory proposal-apply <proposal-id|latest>
 briefops memory proposal-reject <proposal-id|latest>
 ```
 
-Extraction is deterministic and local. Lessons, decisions, incidents, open risks, prefixed notes, and policy-like next steps can become proposal items. Proposal generation and approval are local file-backed operations protected by workspace locks.
+Extraction is deterministic and local. Lessons, decisions, incidents, open risks, prefixed notes, and policy-like next steps can become proposal items. Proposal generation and application are local file-backed operations protected by workspace locks.
 
 ## Skills And Skill Patches
 
@@ -659,6 +655,9 @@ When generated briefs, handoffs, or resumes are too large, BriefOps trims lower-
 +-- briefs/
 +-- codex/
 |   +-- prompts/
+|       +-- prime.md
+|       +-- mission.md
+|       +-- plan.md
 +-- evals/
 |   +-- results/
 +-- patches/
@@ -675,6 +674,7 @@ Because `.briefops/` is local/private, Codex does not automatically see it. Prov
 ## Command Reference
 
 ```bash
+briefops bootstrap
 briefops init
 briefops doctor
 briefops doctor --stability
@@ -768,7 +768,7 @@ Workspace not found:
 briefops init
 ```
 
-Pending memory before continuing:
+Optional pending memory before continuing:
 
 ```bash
 briefops memory proposal-list --status proposed

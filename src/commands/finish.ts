@@ -21,6 +21,7 @@ export function registerFinishCommand(program: Command): void {
     .option("--notes <notes>", "Additional notes.")
     .option("--importance <importance>", "trivial|normal|durable|incident", "normal")
     .option("--no-memory-proposal", "Skip memory proposal generation.")
+    .option("--memory-review", "Leave durable memory as a pending review proposal instead of applying it locally.")
     .option("--propose-skill-patch", "Also propose a skill patch from log lessons.")
     .option("--refresh-worker", "Refresh the worker summary after logging.")
     .option("--continue-task <task>", "Task text to use in the printed continue command.")
@@ -41,6 +42,7 @@ export function registerFinishCommand(program: Command): void {
         notes: options.notes as string | undefined,
         importance: options.importance as string | undefined,
         noMemoryProposal: Boolean(options.noMemoryProposal),
+        memoryReview: Boolean(options.memoryReview),
         proposeSkillPatch: Boolean(options.proposeSkillPatch),
         refreshWorker: Boolean(options.refreshWorker),
         continueTask: options.continueTask as string | undefined
@@ -49,7 +51,14 @@ export function registerFinishCommand(program: Command): void {
       console.log(`Added work log: ${result.logId}`);
       console.log(result.logPath);
       if (result.memoryProposalId && result.memoryProposalPath) {
-        console.log(`Created memory proposal: ${result.memoryProposalId}`);
+        if (result.memoryProposalStatus === "applied") {
+          console.log(`Applied local memory: ${result.memoryProposalId}`);
+          console.log(
+            `Memory items: ${result.memoryCreated ?? 0} created, ${result.memorySkipped ?? 0} skipped`
+          );
+        } else {
+          console.log(`Created memory review proposal: ${result.memoryProposalId}`);
+        }
         console.log(result.memoryProposalPath);
       }
       if (result.skillPatchId && result.skillPatchPath) {

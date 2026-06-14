@@ -38,6 +38,10 @@ describe("Codex plugin package", () => {
     for (const file of files) {
       expect(file.content.trim().length).toBeGreaterThan(40);
     }
+    expect(
+      files.find((file) => file.relativePath === "skills/briefops-prime-context/SKILL.md")
+        ?.content
+    ).toContain("briefops bootstrap");
   });
 
   it("keeps committed plugin files in sync with generated content", async () => {

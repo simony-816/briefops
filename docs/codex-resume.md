@@ -12,4 +12,4 @@ Shared-only resume output includes selected shared/exportable memory and omits p
 
 The generated prompt includes continuity rules, evidence gates, a completion signal, and after-completion logging instructions.
 
-Local-private resume output can include recent work-log lessons and decisions before they are promoted to durable memory. This keeps fresh-thread handoff usable while memory proposals remain pending for human review.
+Local-private resume output can include recent work-log lessons and decisions as immediate continuity. `briefops finish` promotes durable memory locally by default; older or review-mode pending proposals do not block fresh-thread handoff.

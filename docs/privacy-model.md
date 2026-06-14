@@ -4,7 +4,7 @@ BriefOps is local-first. It stores work history, memory, proposals, patches, gen
 
 ## Export Policies
 
-`local-private` is for local terminal and local Codex/Claude/Cursor use. It may include private project details, approved private memory, local work logs, risks, next steps, worker history, and metadata counts.
+`local-private` is for local terminal and local Codex/Claude/Cursor use. It may include private project details, local private memory, local work logs, risks, next steps, worker history, and metadata counts.
 
 `shared-only` is for artifacts that may leave the local workspace. It includes only memory items marked `visibility: shared` and `exportable: true`.
 
@@ -25,9 +25,11 @@ Shared-only omits:
 
 `briefops export agents-md`, `briefops export claude-md`, `briefops export cursor-rules`, and `briefops export all` generate router files. Router files point AI harnesses to BriefOps commands. They do not copy `.briefops` memory, logs, worker summaries, handoffs, incidents, or private decisions.
 
-## Human Approval
+## Local Memory And Explicit Boundaries
 
-BriefOps never auto-approves memory proposals or skill patches. Approval is always an explicit user action through `briefops approve`, `briefops memory proposal-apply`, or `briefops skill apply-patch`.
+BriefOps applies directory-local memory from `briefops finish` by default and keeps proposal files as an audit trail. This updates files under the current repository's `.briefops/` workspace only.
+
+Explicit direction is still required before applying skill patches or sharing private memory outside the local workspace. Use `--export-policy shared-only` for portable or committable context.
 
 ## Doctor Checks
 

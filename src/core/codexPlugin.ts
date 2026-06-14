@@ -87,9 +87,9 @@ function pluginManifestContent(): string {
 
 function trustBoundaryLines(): string[] {
   return [
-    "The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.",
+    "The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace.",
     "",
-    "Use `--export-policy shared-only` before copying context outside the local workspace.",
+    "BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.",
     ""
   ];
 }
@@ -112,9 +112,9 @@ function briefopsPrimeContextSkill(): string {
     "briefops prime --format codex --task \"<current user task>\" --max-tokens 800",
     "```",
     "",
-    "If the command reports that no workspace exists, keep the response short and suggest `briefops init`.",
+    "If the command reports `setup-required`, keep the response short and suggest `briefops bootstrap` for first adoption.",
     "",
-    "Never apply memory automatically. If pending proposals exist, show the review command.",
+    "BriefOps memory is directory-local. `briefops finish` auto-promotes durable memory by default; pending proposals from older or review-mode flows can be applied locally without blocking the task.",
     "",
     "Treat the prime output as a compact routing brief, not as permission to skip relevant code inspection.",
     ""
@@ -125,7 +125,7 @@ function briefopsFinishTaskSkill(): string {
   return [
     "---",
     "name: briefops-finish-task",
-    "description: Use when finishing a Codex task to record the outcome, propose durable memory, and prepare the next thread without auto-approving memory",
+    "description: Use when finishing a Codex task to record the outcome, update directory-local durable memory, and prepare the next thread",
     "---",
     "",
     "# BriefOps Finish Task",
@@ -141,7 +141,7 @@ function briefopsFinishTaskSkill(): string {
     "",
     "Only include lessons, decisions, incidents, open risks, and next steps that will help future work. Do not store secrets or personal data.",
     "",
-    "If a memory proposal is created, ask the user to review it. Never run `briefops approve` without explicit user confirmation.",
+    "`briefops finish` applies durable memory locally by default and keeps the proposal file as an audit trail. Use `--memory-review` only when the user explicitly wants a pending review queue.",
     ""
   ].join("\n");
 }
@@ -150,13 +150,13 @@ function briefopsReviewMemorySkill(): string {
   return [
     "---",
     "name: briefops-review-memory",
-    "description: Use when BriefOps reports pending memory proposals or skill patches that need human review before becoming durable local memory",
+    "description: Use when BriefOps reports pending local memory proposals or skill patches that need inspection",
     "---",
     "",
     "# BriefOps Review Memory",
     "",
     ...trustBoundaryLines(),
-    "BriefOps memory is human-approved. Pending proposals are local drafts until the user accepts or rejects them.",
+    "BriefOps memory is directory-local. Pending memory proposals are optional audit/review drafts; they should not block normal continuation.",
     "",
     "Inspect proposals before applying:",
     "",
@@ -165,13 +165,14 @@ function briefopsReviewMemorySkill(): string {
     "briefops inbox",
     "```",
     "",
-    "Apply only after explicit user confirmation:",
+    "Apply relevant local memory proposals directly, or reject inaccurate, duplicate, sensitive, or overly broad proposals:",
     "",
     "```bash",
-    "briefops approve latest",
+    "briefops memory proposal-apply latest",
+    "briefops memory proposal-reject latest",
     "```",
     "",
-    "Reject inaccurate, duplicate, sensitive, or overly broad proposals instead of carrying noisy context into future threads.",
+    "Ask before applying skill patches or exporting private memory outside the local workspace.",
     ""
   ].join("\n");
 }
@@ -194,7 +195,7 @@ function briefopsContinueWorkerSkill(): string {
     "briefops continue --worker <worker> --task \"<next task>\" --pack",
     "```",
     "",
-    "If BriefOps reports pending memory proposals, surface the review command before continuing. Do not apply memory automatically.",
+    "Pending memory proposals are optional local review drafts and do not block continuing. Apply relevant local memory when useful; ask before applying skill patches.",
     "",
     "Use portable packs only as explicit local user artifacts. They may include private local memory and should be reviewed before sharing.",
     ""

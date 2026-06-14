@@ -66,7 +66,7 @@ describe("harness router exports", () => {
     expect(result.files).toHaveLength(1);
     expect(result.files[0].path).toBe("/tmp/repo/AGENTS.md");
     expect(result.files[0].content).toContain("briefops prime --format codex");
-    expect(result.files[0].content).toContain("Never apply memory automatically");
+    expect(result.files[0].content).toContain("BriefOps memory is local repo state");
     expect(result.files[0].content).not.toContain("Accumulated Lessons");
     expect(result.files[0].content).not.toContain("Recent Work");
     expect(result.files[0].tokens).toBeLessThanOrEqual(800);
@@ -81,7 +81,7 @@ describe("harness router exports", () => {
 
     expect(result.files[0].path).toBe("/tmp/repo/CLAUDE.md");
     expect(result.files[0].content).toContain("briefops prime --format markdown");
-    expect(result.files[0].content).toContain("Human Approval Required");
+    expect(result.files[0].content).toContain("Local Memory");
     expect(result.files[0].content).not.toContain("@.briefops");
     expect(result.files[0].tokens).toBeLessThanOrEqual(1000);
   });
@@ -147,7 +147,7 @@ describe("harness router exports", () => {
       ).toContain("alwaysApply: false");
       expect(
         await fs.readFile(path.join(dir, ".cursor/rules/briefops-memory-review.mdc"), "utf8")
-      ).toContain("approve latest");
+      ).toContain("memory proposal-apply latest");
       expect(
         await fs.readFile(path.join(dir, ".cursor/rules/briefops-continue.mdc"), "utf8")
       ).toContain("continue --worker quant-reviewer");

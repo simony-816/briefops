@@ -4,6 +4,12 @@
 
 - No changes yet.
 
+## 2.0.0 - 2026-06-14
+
+- Make `briefops finish` apply durable directory-local memory by default while retaining proposal files as an audit trail.
+- Add `--memory-review` for explicit pending memory queues.
+- Update Codex/plugin/router guidance to treat `.briefops/` memory as local repo state and reserve confirmation for external sharing or skill patches.
+
 ## 1.1.0 - 2026-06-10
 
 - Add `briefops doctor --stability` for bounded read-only workspace integrity checks.

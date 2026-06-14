@@ -11,6 +11,7 @@ import { generateHandoff } from "./handoff.js";
 import { withWorkspaceLock } from "./lock.js";
 import { addWorkLog, type AddWorkLogOptions } from "./log.js";
 import {
+  applyMemoryProposal,
   isNoMemoryProposalCandidatesError,
   listMemoryProposals,
   proposeMemoryFromLog
@@ -25,6 +26,7 @@ import { estimateTokens } from "./tokens.js";
 export type FinishWorkOptions = AddWorkLogOptions & {
   importance?: "trivial" | "normal" | "durable" | "incident" | string;
   noMemoryProposal?: boolean;
+  memoryReview?: boolean;
   proposeSkillPatch?: boolean;
   refreshWorker?: boolean;
   continueTask?: string;
@@ -35,6 +37,9 @@ export type FinishWorkResult = {
   logPath: string;
   memoryProposalId?: string;
   memoryProposalPath?: string;
+  memoryProposalStatus?: "proposed" | "applied" | "rejected";
+  memoryCreated?: number;
+  memorySkipped?: number;
   skillPatchId?: string;
   skillPatchPath?: string;
   workerSummaryPath?: string;
@@ -155,6 +160,9 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
     }
     let memoryProposalId: string | undefined;
     let memoryProposalPath: string | undefined;
+    let memoryProposalStatus: FinishWorkResult["memoryProposalStatus"];
+    let memoryCreated: number | undefined;
+    let memorySkipped: number | undefined;
     const durableFieldsPresent = hasDurableFields(options);
     if (options.noMemoryProposal) {
       warnings.push("Memory proposal skipped by --no-memory-proposal.");
@@ -172,6 +180,18 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
         });
         memoryProposalId = memoryProposal.proposal.id;
         memoryProposalPath = memoryProposal.path;
+        memoryProposalStatus = memoryProposal.proposal.status;
+        if (options.memoryReview) {
+          warnings.push("Memory left as a review proposal by --memory-review.");
+        } else {
+          const applied = await applyMemoryProposal({
+            cwd,
+            id: memoryProposal.proposal.id
+          });
+          memoryProposalStatus = applied.proposal.status;
+          memoryCreated = applied.created;
+          memorySkipped = applied.skipped;
+        }
       } catch (error) {
         if (!isNoMemoryProposalCandidatesError(error)) {
           throw error;
@@ -221,6 +241,9 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
       logPath: logResult.path,
       memoryProposalId,
       memoryProposalPath,
+      memoryProposalStatus,
+      memoryCreated,
+      memorySkipped,
       skillPatchId,
       skillPatchPath,
       workerSummaryPath,
@@ -303,7 +326,7 @@ export async function continueWork(options: ContinueWorkOptions): Promise<Contin
       }),
       warnings: [
         health.readiness === "WARN" ? "Continuity health is WARN; prompt was still generated." : undefined,
-        pending.length > 0 ? "Pending memory proposals should be reviewed before continuing." : undefined,
+        pending.length > 0 ? "Pending memory proposals exist; they are optional local review drafts and do not block continuing." : undefined,
         ...handoff.warnings,
         ...(pack?.warnings ?? [])
       ].filter((warning): warning is string => Boolean(warning))

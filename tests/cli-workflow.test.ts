@@ -49,6 +49,23 @@ function matchPath(output: string, label: string): string {
 }
 
 describe("CLI persistent worker workflow", () => {
+  it("bootstraps a repo for Codex-first BriefOps adoption", async () => {
+    await withTempDir(async (dir) => {
+      const bootstrapped = await expectCli(dir, ["bootstrap"]);
+
+      expect(bootstrapped.stdout).toContain("BriefOps bootstrap complete.");
+      expect(bootstrapped.stdout).toContain("Codex guidance");
+      expect(bootstrapped.stdout).toContain("Codex plugin");
+      expect(bootstrapped.stdout).toContain("Next commands:");
+      expect(bootstrapped.stdout).toContain("briefops prime --format codex");
+      await expect(fs.stat(path.join(dir, "AGENTS.md"))).resolves.toBeTruthy();
+      await expect(fs.stat(path.join(dir, ".gitignore"))).resolves.toBeTruthy();
+      await expect(
+        fs.stat(path.join(dir, ".briefops/codex/plugin/briefops/.codex-plugin/plugin.json"))
+      ).resolves.toBeTruthy();
+    });
+  });
+
   it("finishes typo-sized work without memory proposal candidates", async () => {
     await withTempDir(async (dir) => {
       await expectCli(dir, ["init"]);
@@ -73,7 +90,7 @@ describe("CLI persistent worker workflow", () => {
     });
   });
 
-  it("runs finish, apply memory, continue --pack, and standalone pack", async () => {
+  it("runs finish with auto-applied memory, continue --pack, and standalone pack", async () => {
     await withTempDir(async (dir) => {
       await expectCli(dir, ["init"]);
       await expectCli(dir, ["skill", "create", "risk-review"]);
@@ -103,12 +120,11 @@ describe("CLI persistent worker workflow", () => {
         "Always verify turnover warning."
       ]);
       expect(finish.stdout).toContain("Next command");
+      expect(finish.stdout).toContain("Applied local memory:");
+      expect(finish.stdout).toContain("Memory items:");
 
       const proposalFiles = await fs.readdir(path.join(dir, ".briefops/memory-proposals"));
       expect(proposalFiles.some((file) => file.endsWith(".memory-proposal.yaml"))).toBe(true);
-
-      const applied = await expectCli(dir, ["memory", "proposal-apply", "latest"]);
-      expect(applied.stdout).toContain("Applied memory proposal:");
 
       const continued = await expectCli(dir, [
         "continue",

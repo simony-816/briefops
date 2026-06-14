@@ -16,9 +16,9 @@ After meaningful work:
 
 ```bash
 briefops finish --worker <worker> --task "<task>" --result "<result>"
-briefops memory proposal-show latest
-briefops approve latest
 ```
+
+`finish` applies durable directory-local memory by default. Use `--memory-review` only when a pending local queue is desired.
 
 For a fresh thread:
 
@@ -48,16 +48,15 @@ These files should stay compact. They teach harnesses how to call BriefOps and d
 
 Use LazyCodex or OmO for orchestration, hooks, LSP/MCP, and autonomous execution. Use BriefOps for durable local continuity.
 
-Suggested human workflow:
+Suggested local workflow:
 
 ```bash
 briefops prime --task "Implement the next scoped change." --format codex --max-tokens 800
 codex "Use the BriefOps prime context, then run ultrawork for this task."
 briefops finish --worker <worker> --task "Implement the next scoped change." --result "<verified result>"
-briefops memory proposal-show latest
 ```
 
-Do not let a harness auto-run `briefops approve latest`. Approval should remain human-confirmed.
+Do not let a harness export private `.briefops/` memory or apply skill patches without explicit direction.
 
 ## Codex App And Codex CLI
 
@@ -67,7 +66,7 @@ This command does not write to global Codex folders by default.
 
 ## Claude Code
 
-BriefOps can coexist with `CLAUDE.md`. Keep `CLAUDE.md` for always-loaded project instructions and use BriefOps for task history, approved memory, handoffs, and shared-only packs.
+BriefOps can coexist with `CLAUDE.md`. Keep `CLAUDE.md` for always-loaded project instructions and use BriefOps for task history, local memory, handoffs, and shared-only packs.
 
 ## Cursor
 

@@ -1,6 +1,6 @@
 {
   "name": "briefops",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Local-first, token-aware persistent work history for Codex workflows.",
   "author": {
     "name": "BriefOps contributors",

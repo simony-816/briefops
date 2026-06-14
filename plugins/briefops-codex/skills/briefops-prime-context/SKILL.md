@@ -5,9 +5,9 @@ description: Use when starting work in any Codex project or fresh thread to load
 
 # BriefOps Prime Context
 
-The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.
+The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace.
 
-Use `--export-policy shared-only` before copying context outside the local workspace.
+BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.
 
 Use BriefOps before broad repo/history inspection when a `.briefops` workspace exists or may exist.
 
@@ -17,8 +17,8 @@ Run:
 briefops prime --format codex --task "<current user task>" --max-tokens 800
 ```
 
-If the command reports that no workspace exists, keep the response short and suggest `briefops init`.
+If the command reports `setup-required`, keep the response short and suggest `briefops bootstrap` for first adoption.
 
-Never apply memory automatically. If pending proposals exist, show the review command.
+BriefOps memory is directory-local. `briefops finish` auto-promotes durable memory by default; pending proposals from older or review-mode flows can be applied locally without blocking the task.
 
 Treat the prime output as a compact routing brief, not as permission to skip relevant code inspection.

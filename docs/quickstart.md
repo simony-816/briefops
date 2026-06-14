@@ -3,9 +3,7 @@
 ## Codex First Context Path
 
 ```bash
-briefops init
-briefops codex install
-briefops codex plugin install
+briefops bootstrap
 briefops skill create risk-review --description "Review risk and governance."
 briefops project create atlas-q --description "Rule-based quantitative system."
 briefops worker create quant-reviewer --project atlas-q --skills "risk-review" --style "skeptical,verify before completion"
@@ -15,7 +13,9 @@ briefops memory add --type lessons --project atlas-q --skill risk-review --conte
 briefops prime --task "Continue rebalance review" --format codex --max-tokens 800
 ```
 
-`briefops codex plugin install` is local and deterministic. It does not publish to a marketplace and does not write to global Codex folders by default.
+`briefops bootstrap` initializes `.briefops/`, installs `AGENTS.md` guidance that tells Codex to prime BriefOps first, writes local Codex prompt/plugin assets, keeps `.briefops/` ignored by default, and runs bounded privacy/stability checks.
+
+`briefops codex plugin install` is still available as the manual local plugin path. It is deterministic, does not publish to a marketplace, and does not write to global Codex folders by default.
 
 `briefops export all` writes router files for Codex, Claude Code, and Cursor. These files point harnesses at BriefOps commands and do not copy `.briefops` memory, logs, handoffs, or worker summaries.
 
@@ -25,11 +25,10 @@ After work finishes, log the result and promote only useful lessons:
 
 ```bash
 briefops finish --project atlas-q --skill risk-review --worker quant-reviewer --task "Review rebalance" --result "Found missing turnover warning check." --lesson "Always verify turnover warning threshold."
-briefops approve latest
 briefops continue --worker quant-reviewer --task "Continue rebalance review" --pack
 ```
 
-BriefOps skills must never auto-approve memory proposals or skill patches. Approval is a human step.
+`finish` applies durable memory locally by default and keeps the proposal file as an audit trail. Use `--memory-review` only when you explicitly want a pending local queue.
 
 For small or exploratory work, keep durable memory clean:
 

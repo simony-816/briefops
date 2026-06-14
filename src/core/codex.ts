@@ -79,16 +79,33 @@ function codexGuidanceSection(): string {
     AGENTS_BEGIN,
     "## BriefOps Codex Guidance",
     "",
-    "This repository can use BriefOps to prepare token-aware Codex task briefs.",
+    "This repository uses BriefOps as the first context pass for Codex work.",
     "",
-    "Useful commands:",
+    "Start every meaningful task by priming the smallest useful local context before broad repo/history inspection:",
     "",
     "```bash",
-    "briefops brief generate --worker <worker> --task \"<task>\" --adapter codex",
+    "briefops prime --format codex --task \"<current task>\" --max-tokens 800",
+    "```",
+    "",
+    "If the prime output reports `setup-required`, run the adoption bootstrap:",
+    "",
+    "```bash",
+    "briefops bootstrap",
+    "```",
+    "",
+    "Use prime output as a routing brief: apply the selected worker/project context, inspect only files needed for the task, and treat `.briefops/` memory as local repo state.",
+    "",
+    "`briefops finish` auto-promotes durable memory into the directory-local `.briefops/memory` store by default. Use `--memory-review` only when an explicit pending queue is desired.",
+    "",
+    "Ask before exporting private memory outside this machine or applying skill patches.",
+    "",
+    "Follow-up commands:",
+    "",
+    "```bash",
     "briefops codex mission --worker <worker> --task \"<task>\" --save",
     "briefops codex plan --project <project> --idea \"<what to build>\" --save",
-    "briefops log add --task \"<task>\" --result \"<result>\" --lesson \"<lesson>\"",
-    "briefops skill propose-patch --skill <skill> --from-log latest",
+    "briefops finish --worker <worker> --task \"<task>\" --result \"<result>\"",
+    "briefops continue --worker <worker> --task \"<next task>\" --pack",
     "```",
     "",
     "When using a BriefOps mission, follow its evidence gates before claiming completion.",
@@ -133,6 +150,20 @@ export async function installCodexPack(options: CodexInstallOptions = {}): Promi
   const paths = workspacePaths(cwd);
 
   await ensureDirectory(paths.codexPrompts);
+  await writeTextFile(
+    path.join(paths.codexPrompts, "prime.md"),
+    [
+      "# BriefOps Codex Prime Prompt",
+      "",
+      "Start a Codex task with compact BriefOps context:",
+      "",
+      "```bash",
+      "briefops prime --format codex --task \"<task>\" --max-tokens 800",
+      "```",
+      ""
+    ].join("\n"),
+    { force: true }
+  );
   await writeTextFile(
     path.join(paths.codexPrompts, "mission.md"),
     [

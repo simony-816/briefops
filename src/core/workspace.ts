@@ -128,6 +128,18 @@ const defaultBriefTemplates: Record<string, string> = {
 };
 
 const defaultCodexPrompts: Record<string, string> = {
+  "prime.md": [
+    "# BriefOps Codex Prime",
+    "",
+    "Use this before broad repo/history inspection in a fresh Codex task.",
+    "",
+    "Recommended command:",
+    "",
+    "```bash",
+    "briefops prime --format codex --task \"<task>\" --max-tokens 800",
+    "```",
+    ""
+  ].join("\n"),
   "mission.md": [
     "# BriefOps Codex Mission",
     "",
@@ -136,7 +148,7 @@ const defaultCodexPrompts: Record<string, string> = {
     "Recommended command:",
     "",
     "```bash",
-    "briefops codex mission --worker <worker> --task \"<task>\" --adapter codex --save",
+    "briefops codex mission --worker <worker> --task \"<task>\" --save",
     "```",
     ""
   ].join("\n"),

@@ -156,9 +156,33 @@ describe("context minimalism", () => {
         importance: "durable"
       });
       expect(durable.memoryProposalId).toBeTruthy();
+      expect(durable.memoryProposalStatus).toBe("applied");
 
       const proposalFiles = await fs.readdir(path.join(dir, ".briefops/memory-proposals"));
       expect(proposalFiles.filter((file) => file.endsWith(".memory-proposal.yaml"))).toHaveLength(1);
+    });
+  });
+
+  it("keeps durable memory pending only when memory review is requested", async () => {
+    await withTempDir(async (dir) => {
+      await seedWorkspace(dir);
+
+      const reviewed = await finishWork({
+        cwd: dir,
+        project: "atlas-q",
+        skill: "risk-review",
+        worker: "quant-reviewer",
+        task: "Review risk policy",
+        result: "Found unresolved risk.",
+        lessons: ["Review-mode lessons stay pending until applied locally."],
+        memoryReview: true
+      });
+
+      expect(reviewed.memoryProposalId).toBeTruthy();
+      expect(reviewed.memoryProposalStatus).toBe("proposed");
+      expect(reviewed.warnings).toContain("Memory left as a review proposal by --memory-review.");
+      expect(await fs.readFile(path.join(dir, ".briefops/memory/lessons.yaml"), "utf8"))
+        .not.toContain("Review-mode lessons stay pending");
     });
   });
 

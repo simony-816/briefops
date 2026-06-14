@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { registerApproveCommand } from "./commands/approve.js";
 import { registerBriefCommands } from "./commands/brief.js";
+import { registerBootstrapCommand } from "./commands/bootstrap.js";
 import { registerCodexCommands } from "./commands/codex.js";
 import { registerCompareCommands } from "./commands/compare.js";
 import { registerContinueCommand } from "./commands/continue.js";
@@ -29,6 +30,7 @@ export function buildProgram(): Command {
     .description("Local-first, token-aware brief compiler for AI coding workflows.")
     .version(briefopsVersion);
 
+  registerBootstrapCommand(program);
   registerInitCommand(program);
   registerDoctorCommand(program);
   registerPrimeCommand(program);

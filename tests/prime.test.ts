@@ -43,6 +43,7 @@ describe("prime context", () => {
       });
 
       expect(result.status).toBe("setup-required");
+      expect(result.content).toContain("briefops bootstrap");
       expect(result.content).toContain("briefops init");
       expect(result.content).toContain("briefops codex plugin install");
       expect(result.content).toContain("briefops worker use <worker>");

@@ -22,7 +22,10 @@ describe("codex prompt pack", () => {
 
       expect(result.promptDir).toContain(".briefops/codex/prompts");
       expect(agents).toContain("BriefOps Codex Guidance");
+      expect(agents).toContain("briefops prime --format codex");
+      expect(agents).toContain("briefops bootstrap");
       expect(agents).toContain("briefops codex mission");
+      await expect(fs.stat(path.join(result.promptDir, "prime.md"))).resolves.toBeTruthy();
     });
   });
 

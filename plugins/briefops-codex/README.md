@@ -5,17 +5,17 @@ This is a skill-only Codex plugin bundle for BriefOps.
 It does not run a hosted service and does not sync data. The skills call the local `briefops` CLI and local `.briefops/` workspace.
 It does not publish to a marketplace and does not write to global Codex folders by default.
 
-The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches. Use `--export-policy shared-only` before copying context outside the local workspace.
+The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace. It may update directory-local `.briefops/` memory; use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.
 
 Recommended local setup:
 
 ```bash
-briefops init
-briefops codex install
-briefops codex plugin install
+briefops bootstrap
 briefops worker use <worker>
 briefops prime --task "Start this task." --format codex
 ```
+
+`briefops bootstrap` initializes `.briefops/`, installs `AGENTS.md` first-context guidance, writes local Codex prompt/plugin assets, keeps `.briefops/` ignored by default, and runs bounded privacy/stability checks.
 
 The generated local plugin copy is written to:
 
@@ -23,7 +23,7 @@ The generated local plugin copy is written to:
 .briefops/codex/plugin/briefops
 ```
 
-BriefOps plugin skills must never auto-approve memory proposals or skill patches.
+BriefOps plugin skills treat `.briefops/` memory as local repo state. Explicit confirmation is reserved for exporting private memory outside the workspace or applying skill patches.
 
 For repo-level harness guidance, generate router files:
 
@@ -32,7 +32,7 @@ briefops export agents-md
 briefops export all
 ```
 
-These exports route local harnesses back to `briefops prime`, `briefops finish`, `briefops approve`, and `briefops continue --pack`. They do not copy `.briefops` memory, logs, handoffs, or worker summaries.
+These exports route local harnesses back to `briefops prime`, `briefops finish`, and `briefops continue --pack`. They do not copy `.briefops` memory, logs, handoffs, or worker summaries.
 
 Use shared-only exports for portable context:
 

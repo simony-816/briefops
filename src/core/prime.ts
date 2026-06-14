@@ -53,7 +53,13 @@ function setupRequiredContent(maxTokens: number): PrimeContextResult {
       "",
       "No `.briefops` workspace was found here.",
       "",
-      "Run:",
+      "Run the adoption bootstrap:",
+      "",
+      "```bash",
+      "briefops bootstrap",
+      "```",
+      "",
+      "Manual setup path:",
       "",
       "```bash",
       "briefops init",
@@ -236,14 +242,14 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
   const pendingReview: string[] = exportPolicy === "shared-only"
     ? [
         sharedOnlyOmissionNote,
-        "Local pending review counts are omitted by shared-only policy.",
+        "Local memory queue counts are omitted by shared-only policy.",
         format === "codex"
           ? "Codex format is active; follow the operating note below before broad repo/history inspection."
           : undefined
       ].filter((item): item is string => Boolean(item))
     : [
         inbox.pendingMemoryProposals > 0
-          ? `${inbox.pendingMemoryProposals} pending memory proposal(s).`
+          ? `${inbox.pendingMemoryProposals} pending local memory proposal(s).`
           : undefined,
         inbox.pendingSkillPatches > 0 ? `${inbox.pendingSkillPatches} pending skill patch(es).` : undefined,
         "This context may include private local BriefOps memory. Review before sharing outside this machine.",
@@ -253,7 +259,7 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
       ].filter((item): item is string => Boolean(item));
   const warnings = [
     health.readiness === "WARN" ? "Continuity health is WARN." : undefined,
-    inbox.pendingMemoryProposals > 0 ? "Pending memory proposals should be reviewed." : undefined,
+    inbox.pendingMemoryProposals > 0 ? "Pending local memory proposals exist but do not block continuing." : undefined,
     exportPolicy === "local-private" ? "Prime context may include private local memory." : undefined
   ].filter((warning): warning is string => Boolean(warning));
   const codexOperatingNote = format === "codex"
@@ -266,12 +272,13 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
         "- Restate the current task.",
         "- Use the selected worker/project context.",
         "- Inspect only the files needed for the task.",
-        "- Review pending memory proposals with the user before applying.",
+        "- Treat `.briefops/` memory as local repo state; `briefops finish` auto-promotes durable local memory by default.",
+        "- Ask before exporting private memory outside this machine or applying skill patches.",
         `- Use \`briefops continue --worker ${workerName} --task ${quote(task)} --pack\` when a fresh-thread resume is needed.`,
         "",
         "Do not:",
         "- Dump the entire `.briefops` workspace.",
-        "- Apply memory or skill patches without user approval.",
+        "- Share local-private memory or apply skill patches without explicit user direction.",
         "- Treat this prime context as a substitute for relevant code inspection.",
         ""
       ]
@@ -326,17 +333,17 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
       ? `- ${sharedOnlyOmissionNote}`
       : renderList(nextSteps, "- No next steps found.", 4),
     "",
-    "## Pending User Review",
+    "## Local Memory Queue",
     "",
     pendingReview.length > 0
       ? pendingReview.map((item) => `- ${item}`).join("\n")
-      : "- No pending user review found.",
+      : "- No pending local memory or skill queue found.",
     "",
     "## Recommended Commands",
     "",
     "```bash",
     `briefops prime --format ${format} --task ${quote(task)} --max-tokens ${maxTokens}`,
-    inbox.pendingMemoryProposals > 0 ? "briefops memory proposal-show latest" : undefined,
+    inbox.pendingMemoryProposals > 0 ? "briefops memory proposal-apply latest" : undefined,
     `briefops continue --worker ${workerName} --task ${quote(task)} --pack`,
     "```",
     ""

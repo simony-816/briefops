@@ -713,7 +713,7 @@ describe("persistent worker continuity", () => {
     });
   });
 
-  it("runs the persistent worker UX with finish, memory approval, continue, and portable pack", async () => {
+  it("runs the persistent worker UX with finish, auto-applied memory, continue, and portable pack", async () => {
     await withTempDir(async (dir) => {
       await seedContinuityWorkspace(dir);
       const finished = await finishWork({
@@ -733,8 +733,9 @@ describe("persistent worker continuity", () => {
       });
       expect(finished.nextCommand).toContain("briefops continue");
       expect(finished.memoryProposalId).toContain("memprop_");
+      expect(finished.memoryProposalStatus).toBe("applied");
+      expect(finished.memoryCreated).toBeGreaterThan(0);
 
-      await applyMemoryProposal({ cwd: dir, id: finished.memoryProposalId });
       const continued = await continueWork({
         cwd: dir,
         worker: "quant-reviewer",
@@ -765,7 +766,7 @@ describe("persistent worker continuity", () => {
     });
   });
 
-  it("carries unapproved work-log lessons into immediate handoffs without durable memory promotion", async () => {
+  it("auto-promotes finish memory while preserving immediate handoff continuity", async () => {
     await withTempDir(async (dir) => {
       await seedContinuityWorkspace(dir);
       const finished = await finishWork({
@@ -775,19 +776,22 @@ describe("persistent worker continuity", () => {
         worker: "quant-reviewer",
         task: "Review cache invalidation follow-up.",
         result: "Found stale cache risk in follow-up path.",
-        lessons: ["Carry task-specific lessons into immediate handoffs before approval."],
-        decisions: ["Keep durable memory approval separate from fresh-thread handoff."],
+        lessons: ["Auto-promote task-specific lessons into durable local memory."],
+        decisions: ["Keep local memory promotion separate from shared-only export."],
         openRisks: ["Cache invalidation behavior still needs a regression test."],
         nextSteps: ["Add regression coverage for cache invalidation."]
       });
 
       expect(finished.memoryProposalId).toContain("memprop_");
-      expect(await listMemory({
+      expect(finished.memoryProposalStatus).toBe("applied");
+      expect((await listMemory({
         cwd: dir,
         type: "lessons",
         project: "atlas-q",
         skill: "risk-review"
-      })).toEqual([]);
+      })).map((item) => item.content)).toContain(
+        "Auto-promote task-specific lessons into durable local memory."
+      );
 
       const continued = await continueWork({
         cwd: dir,
@@ -796,11 +800,11 @@ describe("persistent worker continuity", () => {
         budget: 3000,
         pack: true
       });
-      expect(continued.pendingMemoryProposals).toBe(1);
+      expect(continued.pendingMemoryProposals).toBe(0);
 
       const resume = await readTextFile(continued.resumePath as string);
-      expect(resume).toContain("lesson: Carry task-specific lessons into immediate handoffs before approval.");
-      expect(resume).toContain("decision: Keep durable memory approval separate from fresh-thread handoff.");
+      expect(resume).toContain("Auto-promote task-specific lessons into durable local memory.");
+      expect(resume).toContain("Keep local memory promotion separate from shared-only export.");
       expect(resume).toContain("open risk: Cache invalidation behavior still needs a regression test.");
 
       const sharedOnly = await generateHandoff({
@@ -809,7 +813,7 @@ describe("persistent worker continuity", () => {
         task: "Continue cache invalidation follow-up.",
         exportPolicy: "shared-only"
       });
-      expect(sharedOnly.content).not.toContain("Carry task-specific lessons into immediate handoffs");
+      expect(sharedOnly.content).not.toContain("Auto-promote task-specific lessons");
     });
   });
 });

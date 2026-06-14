@@ -1,15 +1,15 @@
 ---
 name: briefops-review-memory
-description: Use when BriefOps reports pending memory proposals or skill patches that need human review before becoming durable local memory
+description: Use when BriefOps reports pending local memory proposals or skill patches that need inspection
 ---
 
 # BriefOps Review Memory
 
-The BriefOps plugin is a local CLI helper. It does not require network access, does not publish to a marketplace, and should not auto-approve memory or skill patches.
+The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace.
 
-Use `--export-policy shared-only` before copying context outside the local workspace.
+BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.
 
-BriefOps memory is human-approved. Pending proposals are local drafts until the user accepts or rejects them.
+BriefOps memory is directory-local. Pending memory proposals are optional audit/review drafts; they should not block normal continuation.
 
 Inspect proposals before applying:
 
@@ -18,10 +18,11 @@ briefops memory proposal-show latest
 briefops inbox
 ```
 
-Apply only after explicit user confirmation:
+Apply relevant local memory proposals directly, or reject inaccurate, duplicate, sensitive, or overly broad proposals:
 
 ```bash
-briefops approve latest
+briefops memory proposal-apply latest
+briefops memory proposal-reject latest
 ```
 
-Reject inaccurate, duplicate, sensitive, or overly broad proposals instead of carrying noisy context into future threads.
+Ask before applying skill patches or exporting private memory outside the local workspace.

@@ -6,8 +6,9 @@ BriefOps is a local-first CLI. It stores project memory, work logs, generated pr
 
 | Version | Supported |
 | --- | --- |
-| 1.x | Security fixes accepted |
-| 0.2.x alpha | Not supported; upgrade to 1.x |
+| 2.x | Security fixes accepted |
+| 1.x | Security fixes accepted for critical issues |
+| 0.2.x alpha | Not supported; upgrade to 2.x |
 
 ## Reporting A Vulnerability
 
@@ -44,7 +45,7 @@ See `docs/privacy-model.md` for the full 1.0 privacy contract.
 
 `briefops export agents-md`, `briefops export claude-md`, `briefops export cursor-rules`, and `briefops export all` generate router files for local AI coding harnesses.
 
-These files are intended to be safe to commit by default. They should contain command guidance and approval boundaries, not raw `.briefops/` memory, work logs, handoffs, resume packs, private decisions, private incidents, or worker summaries.
+These files are intended to be safe to commit by default. They should contain command guidance and explicit export/skill-patch boundaries, not raw `.briefops/` memory, work logs, handoffs, resume packs, private decisions, private incidents, or worker summaries.
 
 If you use `--export-policy local-private`, review the generated files before sharing them outside the local machine.
 

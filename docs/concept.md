@@ -7,7 +7,7 @@ It does not run Codex, Claude Code, or other agents. It prepares compact continu
 The core loop is:
 
 ```text
-brief -> work -> log -> proposal -> approved memory -> worker summary -> handoff/resume
+brief -> work -> log -> proposal audit -> local memory -> worker summary -> handoff/resume
 ```
 
-Raw logs remain audit records and immediate handoff input. Memory is curated operational knowledge that requires human approval.
+Raw logs remain audit records and immediate handoff input. Memory is curated operational knowledge stored inside the current repository's `.briefops/` directory.
