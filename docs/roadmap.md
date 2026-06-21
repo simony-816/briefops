@@ -8,15 +8,21 @@
 - shared-only export privacy hardening
 - file format, compatibility, and privacy model documentation
 
-## Near Term After 1.0
+## 2.0 Complete
 
-- expand context savings eval fixtures
-- improve memory hygiene suggestions beyond dry-run reporting, without auto-pruning
-- release readiness CI
+- strict local release-readiness checks that aggregate stability, security, privacy, and memory hygiene
+- evidence-backed memory references for decisions, lessons, incidents, and risks
+- continuity observability reports for context compression, queues, and hygiene signals
+- Codex-first Master Harness routing for task workflow depth
+
+## Near Term After 2.0
+
+- persistent `.briefops/harness/` route, goal, finding, and verification ledgers
+- stronger Spec-Kit detection and route-aware handoff
+- richer eval fixtures for context savings and continuity quality
 
 ## Later
 
-- optional cross-harness projection beyond router files
 - richer eval fixtures for token savings
 - curated shared-memory export bundles
 - signed release artifacts

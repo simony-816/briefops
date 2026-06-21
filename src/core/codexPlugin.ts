@@ -71,6 +71,7 @@ export function buildCodexPluginManifest(): CodexPluginManifest {
       category: "Developer Tools",
       capabilities: ["Read", "Write"],
       defaultPrompt: [
+        "Route this task through the BriefOps Master Harness.",
         "Start this task with the smallest useful BriefOps context.",
         "Finish this task and prepare memory for the next thread."
       ],
@@ -92,6 +93,42 @@ function trustBoundaryLines(): string[] {
     "BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.",
     ""
   ];
+}
+
+function briefopsRouteTaskSkill(): string {
+  return [
+    "---",
+    "name: briefops-route-task",
+    "description: Use when starting Codex development work to classify the task and choose the smallest sufficient BriefOps Master Harness workflow",
+    "---",
+    "",
+    "# BriefOps Route Task",
+    "",
+    ...trustBoundaryLines(),
+    "Use this before implementation when the task may need memory, specification, planning, findings, verification, or handoff discipline.",
+    "",
+    "Run:",
+    "",
+    "```bash",
+    "briefops harness route --task \"<current user task>\"",
+    "```",
+    "",
+    "For explicit routing, pass a task type:",
+    "",
+    "```bash",
+    "briefops harness route --task \"<current user task>\" --type large-feature",
+    "```",
+    "",
+    "Use the route as a workflow contract:",
+    "",
+    "- Do not force full specification on tiny tasks.",
+    "- Do not skip goal ledgers, findings, visual evidence, or handoff when the route requires them.",
+    "- If repository evidence contradicts the inferred route, choose the safer route and say why.",
+    "- Treat `briefops prime` as the memory intake step and `briefops finish` as the work-log/memory closeout step.",
+    "",
+    "Supported task types: small-bug-fix, medium-feature, large-feature, refactor, dependency-upgrade, ui-change, test-repair, production-incident, documentation-task, architecture-decision, exploratory-research, code-review, release-preparation.",
+    ""
+  ].join("\n");
 }
 
 function briefopsPrimeContextSkill(): string {
@@ -207,6 +244,10 @@ export function codexPluginFiles(): CodexPluginFile[] {
     {
       relativePath: ".codex-plugin/plugin.json",
       content: pluginManifestContent()
+    },
+    {
+      relativePath: "skills/briefops-route-task/SKILL.md",
+      content: briefopsRouteTaskSkill()
     },
     {
       relativePath: "skills/briefops-prime-context/SKILL.md",

@@ -4,11 +4,16 @@
 
 - No changes yet.
 
-## 2.0.0 - 2026-06-14
+## 2.0.0 - 2026-06-21
 
 - Make `briefops finish` apply durable directory-local memory by default while retaining proposal files as an audit trail.
 - Add `--memory-review` for explicit pending memory queues.
 - Update Codex/plugin/router guidance to treat `.briefops/` memory as local repo state and reserve confirmation for external sharing or skill patches.
+- Add `briefops harness route` and `briefops harness matrix` as a Codex-first Master Harness routing MVP.
+- Add a Codex `briefops-route-task` skill for workflow-depth classification before implementation.
+- Add `briefops obs continuity` for compression, continuity, queue, and memory hygiene observability without dumping private memory.
+- Add `briefops doctor --strict --json` as a local release-readiness gate across stability, security, privacy, and memory hygiene.
+- Add optional evidence anchors to memory items and memory proposals.
 
 ## 1.1.0 - 2026-06-10
 

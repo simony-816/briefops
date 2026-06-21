@@ -44,6 +44,15 @@ briefops export all
 
 These files should stay compact. They teach harnesses how to call BriefOps and do not copy private memory, raw logs, handoffs, or worker summaries.
 
+For local readiness and context compression checks:
+
+```bash
+briefops doctor --strict --json
+briefops obs continuity --worker <worker> --task "<task>" --json
+```
+
+These commands are core CLI checks. They do not install MCP servers or hooks.
+
 ## LazyCodex / OmO
 
 Use LazyCodex or OmO for orchestration, hooks, LSP/MCP, and autonomous execution. Use BriefOps for durable local continuity.

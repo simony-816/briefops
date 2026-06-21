@@ -29,6 +29,7 @@ describe("Codex plugin package", () => {
       .filter((file) => file.endsWith("SKILL.md"));
 
     expect(skillFiles).toEqual([
+      "skills/briefops-route-task/SKILL.md",
       "skills/briefops-prime-context/SKILL.md",
       "skills/briefops-finish-task/SKILL.md",
       "skills/briefops-review-memory/SKILL.md",
@@ -60,6 +61,7 @@ describe("Codex plugin package", () => {
 
       expect(result.root).toContain(".briefops/codex/plugin/briefops");
       expect(result.files).toContain(".codex-plugin/plugin.json");
+      expect(result.files).toContain("skills/briefops-route-task/SKILL.md");
       expect(result.files).toContain("skills/briefops-prime-context/SKILL.md");
       await expect(
         fs.stat(path.join(result.root, ".codex-plugin/plugin.json"))

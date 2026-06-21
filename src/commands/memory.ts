@@ -1,5 +1,11 @@
 import type { Command } from "commander";
-import { addMemory, listMemory, showMemory, updateMemoryStatus } from "../core/memory.js";
+import {
+  addMemory,
+  formatEvidenceRef,
+  listMemory,
+  showMemory,
+  updateMemoryStatus
+} from "../core/memory.js";
 import { inspectMemoryHygiene, planMemoryPrune } from "../core/memoryHygiene.js";
 import {
   applyMemoryProposal,
@@ -10,7 +16,7 @@ import {
 } from "../core/memoryProposal.js";
 import { BriefOpsError } from "../core/errors.js";
 import { parseCommaList } from "../core/storage.js";
-import { printTable } from "./shared.js";
+import { collectRepeated, printTable } from "./shared.js";
 
 export function registerMemoryCommands(program: Command): void {
   const memory = program.command("memory").description("Manage curated operational memory.");
@@ -41,6 +47,20 @@ export function registerMemoryCommands(program: Command): void {
         console.log("Duplicate-like memory:");
         for (const duplicate of report.duplicateLike) {
           console.log(`- ${duplicate.ids.join(", ")}: ${duplicate.content}`);
+        }
+      }
+      if (report.potentialConflicts.length > 0) {
+        console.log("");
+        console.log("Potential decision conflicts:");
+        for (const conflict of report.potentialConflicts) {
+          console.log(`- ${conflict.ids.join(" <> ")} (${conflict.sharedTerms.join(", ")}): ${conflict.first} / ${conflict.second}`);
+        }
+      }
+      if (report.oldActive.length > 0) {
+        console.log("");
+        console.log("Old active memory:");
+        for (const entry of report.oldActive.slice(0, 10)) {
+          console.log(`- ${entry.item.id}: ${entry.ageDays}d - ${entry.item.content}`);
         }
       }
     });
@@ -172,6 +192,7 @@ export function registerMemoryCommands(program: Command): void {
     .option("--visibility <visibility>", "private|shared|public", "private")
     .option("--exportable", "Mark memory as exportable in future filtered exports.")
     .option("--tags <tags>", "Comma-separated tags.")
+    .option("--evidence <ref>", "Evidence ref path[:start[-end]][#sha]. Can be repeated.", collectRepeated, [])
     .action(async (options: Record<string, unknown>) => {
       const item = await addMemory({
         type: options.type as string,
@@ -181,7 +202,8 @@ export function registerMemoryCommands(program: Command): void {
         status: options.status as string | undefined,
         visibility: options.visibility as string | undefined,
         exportable: Boolean(options.exportable),
-        tags: parseCommaList(options.tags as string | undefined)
+        tags: parseCommaList(options.tags as string | undefined),
+        evidence: options.evidence as string[] | undefined
       });
       console.log(`Added memory: ${item.id}`);
     });
@@ -238,6 +260,7 @@ export function registerMemoryCommands(program: Command): void {
         ["Tags", item.tags.join(",")],
         ["Visibility", item.visibility],
         ["Exportable", item.exportable ? "yes" : "no"],
+        ["Evidence", item.evidence.map(formatEvidenceRef).join(", ")],
         ["Created", item.created_at]
       ]);
     });

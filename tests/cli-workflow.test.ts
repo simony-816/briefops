@@ -269,6 +269,56 @@ describe("CLI persistent worker workflow", () => {
     });
   });
 
+  it("routes Master Harness tasks from the CLI", async () => {
+    await withTempDir(async (dir) => {
+      const routed = await expectCli(dir, [
+        "harness",
+        "route",
+        "--task",
+        "Update the dashboard layout and verify the responsive UI."
+      ]);
+
+      expect(routed.stdout).toContain("BriefOps Harness Route");
+      expect(routed.stdout).toContain("Route: UI change");
+      expect(routed.stdout).toContain("Level 4 visual evidence");
+
+      const matrix = await expectCli(dir, ["harness", "matrix"]);
+      expect(matrix.stdout).toContain("Release preparation");
+      expect(matrix.stdout).toContain("Memory Update");
+    });
+  });
+
+  it("reports strict doctor and continuity observability from the CLI", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await fs.writeFile(path.join(dir, ".gitignore"), ".briefops/\n", "utf8");
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "worker",
+        "create",
+        "quant-reviewer",
+        "--project",
+        "atlas-q",
+        "--skills",
+        "risk-review"
+      ]);
+      await expectCli(dir, ["worker", "use", "quant-reviewer"]);
+
+      const strict = await expectCli(dir, ["doctor", "--strict", "--json"]);
+      expect(strict.stdout).toContain('"releaseReady": true');
+
+      const observed = await expectCli(dir, [
+        "obs",
+        "continuity",
+        "--task",
+        "Continue release readiness."
+      ]);
+      expect(observed.stdout).toContain("BriefOps Continuity Observability");
+      expect(observed.stdout).toContain("Memory hygiene:");
+    });
+  });
+
   it("accepts shared-only export policy for handoff and Codex resume CLI output", async () => {
     await withTempDir(async (dir) => {
       await expectCli(dir, ["init"]);

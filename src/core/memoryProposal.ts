@@ -3,7 +3,7 @@ import path from "node:path";
 import { BriefOpsError } from "./errors.js";
 import { readWorkLog } from "./log.js";
 import { withWorkspaceLock } from "./lock.js";
-import { addMemoryIfMissingUnlocked } from "./memory.js";
+import { addMemoryIfMissingUnlocked, parseMemoryEvidenceRefs } from "./memory.js";
 import { formatDateStamp, normalizeName, slugForFilename, workspacePaths } from "./paths.js";
 import { listFilesBySuffix, readTextFile, writeYamlFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
@@ -74,6 +74,7 @@ function extractPrefixedNotes(notes: string, prefix: "decision" | "fact"): Memor
       tags: tagsFromText(content),
       visibility: "private" as const,
       exportable: false,
+      evidence: [],
       rationale: `Extracted from work log note prefix: ${prefix}.`
     }));
 }
@@ -91,6 +92,7 @@ function entry(options: {
   content: string;
   source: string;
   rationale: string;
+  evidence?: MemoryProposalEntry["evidence"];
 }): MemoryProposalEntry {
   const category = ({
     fact: "facts",
@@ -108,8 +110,13 @@ function entry(options: {
     tags: tagsFromText(options.content),
     visibility: "private",
     exportable: false,
+    evidence: options.evidence ?? [],
     rationale: options.rationale
   };
+}
+
+function evidenceFromLogFiles(files: string[]): MemoryProposalEntry["evidence"] {
+  return parseMemoryEvidenceRefs(files.slice(0, 6));
 }
 
 async function writeProposal(cwd: string, proposal: MemoryProposal): Promise<string> {
@@ -142,13 +149,15 @@ async function proposeMemoryFromLogUnlocked(
   await requireWorkspace(cwd);
   const log = await readWorkLog(cwd, options.fromLog);
   const createdAt = new Date().toISOString();
+  const evidence = evidenceFromLogFiles(log.files_changed);
   const proposals: MemoryProposalEntry[] = [
     ...log.lessons.map((lesson) =>
       entry({
         type: "lesson",
         content: lesson,
         source: log.id,
-        rationale: "Extracted from work log lesson."
+        rationale: "Extracted from work log lesson.",
+        evidence
       })
     ),
     ...log.open_risks.map((risk) =>
@@ -156,7 +165,8 @@ async function proposeMemoryFromLogUnlocked(
         type: "incident",
         content: risk,
         source: log.id,
-        rationale: "Extracted from work log open risk."
+        rationale: "Extracted from work log open risk.",
+        evidence
       })
     ),
     ...log.decisions.map((decision) =>
@@ -164,7 +174,8 @@ async function proposeMemoryFromLogUnlocked(
         type: "decision",
         content: decision,
         source: log.id,
-        rationale: "Extracted from work log decision."
+        rationale: "Extracted from work log decision.",
+        evidence
       })
     ),
     ...log.incidents.map((incident) =>
@@ -172,7 +183,8 @@ async function proposeMemoryFromLogUnlocked(
         type: "incident",
         content: incident,
         source: log.id,
-        rationale: "Extracted from work log incident."
+        rationale: "Extracted from work log incident.",
+        evidence
       })
     ),
     ...log.next_steps
@@ -182,7 +194,8 @@ async function proposeMemoryFromLogUnlocked(
           type: "decision",
           content: step,
           source: log.id,
-          rationale: "Extracted from normative work log next step."
+          rationale: "Extracted from normative work log next step.",
+          evidence
         })
       ),
     ...extractPrefixedNotes(log.notes, "decision"),
@@ -194,7 +207,8 @@ async function proposeMemoryFromLogUnlocked(
       type: "incident",
       content: log.result,
       source: log.id,
-      rationale: "Extracted from work log result because it contains failure/risk language."
+      rationale: "Extracted from work log result because it contains failure/risk language.",
+      evidence
     }));
   }
 
@@ -320,7 +334,8 @@ export async function applyMemoryProposalUnlocked(options: {
       tags: entry.tags,
       source: entry.source ?? proposal.from_log,
       visibility: entry.visibility,
-      exportable: entry.exportable
+      exportable: entry.exportable,
+      evidence: entry.evidence
     });
     if (result.created) {
       created += 1;

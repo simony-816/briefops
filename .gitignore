@@ -3,3 +3,4 @@ dist/
 .briefops/
 coverage/
 .DS_Store
+.playwright-mcp/

@@ -8,7 +8,7 @@ import { addMemory } from "../src/core/memory.js";
 import { inspectMemoryHygiene, planMemoryPrune } from "../src/core/memoryHygiene.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
-import { readTextFile } from "../src/core/storage.js";
+import { readTextFile, writeYamlFile } from "../src/core/storage.js";
 import { createWorker, refreshWorkerSummary } from "../src/core/worker.js";
 import { finishWork } from "../src/core/workflow.js";
 import { initWorkspace } from "../src/core/workspace.js";
@@ -250,6 +250,50 @@ describe("context minimalism", () => {
 
       const report = await inspectMemoryHygiene({ cwd: dir });
       expect(report.warnings).toContain("lessons active memory count is high.");
+    });
+  });
+
+  it("reports old active memory and potential decision conflicts", async () => {
+    await withTempDir(async (dir) => {
+      await seedWorkspace(dir);
+      await addMemory({
+        cwd: dir,
+        type: "decisions",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Always require slippage verification before approval."
+      });
+      await addMemory({
+        cwd: dir,
+        type: "decisions",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Never require slippage verification before approval."
+      });
+      await writeYamlFile(path.join(dir, ".briefops/memory/facts.yaml"), {
+        items: [
+          {
+            id: "mem_old_fact",
+            type: "fact",
+            status: "active",
+            project: "atlas-q",
+            skill: "risk-review",
+            content: "Legacy active fact that needs a freshness review.",
+            source: "test",
+            created_at: "2025-01-01T00:00:00.000Z",
+            tags: [],
+            visibility: "private",
+            exportable: false
+          }
+        ]
+      });
+
+      const report = await inspectMemoryHygiene({ cwd: dir, oldActiveDays: 30 });
+
+      expect(report.warnings).toContain("potentially conflicting decisions detected.");
+      expect(report.warnings).toContain("old active memory should be reviewed.");
+      expect(report.potentialConflicts).toHaveLength(1);
+      expect(report.oldActive.map((entry) => entry.item.id)).toContain("mem_old_fact");
     });
   });
 });

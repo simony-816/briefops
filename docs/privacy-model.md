@@ -42,3 +42,5 @@ Explicit direction is still required before applying skill patches or sharing pr
 `briefops doctor --stability` checks local workspace integrity, including schema validity, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts. It is read-only, reports bounded examples, and does not add detailed doctor output to generated prompt artifacts.
 
 `briefops doctor --security --fix-stale-locks` removes stale lock files only. It does not remove fresh locks or other workspace files.
+
+`briefops doctor --strict --json` aggregates stability, security, privacy, and memory hygiene. It reports `releaseReady: false` when any warning or failure remains, so privacy warnings such as an unignored `.briefops/` workspace cannot silently pass a release gate.

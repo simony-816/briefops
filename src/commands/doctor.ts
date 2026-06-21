@@ -4,6 +4,7 @@ import { memoryCategories, workspacePaths } from "../core/paths.js";
 import { fixBriefOpsGitignore, runPrivacyDoctor } from "../core/privacyDoctor.js";
 import { runSecurityDoctor } from "../core/securityDoctor.js";
 import { runStabilityDoctor } from "../core/stabilityDoctor.js";
+import { runStrictDoctor } from "../core/strictDoctor.js";
 import { pathExists } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
@@ -17,7 +18,35 @@ export function registerDoctorCommand(program: Command): void {
     .option("--fix-stale-locks", "Remove stale BriefOps workspace locks before reporting security checks.")
     .option("--privacy", "Run privacy checks for local memory and share safety.")
     .option("--fix-gitignore", "Add `.briefops/` to .gitignore when running --privacy.")
+    .option("--strict", "Run stability, security, privacy, and memory hygiene checks as one release-readiness gate.")
+    .option("--json", "Print JSON output for --strict.")
     .action(async (options: Record<string, unknown>) => {
+      if (options.strict) {
+        const result = await runStrictDoctor({
+          maxExamples: options.verbose ? 25 : 5
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log("BriefOps Strict Doctor");
+          console.log("");
+          console.log(`OK: ${result.ok ? "yes" : "no"}`);
+          console.log(`Release ready: ${result.releaseReady ? "yes" : "no"}`);
+          console.log(
+            `Checks: ${result.summary.checks} (${result.summary.ok} ok, ${result.summary.warn} warn, ${result.summary.fail} fail)`
+          );
+          console.log("");
+          printTable([
+            ["Source", "Check", "Status", "Detail"],
+            ...result.checks.map((check) => [check.source, check.name, check.status, check.detail])
+          ]);
+        }
+        if (!result.releaseReady) {
+          process.exitCode = 1;
+        }
+        return;
+      }
+
       if (options.privacy) {
         if (options.fixGitignore) {
           const path = await fixBriefOpsGitignore();

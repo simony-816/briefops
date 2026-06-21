@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMemory, listMemory, selectRelevantMemory } from "../src/core/memory.js";
+import { addMemory, formatMemoryItem, listMemory, selectRelevantMemory } from "../src/core/memory.js";
 import { initWorkspace } from "../src/core/workspace.js";
 import { withTempDir } from "./helpers.js";
 
@@ -88,6 +88,33 @@ describe("memory", () => {
         "Newer project-only match.",
         "Newest skill-only match."
       ]);
+    });
+  });
+
+  it("stores optional evidence anchors on memory", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      const item = await addMemory({
+        cwd: dir,
+        type: "decisions",
+        project: "atlas-q",
+        skill: "risk-review",
+        content: "Require slippage verification before approval.",
+        evidence: ["src/risk.ts:12-20#abcdef1234567890", "docs/policy.md"]
+      });
+
+      expect(item.evidence).toEqual([
+        {
+          path: "src/risk.ts",
+          start_line: 12,
+          end_line: 20,
+          sha256: "abcdef1234567890"
+        },
+        {
+          path: "docs/policy.md"
+        }
+      ]);
+      expect(formatMemoryItem(item)).toContain("evidence: src/risk.ts:12-20#abcdef123456,docs/policy.md");
     });
   });
 });

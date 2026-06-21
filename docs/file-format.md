@@ -32,7 +32,8 @@ BriefOps stores all user data under `.briefops/`. Version 1.0 treats these files
 
 - `.briefops/memory/<category>.yaml`
   - Shape: `items: MemoryItem[]`.
-  - Stable item fields: `id`, `type`, `status`, `project`, `skill`, `content`, `source`, `created_at`, `tags`, `visibility`, `exportable`.
+  - Stable item fields: `id`, `type`, `status`, `project`, `skill`, `content`, `source`, `created_at`, `tags`, `visibility`, `exportable`, `evidence`.
+  - `evidence` is an optional array of path anchors with stable fields: `path`, `start_line`, `end_line`, `sha256`, `note`.
   - Supported statuses: `active`, `stale`, `deprecated`, `superseded`, `archived`.
   - Supported visibility values: `private`, `shared`, `public`.
 
@@ -46,6 +47,7 @@ BriefOps stores all user data under `.briefops/`. Version 1.0 treats these files
   - Stable fields: `id`, `created_at`, `from_log`, `status`, `project`, `skill`, `worker`, `items`, `applied_at`, `rejected_at`.
   - Legacy `proposals` arrays remain readable and are normalized to `items`.
   - Proposal entries use memory item fields plus `category` and `rationale`.
+  - Proposal entries may carry `evidence` anchors copied from changed-file paths in the source work log.
 
 - `.briefops/patches/*.patch.yaml`
   - Stable fields: `id`, `created_at`, `skill`, `from_log`, `status`, `target_section`, `lessons`, `additions`, `applied_at`, `rejected_at`.

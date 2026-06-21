@@ -29,6 +29,7 @@
       "Write"
     ],
     "defaultPrompt": [
+      "Route this task through the BriefOps Master Harness.",
       "Start this task with the smallest useful BriefOps context.",
       "Finish this task and prepare memory for the next thread."
     ],

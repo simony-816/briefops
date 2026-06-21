@@ -16,6 +16,7 @@ import {
   memoryStatuses,
   memoryVisibilities,
   type MemoryFile,
+  type MemoryEvidence,
   type MemoryItem,
   type MemoryStatus,
   type MemoryVisibility
@@ -48,6 +49,7 @@ export type AddMemoryOptions = {
   source?: string;
   visibility?: string;
   exportable?: boolean;
+  evidence?: MemoryEvidence[] | string[] | string;
 };
 
 export type ListMemoryFilters = {
@@ -109,6 +111,53 @@ export function normalizeMemoryVisibility(value?: string): MemoryVisibility {
   }
 
   throw new BriefOpsError(`Invalid memory visibility: ${value}`);
+}
+
+function parseEvidenceRef(value: string): MemoryEvidence | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const [pathAndLines, sha256] = trimmed.split("#", 2);
+  const lineMatch = pathAndLines.match(/^(.+):(\d+)(?:-(\d+))?$/);
+  if (!lineMatch) {
+    return {
+      path: pathAndLines,
+      sha256: sha256?.trim() || undefined
+    };
+  }
+
+  const startLine = Number.parseInt(lineMatch[2], 10);
+  const endLine = lineMatch[3] ? Number.parseInt(lineMatch[3], 10) : undefined;
+  return {
+    path: lineMatch[1],
+    start_line: startLine,
+    end_line: endLine,
+    sha256: sha256?.trim() || undefined
+  };
+}
+
+export function parseMemoryEvidenceRefs(
+  value?: MemoryEvidence[] | string[] | string
+): MemoryEvidence[] {
+  const refs = Array.isArray(value) ? value : value ? [value] : [];
+  const parsed = refs.flatMap((ref) => {
+    if (typeof ref === "string") {
+      const evidence = parseEvidenceRef(ref);
+      return evidence ? [evidence] : [];
+    }
+    return [ref];
+  });
+  const seen = new Set<string>();
+  return parsed.filter((evidence) => {
+    const key = JSON.stringify(evidence);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 async function readMemoryFile(cwd: string, category: MemoryCategory): Promise<MemoryFile> {
@@ -199,7 +248,8 @@ export async function addMemoryUnlocked(options: AddMemoryOptions): Promise<Memo
     created_at: createdAt,
     tags,
     visibility: normalizeMemoryVisibility(options.visibility),
-    exportable: options.exportable ?? false
+    exportable: options.exportable ?? false,
+    evidence: parseMemoryEvidenceRefs(options.evidence)
   });
 
   memoryFile.items.push(item);
@@ -278,11 +328,22 @@ export function formatMemoryItem(item: MemoryItem): string {
   const parts = [
     item.project ? `project: ${item.project}` : undefined,
     item.skill ? `skill: ${item.skill}` : undefined,
-    item.tags.length > 0 ? `tags: ${item.tags.join(",")}` : undefined
+    item.tags.length > 0 ? `tags: ${item.tags.join(",")}` : undefined,
+    item.evidence.length > 0
+      ? `evidence: ${item.evidence.slice(0, 2).map(formatEvidenceRef).join(",")}`
+      : undefined
   ].filter(Boolean);
   const suffix = parts.length > 0 ? ` (${parts.join("; ")})` : "";
 
   return `- [${item.type}] ${item.content}${suffix}`;
+}
+
+export function formatEvidenceRef(evidence: MemoryEvidence): string {
+  const lines = evidence.start_line
+    ? `:${evidence.start_line}${evidence.end_line ? `-${evidence.end_line}` : ""}`
+    : "";
+  const sha = evidence.sha256 ? `#${evidence.sha256.slice(0, 12)}` : "";
+  return `${evidence.path}${lines}${sha}`;
 }
 
 const typeWeights: Record<MemoryItem["type"], number> = {

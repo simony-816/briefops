@@ -50,6 +50,14 @@ briefops compare context --worker <worker> --task "Review this PR."
 
 The command estimates local `.briefops` candidate inputs such as project context, worker summary, active memory, and recent logs, then compares them with compiled `briefops prime` output.
 
+Use `obs continuity` when you want the same context compression signal alongside continuity health, local queue counts, and memory hygiene:
+
+```bash
+briefops obs continuity --worker <worker> --task "Review this PR." --json
+```
+
+This command is read-only and reports counts and token estimates rather than dumping private memory.
+
 ## Harness Router Budgets
 
 Harness exports should stay small:

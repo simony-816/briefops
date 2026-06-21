@@ -252,6 +252,20 @@ Exports are routers, not memory dumps. They tell local AI tools to run `briefops
 
 They do not copy `.briefops` memory, raw logs, private decisions, incidents, handoffs, or worker summaries into `AGENTS.md`, `CLAUDE.md`, or Cursor rules. Export commands default to `--export-policy shared-only` because these files are often committed.
 
+## Master Harness Routing
+
+Use the Master Harness router when Codex should decide the smallest sufficient workflow before implementation:
+
+```bash
+briefops harness route --task "Fix the failing dashboard layout test."
+briefops harness route --task "Build the release readiness flow." --type large-feature
+briefops harness matrix
+```
+
+The router classifies work across bug fixes, features, refactors, dependency upgrades, UI changes, test repairs, incidents, documentation, architecture decisions, research, code review, and release preparation. It returns the required specification, planning, goal ledger, findings, verification, memory update, artifacts, exit criteria, and final response contract.
+
+See `docs/master-harness.md` for the Codex-compatible BriefOps Master Harness architecture and MVP plan.
+
 ## Context Minimalism
 
 Inspect the built-in budget policy:
@@ -267,6 +281,14 @@ briefops compare context --worker quant-reviewer --task "Review this PR."
 ```
 
 BriefOps should not become the context bloat it was built to prevent. Use `prime` first, then generate a handoff or resume pack only when continuity needs more detail.
+
+Inspect the live continuity signal for a worker:
+
+```bash
+briefops obs continuity --worker quant-reviewer --task "Review this PR." --json
+```
+
+This reports raw candidate context, compiled prime size, compression, continuity health, local queues, and memory hygiene signals without dumping private memory content.
 
 ## Memory Hygiene
 
@@ -289,6 +311,7 @@ Run this before publishing a repository, sharing a pack, or attaching BriefOps c
 briefops doctor --privacy
 briefops doctor --privacy --fix-gitignore
 briefops doctor --stability
+briefops doctor --strict --json
 ```
 
 BriefOps is local-first, but `.briefops/` may contain private logs and memory. Keep `.briefops/` out of source control unless you intentionally curated the contents.
@@ -296,6 +319,8 @@ BriefOps is local-first, but `.briefops/` may contain private logs and memory. K
 `doctor --privacy` checks local memory sharing hazards, including `.briefops/` gitignore coverage, private/exportable memory, and secret-like memory strings.
 
 `doctor --stability` checks local workspace integrity, schema validity, duplicate memory ids, broken references, managed-path symlinks, and orphaned review artifacts. It keeps diagnostics bounded and does not add detailed doctor output to `prime`, handoff, resume, or pack context.
+
+`doctor --strict` aggregates stability, security, privacy, and memory hygiene checks. Warnings keep `releaseReady` false in JSON output, which makes the command useful as a pre-release gate.
 
 ## Pre-Publish Readiness
 

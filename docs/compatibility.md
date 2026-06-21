@@ -10,6 +10,10 @@ BriefOps follows semantic versioning for the public CLI and local file formats.
 - Directory-local memory promotion from `finish`, plus reviewable memory proposal and skill patch flows.
 - Workspace lock behavior for local write operations.
 - Harness router export targets: `agents-md`, `claude-md`, `cursor-rules`, and `all`.
+- Master Harness routing commands: `briefops harness route` and `briefops harness matrix`.
+- Read-only continuity observability through `briefops obs continuity`.
+- Strict local release-readiness aggregation through `briefops doctor --strict`.
+- Optional memory evidence anchors with safe defaults for older memory files.
 
 ## Compatible Changes
 
