@@ -46,7 +46,7 @@ BriefOps can generate Codex skill-plugin assets, but the plugin calls the local 
 
 ## Release Status
 
-BriefOps 2.0 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
+BriefOps 2.1 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
 
 - local files first
 - no hosted service required

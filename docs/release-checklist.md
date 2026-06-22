@@ -50,7 +50,7 @@ briefops memory prune --dry-run
 Confirm:
 
 - `briefops --version` matches `package.json`.
-- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 2.0 public behavior and current workspace file contract.
+- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 2.1 public behavior and current workspace file contract.
 - `briefops harness route` returns the workflow depth, artifacts, exit criteria, and final-response contract for the task.
 - `briefops obs continuity` reports compression, continuity, queues, and memory hygiene counts without dumping private memory.
 - Harness exports are routers, not memory dumps.

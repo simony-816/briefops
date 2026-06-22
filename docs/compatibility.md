@@ -1,8 +1,8 @@
-# BriefOps 2.0 Compatibility Policy
+# BriefOps 2.1 Compatibility Policy
 
 BriefOps follows semantic versioning for the public CLI and local file formats.
 
-## Stable In 2.0
+## Stable In 2.1
 
 - Public commands documented in `README.md`.
 - `.briefops/` source file formats documented in `docs/file-format.md`.
@@ -39,7 +39,7 @@ Breaking changes require a new major version. Examples:
 
 New 1.0 workspaces write `version: 1.0.0` in `.briefops/config.yaml`.
 
-BriefOps 2.0 keeps the workspace schema at `1.0.0` and can read legacy `0.x` workspace configs on a best-effort compatibility basis. Future unsupported workspace schema major versions fail with an explicit upgrade error instead of silently reading incompatible data.
+BriefOps 2.1 keeps the workspace schema at `1.0.0` and can read legacy `0.x` workspace configs on a best-effort compatibility basis. Future unsupported workspace schema major versions fail with an explicit upgrade error instead of silently reading incompatible data.
 
 ## Migration Policy
 

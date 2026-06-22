@@ -8,14 +8,14 @@
 - shared-only export privacy hardening
 - file format, compatibility, and privacy model documentation
 
-## 2.0 Complete
+## 2.1 Complete
 
 - strict local release-readiness checks that aggregate stability, security, privacy, and memory hygiene
 - evidence-backed memory references for decisions, lessons, incidents, and risks
 - continuity observability reports for context compression, queues, and hygiene signals
 - Codex-first Master Harness routing for task workflow depth
 
-## Near Term After 2.0
+## Near Term After 2.1
 
 - persistent `.briefops/harness/` route, goal, finding, and verification ledgers
 - stronger Spec-Kit detection and route-aware handoff
