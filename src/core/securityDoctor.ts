@@ -1,11 +1,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { readBriefOpsConfig } from "./config.js";
+import { isStaleLockFile } from "./lock.js";
 import { listMemory } from "./memory.js";
 import { listMemoryProposals } from "./memoryProposal.js";
 import { memoryCategories, memoryFilePath, workspacePaths } from "./paths.js";
 import { listSkillPatches } from "./patch.js";
-import { pathExists, readTextFile, readYamlFile } from "./storage.js";
+import { pathExists, readYamlFile } from "./storage.js";
 import { readWorker } from "./worker.js";
 import { memoryFileSchema } from "../schemas/memory.js";
 
@@ -36,10 +37,7 @@ async function listStaleLocks(cwd: string, staleMs: number): Promise<string[]> {
   const stale: string[] = [];
   for (const entry of entries.filter((item) => item.endsWith(".lock"))) {
     const filePath = path.join(lockDir, entry);
-    const raw = await readTextFile(filePath);
-    const createdAt = raw.match(/^created_at: (.+)$/m)?.[1]?.trim();
-    const created = createdAt ? Date.parse(createdAt) : Number.NaN;
-    if (Number.isNaN(created) || Date.now() - created > staleMs) {
+    if (await isStaleLockFile(filePath, staleMs)) {
       stale.push(entry);
     }
   }

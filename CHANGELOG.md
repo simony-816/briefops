@@ -11,6 +11,7 @@
 - Add `briefops obs continuity` for compression, continuity, queue, and memory hygiene observability without dumping private memory.
 - Add `briefops doctor --strict --json` as a local release-readiness gate across stability, security, privacy, and memory hygiene.
 - Add optional evidence anchors to memory items and memory proposals.
+- Harden lock stale detection so fresh in-progress lock files are not removed during concurrent writes.
 - Update release readiness docs and patch the esbuild lockfile to clear npm audit findings.
 
 ## 2.0.0 - 2026-06-14

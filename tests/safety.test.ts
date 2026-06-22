@@ -433,6 +433,28 @@ describe("local safety controls", () => {
     });
   });
 
+  it("does not treat fresh incomplete lock metadata as stale", async () => {
+    await withTempDir(async (dir) => {
+      await seedSafetyWorkspace(dir);
+      await ensureDirectory(`${dir}/.briefops/.locks`);
+      const freshPath = `${dir}/.briefops/.locks/fresh-incomplete.lock`;
+      const stalePath = `${dir}/.briefops/.locks/stale-incomplete.lock`;
+      await writeTextFileAtomic(freshPath, "name: fresh-incomplete\n");
+      await writeTextFileAtomic(stalePath, "name: stale-incomplete\n");
+      const oldDate = new Date("2000-01-01T00:00:00.000Z");
+      await fs.utimes(stalePath, oldDate, oldDate);
+
+      const result = await runSecurityDoctor({ cwd: dir, staleMs: 1000 });
+      expect(result.checks.find((check) => check.name === "Stale lock files")?.detail)
+        .toBe("stale-incomplete.lock");
+
+      const removed = await cleanStaleLocks({ cwd: dir, staleMs: 1000 });
+      expect(removed.some((filePath) => filePath.endsWith("stale-incomplete.lock"))).toBe(true);
+      await expect(fs.stat(freshPath)).resolves.toBeTruthy();
+      await expect(fs.stat(stalePath)).rejects.toThrow();
+    });
+  });
+
   it("serializes concurrent direct memory adds", async () => {
     await withTempDir(async (dir) => {
       await seedSafetyWorkspace(dir);

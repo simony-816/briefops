@@ -29,7 +29,7 @@ function lockDir(cwd: string): string {
   return path.join(workspacePaths(cwd).root, ".locks");
 }
 
-async function isStale(filePath: string, staleMs: number): Promise<boolean> {
+export async function isStaleLockFile(filePath: string, staleMs: number): Promise<boolean> {
   if (!(await pathExists(filePath))) {
     return false;
   }
@@ -38,8 +38,22 @@ async function isStale(filePath: string, staleMs: number): Promise<boolean> {
     const raw = await readTextFile(filePath);
     const createdAt = raw.match(/^created_at: (.+)$/m)?.[1]?.trim();
     const created = createdAt ? Date.parse(createdAt) : Number.NaN;
-    return Number.isNaN(created) || Date.now() - created > staleMs;
+    if (!Number.isNaN(created)) {
+      return Date.now() - created > staleMs;
+    }
   } catch {
+    // Fall back to mtime below. A competing writer may have created the lock
+    // before its metadata is readable, and fresh malformed locks must not be
+    // removed while still active.
+  }
+
+  try {
+    const stat = await fs.stat(filePath);
+    return Date.now() - stat.mtimeMs > staleMs;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
     return true;
   }
 }
@@ -68,7 +82,7 @@ async function acquireLock(options: Required<WorkspaceLockOptions>): Promise<str
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
         throw error;
       }
-      if (await isStale(filePath, options.staleMs)) {
+      if (await isStaleLockFile(filePath, options.staleMs)) {
         await fs.unlink(filePath).catch(() => undefined);
         continue;
       }
@@ -116,7 +130,7 @@ export async function cleanStaleLocks(options: {
   const entries = await fs.readdir(dirPath);
   for (const entry of entries.filter((item) => item.endsWith(".lock"))) {
     const filePath = path.join(dirPath, entry);
-    if (await isStale(filePath, options.staleMs ?? defaultStaleMs)) {
+    if (await isStaleLockFile(filePath, options.staleMs ?? defaultStaleMs)) {
       await fs.unlink(filePath).catch(() => undefined);
       removed.push(filePath);
     }
