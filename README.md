@@ -46,7 +46,9 @@ BriefOps can generate Codex skill-plugin assets, but the plugin calls the local 
 
 ## Release Status
 
-BriefOps 2.1 is intended for developers who want a local-first memory and context ledger for AI coding agents. The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
+BriefOps 2.1.1 is the current npm-ready release for developers who want a local-first memory and context ledger for AI coding agents. It packages the 2.1 Master Harness routing, continuity observability, strict release-readiness checks, evidence anchors, and workspace-lock hardening that were prepared after 2.0.
+
+The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
 
 - local files first
 - no hosted service required
@@ -68,6 +70,13 @@ Before publishing a repository or sharing generated context, review:
 - `docs/privacy-model.md` for export-policy and local data boundaries.
 
 ## Install
+
+From npm:
+
+```bash
+npm install -g briefops
+briefops --version
+```
 
 From this repository:
 
@@ -264,6 +273,8 @@ briefops harness matrix
 
 The router classifies work across bug fixes, features, refactors, dependency upgrades, UI changes, test repairs, incidents, documentation, architecture decisions, research, code review, and release preparation. It returns the required specification, planning, goal ledger, findings, verification, memory update, artifacts, exit criteria, and final response contract.
 
+In 2.1.x this is a routing contract, not a forced process engine. Tiny fixes can stay light; release, incident, UI, and larger feature work can require evidence, findings, and handoff discipline.
+
 See `docs/master-harness.md` for the Codex-compatible BriefOps Master Harness architecture and MVP plan.
 
 ## Context Minimalism
@@ -329,7 +340,9 @@ Before `npm publish`, run the local release checks and review the package conten
 ```bash
 npm run build
 npm test
+npm audit --audit-level=moderate
 npm pack --dry-run
+npm run verify:release
 ```
 
 Run `npm audit --audit-level=moderate` or `npm run verify:release` only from an environment where sending dependency metadata to the npm registry is acceptable.
@@ -339,6 +352,7 @@ Confirm:
 - generated harness files are routers, not `.briefops` memory dumps
 - `briefops --version` matches `package.json`
 - `.briefops/` is ignored or intentionally curated
+- `npm view briefops versions --json` does not already include the target version
 - `SECURITY.md`, `CHANGELOG.md`, and the release checklist reflect the shipped behavior
 - `npm pack --dry-run` includes `dist`, docs, examples, plugins, README, LICENSE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, and CHANGELOG
 

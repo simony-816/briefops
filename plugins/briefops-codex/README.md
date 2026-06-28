@@ -25,6 +25,8 @@ The generated local plugin copy is written to:
 
 BriefOps plugin skills treat `.briefops/` memory as local repo state. Explicit confirmation is reserved for exporting private memory outside the workspace or applying skill patches.
 
+Use `briefops-route-task` at the start of development work when Codex should classify the task before implementation. It routes small fixes, features, refactors, UI work, incidents, research, code review, and release preparation to the smallest sufficient workflow depth.
+
 For repo-level harness guidance, generate router files:
 
 ```bash

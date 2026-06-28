@@ -10,6 +10,7 @@ npm pack --dry-run
 npm run verify:release
 briefops --help
 npm whoami
+npm view briefops versions --json
 ```
 
 `npm audit --audit-level=moderate` is included in `npm run verify:release`. It contacts the npm registry and sends dependency/audit metadata, so run it only from an environment where that network disclosure is acceptable.
@@ -50,7 +51,9 @@ briefops memory prune --dry-run
 Confirm:
 
 - `briefops --version` matches `package.json`.
-- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 2.1 public behavior and current workspace file contract.
+- `docs/file-format.md`, `docs/compatibility.md`, and `docs/privacy-model.md` describe the 2.1.x public behavior and current workspace file contract.
+- The target package version is not already present in `npm view briefops versions --json`.
+- npm authentication has read-write access to the `briefops` package.
 - `briefops harness route` returns the workflow depth, artifacts, exit criteria, and final-response contract for the task.
 - `briefops obs continuity` reports compression, continuity, queues, and memory hygiene counts without dumping private memory.
 - Harness exports are routers, not memory dumps.
@@ -75,5 +78,7 @@ git status --short --branch
 git tag v<version>
 git push origin HEAD
 git push origin v<version>
+npm view briefops versions --json
 npm publish
+npm view briefops version
 ```

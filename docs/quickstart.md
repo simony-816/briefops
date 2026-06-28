@@ -1,5 +1,22 @@
 # Quickstart
 
+## Install
+
+For normal use:
+
+```bash
+npm install -g briefops
+briefops --version
+```
+
+For repository development:
+
+```bash
+npm install
+npm run build
+npm test
+```
+
 ## Codex First Context Path
 
 ```bash

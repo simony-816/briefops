@@ -8,6 +8,7 @@
 
 - Refresh the development dependency baseline for Node.js type definitions and Vitest lockfile resolution.
 - Prepare the npm package version for the next patch publication after the GitHub-only `v2.1.0` tag.
+- Clarify npm install, release readiness, and 2.1.x public documentation.
 
 ## 2.1.0 - 2026-06-22
 
