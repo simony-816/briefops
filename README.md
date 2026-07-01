@@ -59,7 +59,7 @@ The public CLI behavior and workspace file-format policy are documented in `docs
 
 For privacy guarantees, see `docs/privacy-model.md`.
 
-## Open Source Trust Boundary
+## Publishing And Sharing Boundary
 
 Before publishing a repository or sharing generated context, review:
 
@@ -68,6 +68,13 @@ Before publishing a repository or sharing generated context, review:
 - `CHANGELOG.md` for release notes.
 - `docs/file-format.md` and `docs/compatibility.md` for the local data contract.
 - `docs/privacy-model.md` for export-policy and local data boundaries.
+
+## Use Cases And Workflows
+
+BriefOps helps AI coding threads carry context across issue triage, pull request review, release readiness, incident follow-up, and long-running repository maintenance work.
+
+- [Use Cases](docs/use-cases.md)
+- [Repository Maintenance Workflows](docs/repository-maintenance-workflows.md)
 
 ## Install
 
