@@ -67,6 +67,18 @@ function policyLines(exportPolicy: ExportPolicy): string[] {
   ];
 }
 
+function environmentGateLines(): string[] {
+  return [
+    "Before any BriefOps command, run the environment gate:",
+    "",
+    "```bash",
+    "command -v briefops >/dev/null 2>&1",
+    "```",
+    "",
+    "If `briefops` is not on `PATH`, stop and report `Status: setup-required`. Do not continue by silently skipping BriefOps; ask the user to install `briefops`, use `npx briefops@latest`, or explicitly continue from an already supplied Brief/Spec/Plan."
+  ];
+}
+
 function renderAgentsMd(options: RenderOptions): string {
   const worker = options.worker ?? "<worker>";
   return [
@@ -78,7 +90,9 @@ function renderAgentsMd(options: RenderOptions): string {
     "",
     "## Start Of Work",
     "",
-    "Before broad repo/history inspection, run:",
+    ...environmentGateLines(),
+    "",
+    "After the environment gate passes, run before broad repo/history inspection:",
     "",
     "```bash",
     `briefops prime --format codex --task ${shellValue("<current task>")} --max-tokens 800`,
@@ -135,7 +149,9 @@ function renderClaudeMd(options: RenderOptions): string {
     "",
     "## Before Starting Work",
     "",
-    "Run:",
+    ...environmentGateLines(),
+    "",
+    "After the environment gate passes, run:",
     "",
     "```bash",
     `briefops prime --format markdown --task ${shellValue("<current task>")} --max-tokens 800`,
@@ -216,7 +232,9 @@ function renderCursorRules(options: RenderOptions): Array<{ relativePath: string
           "This repository uses BriefOps for local AI coding continuity.",
           policyNote.trim() ? policyNote.trimStart() : undefined,
           "",
-          "Before broad repo/history inspection, run:",
+          ...environmentGateLines(),
+          "",
+          "After the environment gate passes and before broad repo/history inspection, run:",
           "",
           "```bash",
           `briefops prime --format codex --task ${shellValue("<current task>")} --max-tokens 800`,

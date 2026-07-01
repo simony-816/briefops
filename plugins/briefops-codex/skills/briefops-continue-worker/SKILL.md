@@ -7,6 +7,8 @@ description: Use when continuing a persistent BriefOps worker in a fresh Codex t
 
 The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace.
 
+Before any BriefOps command, run `command -v briefops`. If `briefops` is not on `PATH`, stop and report `Status: setup-required`. Do not continue by silently skipping BriefOps. Ask the user to install `briefops`, use `npx briefops@latest`, or explicitly continue from an already supplied Brief/Spec/Plan.
+
 BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.
 
 Use this workflow when the user wants a fresh Codex thread to continue prior work with the same worker identity, project constraints, memory, and risks.

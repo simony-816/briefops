@@ -26,6 +26,9 @@ describe("bootstrap workspace", () => {
       const gitignore = await fs.readFile(path.join(dir, ".gitignore"), "utf8");
 
       expect(agents).toContain("briefops prime --format codex");
+      expect(agents).toContain("command -v briefops");
+      expect(agents).toContain("Status: setup-required");
+      expect(agents).toContain("Do not continue by silently skipping BriefOps");
       expect(agents).toContain("briefops bootstrap");
       expect(gitignore).toContain(".briefops/");
       await expect(

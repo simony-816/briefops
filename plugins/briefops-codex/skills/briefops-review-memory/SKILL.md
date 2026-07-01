@@ -7,6 +7,8 @@ description: Use when BriefOps reports pending local memory proposals or skill p
 
 The BriefOps plugin is a local CLI helper. It does not require network access and does not publish to a marketplace.
 
+Before any BriefOps command, run `command -v briefops`. If `briefops` is not on `PATH`, stop and report `Status: setup-required`. Do not continue by silently skipping BriefOps. Ask the user to install `briefops`, use `npx briefops@latest`, or explicitly continue from an already supplied Brief/Spec/Plan.
+
 BriefOps may update directory-local `.briefops/` memory. Use `--export-policy shared-only` before copying context outside the local workspace, and ask before applying skill patches.
 
 BriefOps memory is directory-local. Pending memory proposals are optional audit/review drafts; they should not block normal continuation.

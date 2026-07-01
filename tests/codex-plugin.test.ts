@@ -43,6 +43,14 @@ describe("Codex plugin package", () => {
       files.find((file) => file.relativePath === "skills/briefops-prime-context/SKILL.md")
         ?.content
     ).toContain("briefops bootstrap");
+    expect(
+      files.find((file) => file.relativePath === "skills/briefops-prime-context/SKILL.md")
+        ?.content
+    ).toContain("command -v briefops");
+    expect(
+      files.find((file) => file.relativePath === "skills/briefops-prime-context/SKILL.md")
+        ?.content
+    ).toContain("Do not continue by silently skipping BriefOps");
   });
 
   it("keeps committed plugin files in sync with generated content", async () => {

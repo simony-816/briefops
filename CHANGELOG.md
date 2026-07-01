@@ -4,6 +4,10 @@
 
 - No changes yet.
 
+## 2.1.2 - 2026-07-01
+
+- Add an explicit BriefOps environment gate to generated startup guidance so missing `briefops` on `PATH` becomes `Status: setup-required` instead of a silently skipped prime step.
+
 ## 2.1.1 - 2026-06-28
 
 - Refresh the development dependency baseline for Node.js type definitions and Vitest lockfile resolution.

@@ -65,6 +65,9 @@ describe("harness router exports", () => {
 
     expect(result.files).toHaveLength(1);
     expect(result.files[0].path).toBe("/tmp/repo/AGENTS.md");
+    expect(result.files[0].content).toContain("command -v briefops");
+    expect(result.files[0].content).toContain("Status: setup-required");
+    expect(result.files[0].content).toContain("Do not continue by silently skipping BriefOps");
     expect(result.files[0].content).toContain("briefops prime --format codex");
     expect(result.files[0].content).toContain("BriefOps memory is local repo state");
     expect(result.files[0].content).not.toContain("Accumulated Lessons");
@@ -80,6 +83,8 @@ describe("harness router exports", () => {
     });
 
     expect(result.files[0].path).toBe("/tmp/repo/CLAUDE.md");
+    expect(result.files[0].content).toContain("command -v briefops");
+    expect(result.files[0].content).toContain("Status: setup-required");
     expect(result.files[0].content).toContain("briefops prime --format markdown");
     expect(result.files[0].content).toContain("Local Memory");
     expect(result.files[0].content).not.toContain("@.briefops");
@@ -100,6 +105,8 @@ describe("harness router exports", () => {
       "briefops-memory-review.mdc",
       "briefops-continue.mdc"
     ]);
+    expect(result.files[0].content).toContain("command -v briefops");
+    expect(result.files[0].content).toContain("Status: setup-required");
     expect(result.files[0].content).toContain("alwaysApply: true");
     for (const file of result.files.slice(1)) {
       expect(file.content).toContain("alwaysApply: false");
@@ -138,6 +145,7 @@ describe("harness router exports", () => {
       await expectCli(dir, ["export", "all", "--worker", "quant-reviewer"]);
 
       expect(await fs.readFile(path.join(dir, "AGENTS.md"), "utf8")).toContain("briefops prime");
+      expect(await fs.readFile(path.join(dir, "AGENTS.md"), "utf8")).toContain("command -v briefops");
       expect(await fs.readFile(path.join(dir, "CLAUDE.md"), "utf8")).toContain("Claude Code");
       expect(
         await fs.readFile(path.join(dir, ".cursor/rules/briefops-prime.mdc"), "utf8")

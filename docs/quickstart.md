@@ -19,6 +19,14 @@ npm test
 
 ## Codex First Context Path
 
+Start a fresh thread with the BriefOps environment gate:
+
+```bash
+command -v briefops >/dev/null 2>&1
+```
+
+If `briefops` is not on `PATH`, stop and report `Status: setup-required`. Do not continue by silently skipping BriefOps; install with `npm install -g briefops`, use `npx briefops@latest`, or explicitly continue from an already supplied Brief/Spec/Plan.
+
 ```bash
 briefops bootstrap
 briefops skill create risk-review --description "Review risk and governance."

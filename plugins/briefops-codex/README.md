@@ -15,6 +15,14 @@ briefops worker use <worker>
 briefops prime --task "Start this task." --format codex
 ```
 
+At the start of a fresh thread, the first check is the BriefOps environment gate:
+
+```bash
+command -v briefops
+```
+
+If `briefops` is not on `PATH`, stop and report `Status: setup-required`. Do not continue by silently skipping BriefOps; install with `npm install -g briefops`, use `npx briefops@latest`, or explicitly continue from an already supplied Brief/Spec/Plan.
+
 `briefops bootstrap` initializes `.briefops/`, installs `AGENTS.md` first-context guidance, writes local Codex prompt/plugin assets, keeps `.briefops/` ignored by default, and runs bounded privacy/stability checks.
 
 The generated local plugin copy is written to:

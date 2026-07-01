@@ -22,10 +22,15 @@ describe("codex prompt pack", () => {
 
       expect(result.promptDir).toContain(".briefops/codex/prompts");
       expect(agents).toContain("BriefOps Codex Guidance");
+      expect(agents).toContain("command -v briefops");
+      expect(agents).toContain("Status: setup-required");
+      expect(agents).toContain("Do not continue by silently skipping BriefOps");
       expect(agents).toContain("briefops prime --format codex");
       expect(agents).toContain("briefops bootstrap");
       expect(agents).toContain("briefops codex mission");
-      await expect(fs.stat(path.join(result.promptDir, "prime.md"))).resolves.toBeTruthy();
+      const primePrompt = await fs.readFile(path.join(result.promptDir, "prime.md"), "utf8");
+      expect(primePrompt).toContain("command -v briefops");
+      expect(primePrompt).toContain("Status: setup-required");
     });
   });
 
