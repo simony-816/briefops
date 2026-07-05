@@ -4,6 +4,11 @@
 
 - No changes yet.
 
+## 2.1.3 - 2026-07-05
+
+- Add lightweight utility evaluation documentation and example eval logs.
+- Refresh the npm lockfile after dependency update with zero reported audit vulnerabilities.
+
 ## 2.1.2 - 2026-07-01
 
 - Add an explicit BriefOps environment gate to generated startup guidance so missing `briefops` on `PATH` becomes `Status: setup-required` instead of a silently skipped prime step.
