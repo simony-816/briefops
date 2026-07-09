@@ -261,7 +261,7 @@ git commit -m "fix: honor Codex modes and neutralize worker defaults"
 - Adds finish option/flag: `applyInferredMemory?: boolean` / `--apply-inferred-memory`.
 - Preserves legacy memory and proposal parsing through defaults.
 
-- [ ] **Step 1: Write failing selection tests**
+- [x] **Step 1: Write failing selection tests**
 
 Add tests that create current-project, other-project, and global memory. Select for the current project and assert:
 
@@ -280,7 +280,7 @@ expect(selected.items.map((item) => item.id)).not.toContain(unverified.id);
 expect(selected.items.map((item) => item.id)).not.toContain(superseded.id);
 ```
 
-- [ ] **Step 2: Write failing promotion tests**
+- [x] **Step 2: Write failing promotion tests**
 
 Add a `finishWork` test where only a failure-sounding result and normative next step create inferred entries. Assert the proposal remains `proposed` and the warnings include:
 
@@ -290,7 +290,7 @@ Add a `finishWork` test where only a failure-sounding result and normative next 
 
 Add a second test with explicit lessons/decisions only and assert the proposal remains auto-applied.
 
-- [ ] **Step 3: Verify RED**
+- [x] **Step 3: Verify RED**
 
 Run:
 
@@ -300,7 +300,7 @@ npm test -- tests/memory.test.ts tests/prime.test.ts tests/persistent-worker.tes
 
 Expected: other-project memory remains eligible, shared-only selection can be starved, and inferred proposals auto-apply.
 
-- [ ] **Step 4: Extend memory schemas compatibly**
+- [x] **Step 4: Extend memory schemas compatibly**
 
 In `src/schemas/memory.ts`, add:
 
@@ -325,7 +325,7 @@ last_verified_at: z.string().datetime().optional(),
 supersedes: z.array(z.string().min(1)).default([])
 ```
 
-- [ ] **Step 5: Filter before scoring and quotas**
+- [x] **Step 5: Filter before scoring and quotas**
 
 Extend `SelectRelevantMemoryOptions` and select candidates in this order:
 
@@ -356,13 +356,13 @@ const candidates = active.filter((item) => {
 
 Pass `exportPolicy` into prime and handoff selection before quotas. Keep the final export filter as defense in depth.
 
-- [ ] **Step 6: Preserve trust metadata when adding and applying memory**
+- [x] **Step 6: Preserve trust metadata when adding and applying memory**
 
 Extend `AddMemoryOptions` and `addMemoryUnlocked` to write the new fields. When applying a proposal, pass through `confidence`, `last_verified_at`, and `supersedes`.
 
 Mark explicit log arrays and prefixed notes with `origin: "explicit"`, `confidence: "verified"`. Mark result-derived incidents and normative-next-step decisions with `origin: "inferred"`, `confidence: "unverified"`.
 
-- [ ] **Step 7: Require review for inferred proposals**
+- [x] **Step 7: Require review for inferred proposals**
 
 Add `applyInferredMemory?: boolean` to `FinishWorkOptions`. After proposal creation, compute:
 
@@ -383,7 +383,7 @@ Add the Commander option:
 )
 ```
 
-- [ ] **Step 8: Verify GREEN and compatibility**
+- [x] **Step 8: Verify GREEN and compatibility**
 
 Run:
 
@@ -394,7 +394,7 @@ npm run build
 
 Expected: all targeted tests pass and legacy fixtures parse with verified/default metadata.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/schemas/memory.ts src/schemas/memoryProposal.ts src/core/memory.ts src/core/memoryProposal.ts src/core/prime.ts src/core/handoff.ts src/core/workflow.ts src/commands/finish.ts tests/memory.test.ts tests/prime.test.ts tests/persistent-worker.test.ts tests/compatibility-contract.test.ts
