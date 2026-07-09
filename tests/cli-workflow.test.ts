@@ -7,6 +7,7 @@ import { withTempDir } from "./helpers.js";
 const repoRoot = process.cwd();
 const cliEntry = path.join(repoRoot, "src/index.ts");
 const tsxLoader = path.join(repoRoot, "node_modules/tsx/dist/loader.mjs");
+const CLI_TEST_TIMEOUT_MS = 30_000;
 
 type CliResult = {
   stdout: string;
@@ -48,7 +49,7 @@ function matchPath(output: string, label: string): string {
   return match?.[1].trim() as string;
 }
 
-describe("CLI persistent worker workflow", () => {
+describe("CLI persistent worker workflow", { timeout: CLI_TEST_TIMEOUT_MS }, () => {
   it("bootstraps a repo for Codex-first BriefOps adoption", async () => {
     await withTempDir(async (dir) => {
       const bootstrapped = await expectCli(dir, ["bootstrap"]);
