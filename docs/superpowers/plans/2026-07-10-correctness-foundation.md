@@ -30,7 +30,7 @@
 
 **Interfaces:**
 - Consumes: Vitest `describe(name, options, handler)` suite options.
-- Produces: A named `CLI_SUITE_TIMEOUT_MS` constant set to `15_000` in each CLI-spawning test file.
+- Produces: A named `CLI_TEST_TIMEOUT_MS` constant set to `30_000` in each CLI-spawning test file.
 
 - [ ] **Step 1: Reproduce the baseline timeout failure**
 
@@ -47,22 +47,26 @@ Expected: one or more tests fail only with `Test timed out in 5000ms`; no assert
 In each file, add the constant next to the CLI path constants:
 
 ```ts
-const CLI_SUITE_TIMEOUT_MS = 15_000;
+const CLI_TEST_TIMEOUT_MS = 30_000;
 ```
 
 Change only the CLI-spawning suite declaration:
 
 ```ts
-describe("CLI persistent worker workflow", { timeout: CLI_SUITE_TIMEOUT_MS }, () => {
+describe("CLI persistent worker workflow", { timeout: CLI_TEST_TIMEOUT_MS }, () => {
 ```
 
 and:
 
 ```ts
-describe("harness router exports", { timeout: CLI_SUITE_TIMEOUT_MS }, () => {
+describe("harness router exports", { timeout: CLI_TEST_TIMEOUT_MS }, () => {
 ```
 
 Do not change global Vitest timeouts and do not add sleeps or retries.
+
+The 30-second per-test budget is based on measured local process startup of
+1.26–1.69 seconds and up to seven serial CLI launches in one integration test.
+It preserves roughly 2.5x headroom without weakening unit-test timeouts.
 
 - [ ] **Step 3: Verify the targeted suites**
 
