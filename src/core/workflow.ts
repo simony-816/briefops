@@ -27,6 +27,7 @@ export type FinishWorkOptions = AddWorkLogOptions & {
   importance?: "trivial" | "normal" | "durable" | "incident" | string;
   noMemoryProposal?: boolean;
   memoryReview?: boolean;
+  applyInferredMemory?: boolean;
   proposeSkillPatch?: boolean;
   refreshWorker?: boolean;
   continueTask?: string;
@@ -181,8 +182,10 @@ export async function finishWork(options: FinishWorkOptions): Promise<FinishWork
         memoryProposalId = memoryProposal.proposal.id;
         memoryProposalPath = memoryProposal.path;
         memoryProposalStatus = memoryProposal.proposal.status;
-        if (options.memoryReview) {
+        const hasInferredMemory = memoryProposal.proposal.items.some((item) => item.origin === "inferred");
+        if (options.memoryReview || (hasInferredMemory && !options.applyInferredMemory)) {
           warnings.push("Memory left as a review proposal by --memory-review.");
+          if (hasInferredMemory && !options.applyInferredMemory) warnings.push("Inferred memory requires review; use --apply-inferred-memory to apply it explicitly.");
         } else {
           const applied = await applyMemoryProposal({
             cwd,

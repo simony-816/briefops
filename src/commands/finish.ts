@@ -22,6 +22,7 @@ export function registerFinishCommand(program: Command): void {
     .option("--importance <importance>", "trivial|normal|durable|incident", "normal")
     .option("--no-memory-proposal", "Skip memory proposal generation.")
     .option("--memory-review", "Leave durable memory as a pending review proposal instead of applying it locally.")
+    .option("--apply-inferred-memory", "Apply result/next-step memory inferred by deterministic heuristics.")
     .option("--propose-skill-patch", "Also propose a skill patch from log lessons.")
     .option("--refresh-worker", "Refresh the worker summary after logging.")
     .option("--continue-task <task>", "Task text to use in the printed continue command.")
@@ -43,6 +44,7 @@ export function registerFinishCommand(program: Command): void {
         importance: options.importance as string | undefined,
         noMemoryProposal: Boolean(options.noMemoryProposal),
         memoryReview: Boolean(options.memoryReview),
+        applyInferredMemory: Boolean(options.applyInferredMemory),
         proposeSkillPatch: Boolean(options.proposeSkillPatch),
         refreshWorker: Boolean(options.refreshWorker),
         continueTask: options.continueTask as string | undefined

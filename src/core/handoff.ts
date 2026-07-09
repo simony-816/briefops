@@ -300,6 +300,7 @@ export async function generateHandoff(options: GenerateHandoffOptions): Promise<
     project: context.project,
     skill: context.skills[0],
     skills: context.skills,
+    exportPolicy,
     worker: context.worker,
     task: context.task,
     maxTokens:

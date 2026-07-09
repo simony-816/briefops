@@ -117,4 +117,21 @@ describe("memory", () => {
       expect(formatMemoryItem(item)).toContain("evidence: src/risk.ts:12-20#abcdef123456,docs/policy.md");
     });
   });
+
+  it("filters project scope, export policy, unverified, and superseded before scoring", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      const current = await addMemory({ cwd: dir, type: "decisions", project: "current", content: "Current project decision.", visibility: "shared", exportable: true });
+      await addMemory({ cwd: dir, type: "decisions", project: "other", content: "Other project decision.", visibility: "shared", exportable: true });
+      await addMemory({ cwd: dir, type: "decisions", content: "Global decision.", visibility: "shared", exportable: true });
+      const unverified = await addMemory({ cwd: dir, type: "lessons", project: "current", content: "Unverified decision.", confidence: "unverified" });
+      await addMemory({ cwd: dir, type: "decisions", project: "current", content: "Superseding decision.", supersedes: [unverified.id] });
+      const selected = await selectRelevantMemory({ cwd: dir, project: "current", maxTokens: 500, exportPolicy: "shared-only" });
+      expect(selected.items.map((item) => item.content)).toContain("Current project decision.");
+      expect(selected.items.map((item) => item.content)).toContain("Global decision.");
+      expect(selected.items.map((item) => item.content)).not.toContain("Other project decision.");
+      expect(selected.items.map((item) => item.id)).toContain(current.id);
+      expect(selected.items.map((item) => item.id)).not.toContain(unverified.id);
+    });
+  });
 });

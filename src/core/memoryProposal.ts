@@ -75,7 +75,10 @@ function extractPrefixedNotes(notes: string, prefix: "decision" | "fact"): Memor
       visibility: "private" as const,
       exportable: false,
       evidence: [],
-      rationale: `Extracted from work log note prefix: ${prefix}.`
+      rationale: `Extracted from work log note prefix: ${prefix}.`,
+      origin: "explicit" as const,
+      confidence: "verified" as const
+      ,supersedes: []
     }));
 }
 
@@ -93,6 +96,8 @@ function entry(options: {
   source: string;
   rationale: string;
   evidence?: MemoryProposalEntry["evidence"];
+  origin?: MemoryProposalEntry["origin"];
+  confidence?: MemoryProposalEntry["confidence"];
 }): MemoryProposalEntry {
   const category = ({
     fact: "facts",
@@ -111,7 +116,10 @@ function entry(options: {
     visibility: "private",
     exportable: false,
     evidence: options.evidence ?? [],
-    rationale: options.rationale
+    rationale: options.rationale,
+    origin: options.origin ?? "explicit",
+    confidence: options.confidence ?? "verified"
+    ,supersedes: []
   };
 }
 
@@ -195,7 +203,9 @@ async function proposeMemoryFromLogUnlocked(
           content: step,
           source: log.id,
           rationale: "Extracted from normative work log next step.",
-          evidence
+          evidence,
+          origin: "inferred",
+          confidence: "unverified"
         })
       ),
     ...extractPrefixedNotes(log.notes, "decision"),
@@ -208,7 +218,9 @@ async function proposeMemoryFromLogUnlocked(
       content: log.result,
       source: log.id,
       rationale: "Extracted from work log result because it contains failure/risk language.",
-      evidence
+      evidence,
+      origin: "inferred",
+      confidence: "unverified"
     }));
   }
 
@@ -335,7 +347,10 @@ export async function applyMemoryProposalUnlocked(options: {
       source: entry.source ?? proposal.from_log,
       visibility: entry.visibility,
       exportable: entry.exportable,
-      evidence: entry.evidence
+      evidence: entry.evidence,
+      confidence: entry.confidence,
+      last_verified_at: entry.last_verified_at,
+      supersedes: entry.supersedes
     });
     if (result.created) {
       created += 1;

@@ -756,7 +756,8 @@ describe("persistent worker continuity", () => {
         openRisks: ["Slippage assumptions were not verified against the project risk policy."],
         nextSteps: ["Inspect risk policy and add slippage verification to the review checklist."],
         commands: "npm test,npm run build",
-        refreshWorker: true
+        refreshWorker: true,
+        applyInferredMemory: true
       });
       expect(finished.nextCommand).toContain("briefops continue");
       expect(finished.memoryProposalId).toContain("memprop_");
@@ -793,6 +794,25 @@ describe("persistent worker continuity", () => {
     });
   });
 
+  it("auto-applies explicit memory and keeps inferred memory pending", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const explicit = await finishWork({
+        cwd: dir, project: "atlas-q", skill: "risk-review", worker: "quant-reviewer",
+        task: "Record explicit review guidance.", result: "Review completed successfully.",
+        lessons: ["Always verify the review checklist."], decisions: ["Use the checklist before merge."]
+      });
+      expect(explicit.memoryProposalStatus).toBe("applied");
+
+      const inferred = await finishWork({
+        cwd: dir, project: "atlas-q", skill: "risk-review", worker: "quant-reviewer",
+        task: "Record inferred risk.", result: "Found failed validation.", nextSteps: ["Must verify validation before merge."]
+      });
+      expect(inferred.memoryProposalStatus).toBe("proposed");
+      expect(inferred.warnings).toContain("Inferred memory requires review; use --apply-inferred-memory to apply it explicitly.");
+    });
+  });
+
   it("auto-promotes finish memory while preserving immediate handoff continuity", async () => {
     await withTempDir(async (dir) => {
       await seedContinuityWorkspace(dir);
@@ -807,6 +827,7 @@ describe("persistent worker continuity", () => {
         decisions: ["Keep local memory promotion separate from shared-only export."],
         openRisks: ["Cache invalidation behavior still needs a regression test."],
         nextSteps: ["Add regression coverage for cache invalidation."]
+        ,applyInferredMemory: true
       });
 
       expect(finished.memoryProposalId).toContain("memprop_");

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { memoryCategories } from "../core/paths.js";
 import {
   memoryEvidenceSchema,
+  memoryConfidences,
   memoryItemTypes,
   memoryStatuses,
   memoryVisibilities
@@ -19,7 +20,11 @@ export const memoryProposalEntrySchema = z.object({
   visibility: z.enum(memoryVisibilities).default("private"),
   exportable: z.boolean().default(false),
   evidence: z.array(memoryEvidenceSchema).default([]),
-  rationale: z.string().default("")
+  rationale: z.string().default(""),
+  origin: z.enum(["explicit", "inferred"]).default("explicit"),
+  confidence: z.enum(memoryConfidences).default("verified"),
+  last_verified_at: z.string().datetime().optional(),
+  supersedes: z.array(z.string().min(1)).default([])
 }).transform((entry) => ({
   ...entry,
   category: entry.category ?? ({
