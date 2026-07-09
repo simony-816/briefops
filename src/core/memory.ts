@@ -492,8 +492,9 @@ export async function selectRelevantMemory(
 ): Promise<{ items: MemoryItem[]; text: string; tokens: number; omitted: number; selections: MemorySelection[]; omittedSelections: MemorySelection[] }> {
   const types = options.types?.map(normalizeMemoryCategory);
   const exportPolicy = normalizeExportPolicy(options.exportPolicy);
-  const active = filterMemoryForExport(await listMemory({ cwd: options.cwd, status: "active" }), exportPolicy);
-  const supersededIds = new Set(active.flatMap((item) => item.supersedes));
+  const allActive = await listMemory({ cwd: options.cwd, status: "active" });
+  const supersededIds = new Set(allActive.flatMap((item) => item.supersedes));
+  const active = filterMemoryForExport(allActive, exportPolicy);
   const candidates = active.filter((item) => {
     const category = itemTypeToCategory[item.type];
     if (options.project && item.project && item.project !== normalizeName(options.project)) return false;

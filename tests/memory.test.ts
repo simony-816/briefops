@@ -134,4 +134,14 @@ describe("memory", () => {
       expect(selected.items.map((item) => item.id)).not.toContain(unverified.id);
     });
   });
+
+  it("hides shared memory superseded by private memory in shared-only exports", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      const target = await addMemory({ cwd: dir, type: "decisions", content: "Shared decision replaced.", visibility: "shared", exportable: true });
+      await addMemory({ cwd: dir, type: "decisions", content: "Private replacement.", supersedes: [target.id] });
+      const selected = await selectRelevantMemory({ cwd: dir, maxTokens: 300, exportPolicy: "shared-only" });
+      expect(selected.items.map((item) => item.id)).not.toContain(target.id);
+    });
+  });
 });
