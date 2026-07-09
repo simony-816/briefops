@@ -32,7 +32,7 @@
 - Consumes: Vitest `describe(name, options, handler)` suite options.
 - Produces: A named `CLI_TEST_TIMEOUT_MS` constant set to `30_000` in each CLI-spawning test file.
 
-- [ ] **Step 1: Reproduce the baseline timeout failure**
+- [x] **Step 1: Reproduce the baseline timeout failure**
 
 Run:
 
@@ -42,7 +42,7 @@ npm test -- tests/cli-workflow.test.ts tests/export-targets.test.ts --reporter=d
 
 Expected: one or more tests fail only with `Test timed out in 5000ms`; no assertion mismatch is required for this infrastructure RED case.
 
-- [ ] **Step 2: Add an explicit suite-local process budget**
+- [x] **Step 2: Add an explicit suite-local process budget**
 
 In each file, add the constant next to the CLI path constants:
 
@@ -68,7 +68,7 @@ The 30-second per-test budget is based on measured local process startup of
 1.26–1.69 seconds and up to seven serial CLI launches in one integration test.
 It preserves roughly 2.5x headroom without weakening unit-test timeouts.
 
-- [ ] **Step 3: Verify the targeted suites**
+- [x] **Step 3: Verify the targeted suites**
 
 Run:
 
@@ -78,7 +78,7 @@ npm test -- tests/cli-workflow.test.ts tests/export-targets.test.ts --reporter=d
 
 Expected: both files pass with no timeout or assertion failures.
 
-- [ ] **Step 4: Verify the complete baseline suite**
+- [x] **Step 4: Verify the complete baseline suite**
 
 Run:
 
@@ -88,7 +88,7 @@ npm test -- --reporter=dot
 
 Expected: 23 files and 124 tests pass under the canonical command.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/cli-workflow.test.ts tests/export-targets.test.ts
