@@ -112,7 +112,7 @@ git commit -m "test: stabilize CLI integration time budgets"
 - Consumes: `GenerateHandoffOptions.mode` and `CodexMissionOptions.mode`.
 - Preserves: accepted values `loop`, `execute`, and `plan`; invalid values throw `BriefOpsError`.
 
-- [ ] **Step 1: Write failing resume-mode tests**
+- [x] **Step 1: Write failing resume-mode tests**
 
 Add a test in `tests/persistent-worker.test.ts` that generates a resume with `mode: "plan"` and asserts:
 
@@ -129,7 +129,7 @@ expect(execute.content).toContain(
 );
 ```
 
-- [ ] **Step 2: Write a failing generic-worker test**
+- [x] **Step 2: Write a failing generic-worker test**
 
 Create a worker named `docs-maintainer` with style `concise` and call `generateWorkerIntelligence`. Assert:
 
@@ -147,7 +147,7 @@ Also test a worker with no style:
 expect(result.content).toContain("- Verify relevant work before completion.");
 ```
 
-- [ ] **Step 3: Verify RED**
+- [x] **Step 3: Verify RED**
 
 Run:
 
@@ -157,7 +157,7 @@ npm test -- tests/persistent-worker.test.ts tests/codex.test.ts --reporter=verbo
 
 Expected: plan mode still contains the execute instruction and the generic worker still contains the quantitative-risk judgment profile.
 
-- [ ] **Step 4: Create the shared mode contract**
+- [x] **Step 4: Create the shared mode contract**
 
 Create `src/core/modelContract.ts` with:
 
@@ -186,7 +186,7 @@ export function renderCodexModeInstruction(mode: CodexMode): string {
 }
 ```
 
-- [ ] **Step 5: Use the shared mode contract in mission and resume generation**
+- [x] **Step 5: Use the shared mode contract in mission and resume generation**
 
 Remove the private `normalizeCodexMode` implementation from `src/core/codex.ts`, import the shared functions, and replace the local ternary with:
 
@@ -206,7 +206,7 @@ Replace the hard-coded execute line in the continuity contract with:
 `4. ${renderCodexModeInstruction(mode)}`,
 ```
 
-- [ ] **Step 6: Derive worker judgment from worker data**
+- [x] **Step 6: Derive worker judgment from worker data**
 
 In `generateWorkerIntelligence`, replace the three hard-coded domain rules with:
 
@@ -218,7 +218,7 @@ const judgment = worker.style.length > 0
 
 Render `judgment` under `## Judgment Profile`. Do not infer new judgment rules from unrelated project examples.
 
-- [ ] **Step 7: Verify GREEN**
+- [x] **Step 7: Verify GREEN**
 
 Run:
 
@@ -229,7 +229,7 @@ npm run build
 
 Expected: all targeted tests and TypeScript build pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/core/modelContract.ts src/core/codex.ts src/core/handoff.ts src/core/worker.ts tests/codex.test.ts tests/persistent-worker.test.ts
