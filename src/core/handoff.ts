@@ -21,6 +21,7 @@ import {
 import { estimateTokens, truncateToTokenBudget } from "./tokens.js";
 import { generateWorkerIntelligence, readWorker } from "./worker.js";
 import { requireWorkspace } from "./workspace.js";
+import { normalizeCodexMode, renderCodexModeInstruction } from "./modelContract.js";
 import { handoffSchema, type HandoffMetadata } from "../schemas/handoff.js";
 import type { TokenReportLine } from "../schemas/brief.js";
 import type { WorkLog } from "../schemas/log.js";
@@ -573,6 +574,7 @@ export async function inspectSavedHandoff(cwd: string, idOrLatest: string): Prom
 }
 
 export async function generateCodexResumeFromHandoff(options: GenerateHandoffOptions): Promise<HandoffResult> {
+  const mode = normalizeCodexMode(options.mode);
   const context = await resolveHandoffContext(options);
   const exportPolicy = normalizeExportPolicy(options.exportPolicy);
   const handoff = options.fromHandoff && exportPolicy !== "shared-only"
@@ -607,7 +609,7 @@ export async function generateCodexResumeFromHandoff(options: GenerateHandoffOpt
       "1. Read the handoff.",
       "2. Restate what is already known.",
       "3. Identify unresolved risks.",
-      "4. Execute only the current task.",
+      `4. ${renderCodexModeInstruction(mode)}`,
       "5. Verify before claiming completion.",
       "",
       "## Current Task",

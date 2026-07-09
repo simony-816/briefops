@@ -315,6 +315,9 @@ export async function generateWorkerIntelligence(options: {
   const style = worker.style.length > 0
     ? worker.style.map((item) => `- ${item}`).join("\n")
     : "- Verify before completion.";
+  const judgment = worker.style.length > 0
+    ? worker.style.map((item) => `- ${item}`).join("\n")
+    : "- Verify relevant work before completion.";
   const recent = logs.length > 0
     ? logs.map(formatRecentWork).join("\n")
     : "- No items found yet.";
@@ -337,9 +340,7 @@ export async function generateWorkerIntelligence(options: {
     "",
     "## Judgment Profile",
     "",
-    "- Prefers explicit verification before merge recommendation.",
-    "- Treats unverified risk assumptions as blocking.",
-    "- Prioritizes project governance over short-term speed.",
+    judgment,
     "",
     "## Accumulated Lessons",
     "",
