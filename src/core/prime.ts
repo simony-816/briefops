@@ -216,6 +216,7 @@ export async function primeContext(options: PrimeContextOptions = {}): Promise<P
     project,
     skills: worker.default_skills,
     worker: workerName,
+    exportPolicy,
     task,
     maxTokens: Math.max(120, Math.floor(maxTokens * 0.28)),
     quotas: {

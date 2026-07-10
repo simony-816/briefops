@@ -2,11 +2,12 @@ import { inspectMemoryHygiene } from "./memoryHygiene.js";
 import { runPrivacyDoctor } from "./privacyDoctor.js";
 import { runSecurityDoctor } from "./securityDoctor.js";
 import { runStabilityDoctor } from "./stabilityDoctor.js";
+import { runRuntimeDoctor } from "./runtimeDoctor.js";
 
 export type StrictDoctorStatus = "ok" | "warn" | "fail";
 
 export type StrictDoctorCheck = {
-  source: "stability" | "security" | "privacy" | "memory-hygiene";
+  source: "stability" | "security" | "privacy" | "memory-hygiene" | "runtime";
   name: string;
   status: StrictDoctorStatus;
   detail: string;
@@ -48,6 +49,11 @@ export async function runStrictDoctor(options: {
 } = {}): Promise<StrictDoctorResult> {
   const cwd = options.cwd ?? process.cwd();
   const checks: StrictDoctorCheck[] = [];
+
+  try {
+    const runtime = await runRuntimeDoctor({ cwd });
+    checks.push(...runtime.checks.map((check) => ({ source: "runtime" as const, ...check })));
+  } catch (error) { checks.push(failure("runtime", error)); }
 
   try {
     const stability = await runStabilityDoctor({

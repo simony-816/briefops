@@ -153,7 +153,8 @@ describe("context minimalism", () => {
         task: "Review risk policy",
         result: "Found unresolved risk.",
         lessons: ["Check unresolved risk before finishing."],
-        importance: "durable"
+        importance: "durable",
+        applyInferredMemory: true
       });
       expect(durable.memoryProposalId).toBeTruthy();
       expect(durable.memoryProposalStatus).toBe("applied");

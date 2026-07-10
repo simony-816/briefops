@@ -15,7 +15,7 @@ import {
 import { proposeSkillPatch, readSkillPatch } from "../src/core/patch.js";
 import { createProject } from "../src/core/project.js";
 import { createSkill } from "../src/core/skill.js";
-import { createWorker, readWorkerSummary, refreshWorkerSummary } from "../src/core/worker.js";
+import { createWorker, generateWorkerIntelligence, readWorkerSummary, refreshWorkerSummary } from "../src/core/worker.js";
 import { readTextFile } from "../src/core/storage.js";
 import { continueWork, finishWork, packResume } from "../src/core/workflow.js";
 import { initWorkspace } from "../src/core/workspace.js";
@@ -224,6 +224,33 @@ describe("persistent worker continuity", () => {
       expect(resume.content).toContain("Risk gate");
       expect(resume.content).toContain("<briefops-complete>DONE</briefops-complete>");
       expect(resume.savedPath).toBeTruthy();
+    });
+  });
+
+  it("honors resume mode instructions", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const plan = await generateCodexResume({ cwd: dir, worker: "quant-reviewer", task: "Plan next steps.", mode: "plan" });
+      expect(plan.content).toContain("Plan only. Do not modify product code or workspace state.");
+      expect(plan.content).not.toContain("Execute only the current task.");
+      const execute = await generateCodexResume({ cwd: dir, worker: "quant-reviewer", task: "Execute next steps.", mode: "execute" });
+      expect(execute.content).toContain("Execute only the current task, keeping changes scoped and verified.");
+    });
+  });
+
+  it("derives generic worker judgment from worker style", async () => {
+    await withTempDir(async (dir) => {
+      await initWorkspace(dir);
+      await createWorker({ cwd: dir, name: "docs-maintainer", style: "concise" });
+      const result = await generateWorkerIntelligence({ cwd: dir, name: "docs-maintainer" });
+      expect(result.content).toContain("## Judgment Profile");
+      expect(result.content).toContain("- concise");
+      expect(result.content).not.toContain("merge recommendation");
+      expect(result.content).not.toContain("unverified risk assumptions");
+      expect(result.content).not.toContain("project governance over short-term speed");
+      await createWorker({ cwd: dir, name: "plain-worker" });
+      const plain = await generateWorkerIntelligence({ cwd: dir, name: "plain-worker" });
+      expect(plain.content).toContain("- Verify relevant work before completion.");
     });
   });
 
@@ -729,7 +756,8 @@ describe("persistent worker continuity", () => {
         openRisks: ["Slippage assumptions were not verified against the project risk policy."],
         nextSteps: ["Inspect risk policy and add slippage verification to the review checklist."],
         commands: "npm test,npm run build",
-        refreshWorker: true
+        refreshWorker: true,
+        applyInferredMemory: true
       });
       expect(finished.nextCommand).toContain("briefops continue");
       expect(finished.memoryProposalId).toContain("memprop_");
@@ -766,6 +794,25 @@ describe("persistent worker continuity", () => {
     });
   });
 
+  it("auto-applies explicit memory and keeps inferred memory pending", async () => {
+    await withTempDir(async (dir) => {
+      await seedContinuityWorkspace(dir);
+      const explicit = await finishWork({
+        cwd: dir, project: "atlas-q", skill: "risk-review", worker: "quant-reviewer",
+        task: "Record explicit review guidance.", result: "Review completed successfully.",
+        lessons: ["Always verify the review checklist."], decisions: ["Use the checklist before merge."]
+      });
+      expect(explicit.memoryProposalStatus).toBe("applied");
+
+      const inferred = await finishWork({
+        cwd: dir, project: "atlas-q", skill: "risk-review", worker: "quant-reviewer",
+        task: "Record inferred risk.", result: "Found failed validation.", nextSteps: ["Must verify validation before merge."]
+      });
+      expect(inferred.memoryProposalStatus).toBe("proposed");
+      expect(inferred.warnings).toContain("Inferred memory requires review; use --apply-inferred-memory to apply it explicitly.");
+    });
+  });
+
   it("auto-promotes finish memory while preserving immediate handoff continuity", async () => {
     await withTempDir(async (dir) => {
       await seedContinuityWorkspace(dir);
@@ -780,6 +827,7 @@ describe("persistent worker continuity", () => {
         decisions: ["Keep local memory promotion separate from shared-only export."],
         openRisks: ["Cache invalidation behavior still needs a regression test."],
         nextSteps: ["Add regression coverage for cache invalidation."]
+        ,applyInferredMemory: true
       });
 
       expect(finished.memoryProposalId).toContain("memprop_");

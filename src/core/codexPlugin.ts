@@ -4,6 +4,7 @@ import { BriefOpsError } from "./errors.js";
 import { workspacePaths } from "./paths.js";
 import { pathExists, readTextFile, writeTextFile } from "./storage.js";
 import { requireWorkspace } from "./workspace.js";
+import { readBriefOpsConfig, writeBriefOpsConfig } from "./config.js";
 
 export type CodexPluginManifest = {
   name: string;
@@ -317,6 +318,9 @@ export async function installCodexPlugin(options: {
     });
     files.push(file.relativePath);
   }
+
+  const config = await readBriefOpsConfig(cwd);
+  await writeBriefOpsConfig(cwd, { ...config, integrations: { ...config.integrations, codex_plugin: true } });
 
   return { root, files };
 }

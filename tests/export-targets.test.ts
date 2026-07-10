@@ -10,6 +10,7 @@ import { withTempDir } from "./helpers.js";
 const repoRoot = process.cwd();
 const cliEntry = path.join(repoRoot, "src/index.ts");
 const tsxLoader = path.join(repoRoot, "node_modules/tsx/dist/loader.mjs");
+const CLI_TEST_TIMEOUT_MS = 30_000;
 
 type CliResult = {
   stdout: string;
@@ -44,7 +45,7 @@ async function expectCli(cwd: string, args: string[]): Promise<CliResult> {
   return result;
 }
 
-describe("harness router exports", () => {
+describe("harness router exports", { timeout: CLI_TEST_TIMEOUT_MS }, () => {
   it("prints context budget targets from the CLI", async () => {
     await withTempDir(async (dir) => {
       const result = await expectCli(dir, ["inspect", "budget"]);

@@ -3,6 +3,7 @@ import { generateBrief } from "./brief.js";
 import type { ExportPolicy } from "./exportPolicy.js";
 import { generateCodexResumeFromHandoff } from "./handoff.js";
 import { BriefOpsError } from "./errors.js";
+import { normalizeCodexMode, renderCodexModeInstruction, type CodexMode } from "./modelContract.js";
 import { withWorkspaceLock } from "./lock.js";
 import { writeGeneratedOutput } from "./output.js";
 import { readProject } from "./project.js";
@@ -64,15 +65,6 @@ export type CodexPromptResult = {
   tokens: number;
   savedPath?: string;
 };
-
-function normalizeCodexMode(value?: string): "loop" | "execute" | "plan" {
-  const mode = (value ?? "loop").trim().toLowerCase();
-  if (mode === "loop" || mode === "execute" || mode === "plan") {
-    return mode;
-  }
-
-  throw new BriefOpsError(`Invalid Codex mode: ${value}`);
-}
 
 function codexGuidanceSection(): string {
   return [
@@ -216,17 +208,12 @@ export async function installCodexPack(options: CodexInstallOptions = {}): Promi
 }
 
 function renderMissionShell(options: {
-  mode: "loop" | "execute" | "plan";
+  mode: CodexMode;
   task: string;
   completionPromise: string;
   brief: string;
 }): string {
-  const modeLine =
-    options.mode === "loop"
-      ? "Work in a bounded loop: inspect, plan, act, verify, and continue if verification fails."
-      : options.mode === "execute"
-        ? "Execute the task directly, keeping a concise plan and verification evidence attached."
-        : "Produce a plan first. Do not modify product code unless the user explicitly approves the plan.";
+  const modeLine = renderCodexModeInstruction(options.mode);
 
   return [
     "# BriefOps Codex Mission",

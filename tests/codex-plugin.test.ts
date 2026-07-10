@@ -7,6 +7,7 @@ import {
   inspectCodexPlugin,
   installCodexPlugin
 } from "../src/core/codexPlugin.js";
+import { readBriefOpsConfig } from "../src/core/config.js";
 import { initWorkspace } from "../src/core/workspace.js";
 import { withTempDir } from "./helpers.js";
 
@@ -66,6 +67,7 @@ describe("Codex plugin package", () => {
     await withTempDir(async (dir) => {
       await initWorkspace(dir);
       const result = await installCodexPlugin({ cwd: dir });
+      expect((await readBriefOpsConfig(dir)).integrations.codex_plugin).toBe(true);
 
       expect(result.root).toContain(".briefops/codex/plugin/briefops");
       expect(result.files).toContain(".codex-plugin/plugin.json");

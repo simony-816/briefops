@@ -85,6 +85,7 @@ export function registerEvalCommands(program: Command): void {
         ])
       ]);
       console.error(`Saved eval result: ${summary.resultPath}`);
+      if (summary.failed > 0) process.exitCode = 1;
     });
 
   evalCommand

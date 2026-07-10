@@ -21,6 +21,7 @@ import {
   type MemoryStatus,
   type MemoryVisibility
 } from "../schemas/memory.js";
+import { filterMemoryForExport, normalizeExportPolicy, type ExportPolicy } from "./exportPolicy.js";
 
 const categoryToItemType: Record<MemoryCategory, MemoryItem["type"]> = {
   facts: "fact",
@@ -50,6 +51,9 @@ export type AddMemoryOptions = {
   visibility?: string;
   exportable?: boolean;
   evidence?: MemoryEvidence[] | string[] | string;
+  confidence?: "verified" | "unverified";
+  last_verified_at?: string;
+  supersedes?: string[];
 };
 
 export type ListMemoryFilters = {
@@ -72,6 +76,8 @@ export type SelectRelevantMemoryOptions = {
   maxTokens: number;
   quotas?: Partial<Record<MemoryCategory, number>>;
   includeDeprecated?: boolean;
+  exportPolicy?: ExportPolicy;
+  includeUnverified?: boolean;
 };
 
 export type MemorySelection = {
@@ -250,6 +256,9 @@ export async function addMemoryUnlocked(options: AddMemoryOptions): Promise<Memo
     visibility: normalizeMemoryVisibility(options.visibility),
     exportable: options.exportable ?? false,
     evidence: parseMemoryEvidenceRefs(options.evidence)
+    ,confidence: options.confidence
+    ,last_verified_at: options.last_verified_at
+    ,supersedes: options.supersedes
   });
 
   memoryFile.items.push(item);
@@ -482,9 +491,15 @@ export async function selectRelevantMemory(
   options: SelectRelevantMemoryOptions
 ): Promise<{ items: MemoryItem[]; text: string; tokens: number; omitted: number; selections: MemorySelection[]; omittedSelections: MemorySelection[] }> {
   const types = options.types?.map(normalizeMemoryCategory);
-  const active = await listMemory({ cwd: options.cwd, status: "active" });
+  const exportPolicy = normalizeExportPolicy(options.exportPolicy);
+  const allActive = await listMemory({ cwd: options.cwd, status: "active" });
+  const supersededIds = new Set(allActive.flatMap((item) => item.supersedes));
+  const active = filterMemoryForExport(allActive, exportPolicy);
   const candidates = active.filter((item) => {
     const category = itemTypeToCategory[item.type];
+    if (options.project && item.project && item.project !== normalizeName(options.project)) return false;
+    if (!options.includeUnverified && item.confidence === "unverified") return false;
+    if (supersededIds.has(item.id)) return false;
     if (types && !types.includes(category)) {
       return false;
     }

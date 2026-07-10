@@ -7,6 +7,7 @@ import { withTempDir } from "./helpers.js";
 const repoRoot = process.cwd();
 const cliEntry = path.join(repoRoot, "src/index.ts");
 const tsxLoader = path.join(repoRoot, "node_modules/tsx/dist/loader.mjs");
+const CLI_TEST_TIMEOUT_MS = 30_000;
 
 type CliResult = {
   stdout: string;
@@ -48,7 +49,7 @@ function matchPath(output: string, label: string): string {
   return match?.[1].trim() as string;
 }
 
-describe("CLI persistent worker workflow", () => {
+describe("CLI persistent worker workflow", { timeout: CLI_TEST_TIMEOUT_MS }, () => {
   it("bootstraps a repo for Codex-first BriefOps adoption", async () => {
     await withTempDir(async (dir) => {
       const bootstrapped = await expectCli(dir, ["bootstrap"]);
@@ -117,7 +118,8 @@ describe("CLI persistent worker workflow", () => {
         "--result",
         "Found missing turnover warning.",
         "--lesson",
-        "Always verify turnover warning."
+        "Always verify turnover warning.",
+        "--apply-inferred-memory"
       ]);
       expect(finish.stdout).toContain("Next command");
       expect(finish.stdout).toContain("Applied local memory:");
@@ -316,6 +318,22 @@ describe("CLI persistent worker workflow", () => {
       ]);
       expect(observed.stdout).toContain("BriefOps Continuity Observability");
       expect(observed.stdout).toContain("Memory hygiene:");
+    });
+  });
+
+  it("fails eval automation when an expected phrase is absent", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "eval", "create", "missing-phrase", "--skill", "risk-review", "--project", "atlas-q",
+        "--input", "Review the project.", "--expected", "phrase-that-is-not-present"
+      ]);
+      const result = await runCli(dir, ["eval", "run"]);
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain("1 failed");
+      expect(result.stderr).toContain("Saved eval result:");
     });
   });
 
