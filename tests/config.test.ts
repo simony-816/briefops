@@ -41,6 +41,7 @@ describe("BriefOps config", () => {
       expect(config.token_budgets.prime).toBe(800);
       expect(config.token_budgets.resume).toBe(3000);
       expect(config.memory_categories).toContain("lessons");
+      expect(config.integrations.codex_plugin).toBe(false);
     });
   });
 

@@ -24,6 +24,7 @@ const rawConfigSchema = z.object({
     resume: z.number().int().positive().optional()
   }).default({}),
   memory_categories: z.array(z.string()).default([...memoryCategories])
+  ,integrations: z.object({ codex_plugin: z.boolean().default(false) }).default({ codex_plugin: false })
 }).passthrough();
 
 export type BriefOpsConfig = {
@@ -38,6 +39,7 @@ export type BriefOpsConfig = {
     resume: number;
   };
   memory_categories: string[];
+  integrations: { codex_plugin: boolean };
 };
 
 function normalizeConfig(raw: z.infer<typeof rawConfigSchema>): BriefOpsConfig {
@@ -56,6 +58,7 @@ function normalizeConfig(raw: z.infer<typeof rawConfigSchema>): BriefOpsConfig {
     },
     memory_categories:
       raw.memory_categories.length > 0 ? raw.memory_categories : [...memoryCategories]
+    ,integrations: { codex_plugin: raw.integrations.codex_plugin }
   };
 }
 

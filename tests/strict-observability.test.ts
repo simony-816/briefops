@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { setDefaultWorker } from "../src/core/config.js";
+import { installCodexPlugin } from "../src/core/codexPlugin.js";
+import { promises as fs } from "node:fs";
 import { addMemory } from "../src/core/memory.js";
 import { inspectContinuityObservability } from "../src/core/observability.js";
 import { createProject } from "../src/core/project.js";
@@ -50,6 +52,17 @@ describe("strict doctor and observability", () => {
       expect(result.ok).toBe(true);
       expect(result.releaseReady).toBe(false);
       expect(result.checks.find((check) => check.name === "Gitignore")?.status).toBe("warn");
+    });
+  });
+
+  it("treats declared plugin drift as a runtime readiness warning", async () => {
+    await withTempDir(async (dir) => {
+      await seedReadyWorkspace(dir);
+      const installed = await installCodexPlugin({ cwd: dir });
+      await fs.rm(`${installed.root}/skills/briefops-route-task/SKILL.md`);
+      const result = await runStrictDoctor({ cwd: dir });
+      expect(result.releaseReady).toBe(false);
+      expect(result.checks.find((check) => check.source === "runtime")?.status).toBe("warn");
     });
   });
 

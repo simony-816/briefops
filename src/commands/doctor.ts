@@ -5,6 +5,7 @@ import { fixBriefOpsGitignore, runPrivacyDoctor } from "../core/privacyDoctor.js
 import { runSecurityDoctor } from "../core/securityDoctor.js";
 import { runStabilityDoctor } from "../core/stabilityDoctor.js";
 import { runStrictDoctor } from "../core/strictDoctor.js";
+import { runRuntimeDoctor } from "../core/runtimeDoctor.js";
 import { pathExists } from "../core/storage.js";
 import { printTable } from "./shared.js";
 
@@ -19,6 +20,7 @@ export function registerDoctorCommand(program: Command): void {
     .option("--privacy", "Run privacy checks for local memory and share safety.")
     .option("--fix-gitignore", "Add `.briefops/` to .gitignore when running --privacy.")
     .option("--strict", "Run stability, security, privacy, and memory hygiene checks as one release-readiness gate.")
+    .option("--runtime", "Check declared runtime integrations.")
     .option("--json", "Print JSON output for --strict.")
     .action(async (options: Record<string, unknown>) => {
       if (options.strict) {
@@ -44,6 +46,13 @@ export function registerDoctorCommand(program: Command): void {
         if (!result.releaseReady) {
           process.exitCode = 1;
         }
+        return;
+      }
+
+      if (options.runtime) {
+        const result = await runRuntimeDoctor();
+        printTable([["Check", "Status", "Detail"], ...result.checks.map((check) => [check.name, check.status, check.detail])]);
+        if (!result.ok) process.exitCode = 1;
         return;
       }
 

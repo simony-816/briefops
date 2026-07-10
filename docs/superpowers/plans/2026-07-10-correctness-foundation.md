@@ -394,7 +394,7 @@ npm run build
 
 Expected: all targeted tests pass and legacy fixtures parse with verified/default metadata.
 
-- [x] **Step 9: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/schemas/memory.ts src/schemas/memoryProposal.ts src/core/memory.ts src/core/memoryProposal.ts src/core/prime.ts src/core/handoff.ts src/core/workflow.ts src/commands/finish.ts tests/memory.test.ts tests/prime.test.ts tests/persistent-worker.test.ts tests/compatibility-contract.test.ts
@@ -424,7 +424,7 @@ git commit -m "fix: isolate and qualify persistent memory"
 - Strict doctor adds source `runtime` and treats runtime warnings as not release-ready.
 - Failed `briefops eval run` sets process exit code 1 after writing results.
 
-- [ ] **Step 1: Write a failing CLI eval-status test**
+- [x] **Step 1: Write a failing CLI eval-status test**
 
 In a temporary CLI workspace, create a skill, project, and eval case whose expected phrase is absent. Run `eval run` and assert:
 
@@ -434,7 +434,7 @@ expect(result.stdout).toContain("1 failed");
 expect(result.stderr).toContain("Saved eval result:");
 ```
 
-- [ ] **Step 2: Write failing runtime-readiness tests**
+- [x] **Step 2: Write failing runtime-readiness tests**
 
 Install the plugin in a temporary workspace, delete one generated skill, run strict doctor, and assert:
 
@@ -445,7 +445,7 @@ expect(result.checks.find((check) => check.source === "runtime")?.status).toBe("
 
 Also assert that a plain runtime-agnostic `initWorkspace` with the default `codex_plugin: false` remains release-ready.
 
-- [ ] **Step 3: Verify RED**
+- [x] **Step 3: Verify RED**
 
 Run:
 
@@ -455,7 +455,7 @@ npm test -- tests/cli-workflow.test.ts tests/config.test.ts tests/codex-plugin.t
 
 Expected: failed eval exits 0 and strict doctor has no runtime source.
 
-- [ ] **Step 4: Add the integration declaration**
+- [x] **Step 4: Add the integration declaration**
 
 Extend the raw and normalized config schemas with:
 
@@ -482,7 +482,7 @@ integrations: {
 }
 ```
 
-- [ ] **Step 5: Implement runtime doctor**
+- [x] **Step 5: Implement runtime doctor**
 
 Create `src/core/runtimeDoctor.ts` with result types matching other doctors. If `codex_plugin` is false, return one ok check named `Codex plugin` with detail `Codex plugin integration is not declared.` If true, call `inspectCodexPlugin` and return:
 
@@ -501,11 +501,11 @@ Create `src/core/runtimeDoctor.ts` with result types matching other doctors. If 
 
 Bound the detail to the first five changed/missing files and add a count suffix when more exist.
 
-- [ ] **Step 6: Integrate runtime doctor and CLI output**
+- [x] **Step 6: Integrate runtime doctor and CLI output**
 
 Add `runtime` to `StrictDoctorCheck.source`, call `runRuntimeDoctor` in `runStrictDoctor`, and append its checks. Add a `--runtime` option to `briefops doctor` that prints the same check table and exits 1 only when runtime doctor reports a hard failure; drift remains a strict-readiness warning.
 
-- [ ] **Step 7: Make eval failures fail automation**
+- [x] **Step 7: Make eval failures fail automation**
 
 After printing and saving the eval summary, add:
 
@@ -515,7 +515,7 @@ if (summary.failed > 0) {
 }
 ```
 
-- [ ] **Step 8: Verify GREEN**
+- [x] **Step 8: Verify GREEN**
 
 Run:
 

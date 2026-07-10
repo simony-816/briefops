@@ -118,7 +118,8 @@ describe("CLI persistent worker workflow", { timeout: CLI_TEST_TIMEOUT_MS }, () 
         "--result",
         "Found missing turnover warning.",
         "--lesson",
-        "Always verify turnover warning."
+        "Always verify turnover warning.",
+        "--apply-inferred-memory"
       ]);
       expect(finish.stdout).toContain("Next command");
       expect(finish.stdout).toContain("Applied local memory:");
@@ -317,6 +318,22 @@ describe("CLI persistent worker workflow", { timeout: CLI_TEST_TIMEOUT_MS }, () 
       ]);
       expect(observed.stdout).toContain("BriefOps Continuity Observability");
       expect(observed.stdout).toContain("Memory hygiene:");
+    });
+  });
+
+  it("fails eval automation when an expected phrase is absent", async () => {
+    await withTempDir(async (dir) => {
+      await expectCli(dir, ["init"]);
+      await expectCli(dir, ["skill", "create", "risk-review"]);
+      await expectCli(dir, ["project", "create", "atlas-q"]);
+      await expectCli(dir, [
+        "eval", "create", "missing-phrase", "--skill", "risk-review", "--project", "atlas-q",
+        "--input", "Review the project.", "--expected", "phrase-that-is-not-present"
+      ]);
+      const result = await runCli(dir, ["eval", "run"]);
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain("1 failed");
+      expect(result.stderr).toContain("Saved eval result:");
     });
   });
 
