@@ -46,7 +46,7 @@ BriefOps can generate Codex skill-plugin assets, but the plugin calls the local 
 
 ## Release Status
 
-BriefOps 2.1.3 is the current npm-ready release for developers who want a local-first memory and context ledger for AI coding agents. It packages the 2.1 Master Harness routing, continuity observability, strict release-readiness checks, evidence anchors, workspace-lock hardening, the fresh-thread environment gate that treats missing local CLI setup as `Status: setup-required`, and lightweight local utility evaluation docs.
+BriefOps 2.2.0 is the current npm-ready release for developers who want a local-first memory and context ledger for AI coding agents. It packages the 2.1 Master Harness routing, continuity observability, strict release-readiness checks, evidence anchors, workspace-lock hardening, the fresh-thread environment gate that treats missing local CLI setup as `Status: setup-required`, runtime readiness checks for local plugin and prompt drift, and evaluation failures that exit nonzero.
 
 The public CLI behavior and workspace file-format policy are documented in `docs/compatibility.md` and `docs/file-format.md`. The core safety principles are stable:
 

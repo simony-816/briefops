@@ -4,6 +4,14 @@
 
 - No changes yet.
 
+## 2.2.0 - 2026-07-12
+
+- Add runtime readiness checks to strict doctor output so local plugin and prompt drift are visible before release.
+- Make evaluation failures exit nonzero so release gates fail on failed eval cases.
+- Preserve explicit Codex modes and neutral worker defaults in generated context.
+- Isolate project-scoped memory, filter superseded memory, and mark generated context with model-facing authority and side-effect contracts.
+- Document the model readiness hardening plan and release safety constraints for the 2.2.x line.
+
 ## 2.1.3 - 2026-07-05
 
 - Add lightweight utility evaluation documentation and example eval logs.
