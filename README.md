@@ -1,21 +1,65 @@
 # BriefOps
 
-[![npm version](https://img.shields.io/npm/v/briefops.svg)](https://www.npmjs.com/package/briefops)
-[![CI](https://github.com/simony-816/briefops/actions/workflows/ci.yml/badge.svg)](https://github.com/simony-816/briefops/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <img src="assets/readme/briefops-hero.svg" alt="BriefOps — local-first continuity for AI coding work" width="100%" />
+</p>
 
-BriefOps is a local-first CLI for AI coding agents with persistent memory, handoffs, and token-aware context.
+<p align="center">
+  <a href="https://www.npmjs.com/package/briefops"><img src="https://img.shields.io/npm/v/briefops?style=flat-square&color=58E0B3&labelColor=101A2B" alt="npm version" /></a>
+  <a href="https://github.com/simony-816/briefops/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/simony-816/briefops/ci.yml?branch=main&style=flat-square&label=checks&labelColor=101A2B" alt="CI status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A9BFF?style=flat-square&labelColor=101A2B" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/local--first-private%20by%20default-58E0B3?style=flat-square&labelColor=101A2B" alt="Local-first and private by default" />
+</p>
 
-The goal is not just to generate a good brief. The goal is to let a user finish an AI coding task, carry recent work into the next handoff immediately, promote useful items into directory-local durable memory, and start a fresh Codex or Claude Code thread where the same worker can continue with prior decisions, lessons, risks, and judgment profile.
+<p align="center"><strong>Persistent memory, clean handoffs, and compact context for AI coding agents.</strong></p>
 
-```bash
-briefops prime --task "Start the next task." --format codex --max-tokens 800
-briefops finish ...
-briefops continue --worker <worker> --task "<next task>" --pack
+BriefOps is a local CLI that helps an AI coding task survive the handoff to a fresh thread. It records the useful parts of completed work, promotes durable decisions and lessons into directory-local memory, then prepares the smallest useful context for the next Codex or Claude Code session.
+
+> BriefOps does not run agents or inflate every prompt. It gives your agent the context it needs to continue—with your local files remaining the source of truth.
+
+## The Continuity Loop
+
+```mermaid
+flowchart LR
+    A["Prime\nstart with compact context"] --> B["Work\nagent completes the task"]
+    B --> C["Finish\nlog results, lessons & risks"]
+    C --> D["Local memory\npromote durable knowledge"]
+    D --> E["Continue\ncreate a fresh-thread handoff"]
+    E --> A
 ```
 
-BriefOps does not run agents. It prepares deterministic local context for them.
-It should not maximize context. It preserves continuity by selecting the smallest useful information that should survive into the next task.
+| Start a task | Preserve what mattered | Resume without a history dump |
+| --- | --- | --- |
+| `briefops prime` | `briefops finish` | `briefops continue --pack` |
+| compact, token-aware context | local logs, memory, and worker intelligence | a ready-to-paste handoff for a fresh thread |
+
+## Start Here
+
+```bash
+npm install -g briefops
+briefops bootstrap
+
+# Before a fresh coding thread
+briefops prime --task "Review this PR for risk policy violations." --format codex --max-tokens 800
+
+# When the task is done
+briefops finish --task "Review this PR." --result "Completed review." \
+  --next-step "Continue the unresolved checks."
+
+# Carry the same worker into the next thread
+briefops continue --worker <worker> --task "Continue the unresolved checks." --pack
+```
+
+New to the workflow? Follow the [5-minute Codex quickstart](#5-minute-codex-quickstart). For the underlying model, see [the concept guide](docs/concept.md).
+
+## Why BriefOps
+
+| Instead of… | BriefOps gives you… |
+| --- | --- |
+| re-explaining prior work to every fresh thread | deterministic briefs, handoffs, and resume packs |
+| keeping every detail in the prompt | token-aware retrieval of the smallest useful context |
+| losing decisions, lessons, and open risks after a task | directory-local, auditable memory with explicit sharing controls |
+| coupling your workflow to one agent runtime | local harness exports for Codex, Claude Code, and Cursor |
 
 ## What BriefOps Is
 

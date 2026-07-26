@@ -1,0 +1,52 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">BriefOps — continuity for AI coding work</title>
+  <desc id="desc">A local-first workflow that turns completed AI coding work into compact context for the next fresh thread.</desc>
+  <defs>
+    <linearGradient id="surface" x1="84" y1="36" x2="1115" y2="405" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCFAFF"/>
+      <stop offset="1" stop-color="#EEF5FF"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="761" y1="94" x2="1088" y2="343" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B6A6FF"/>
+      <stop offset="1" stop-color="#9EE5CD"/>
+    </linearGradient>
+    <filter id="glow" x="690" y="38" width="469" height="328" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="420" rx="24" fill="url(#surface)"/>
+  <path d="M0 338C148 272 206 417 381 340C530 274 551 210 707 246C847 278 924 190 1200 109V420H0V338Z" fill="#E4EDFF" fill-opacity=".72"/>
+  <g opacity=".62" stroke="#D4DEF1" stroke-width="1">
+    <path d="M64 76H625M64 124H560M64 172H487M64 220H400"/>
+    <path d="M64 280H311M64 328H251"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="85" fill="#6C62C5" font-size="16" font-weight="700" letter-spacing="3.2">LOCAL-FIRST CONTINUITY FOR AI CODING</text>
+    <text x="64" y="168" fill="#2D3E59" font-size="64" font-weight="700" letter-spacing="-2.6">BriefOps</text>
+    <text x="64" y="218" fill="#61738F" font-size="25">Finish work with context intact.</text>
+    <text x="64" y="254" fill="#61738F" font-size="25">Start the next thread already oriented.</text>
+  </g>
+  <g transform="translate(735 76)">
+    <circle cx="181" cy="143" r="128" fill="url(#signal)" opacity=".18" filter="url(#glow)"/>
+    <rect x="15" y="15" width="332" height="252" rx="18" fill="#FFFEFF" stroke="#CAD8F0" stroke-width="2"/>
+    <rect x="39" y="42" width="284" height="42" rx="10" fill="#EEF2FB"/>
+    <circle cx="61" cy="63" r="6" fill="#9BE0C7"/>
+    <text x="79" y="69" fill="#40526F" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">briefops continue --pack</text>
+    <path d="M63 122H149" stroke="#9FA9EE" stroke-width="9" stroke-linecap="round"/>
+    <path d="M63 149H263" stroke="#BFCBE0" stroke-width="9" stroke-linecap="round"/>
+    <path d="M63 176H224" stroke="#BFCBE0" stroke-width="9" stroke-linecap="round"/>
+    <rect x="63" y="207" width="126" height="28" rx="14" fill="#DDF6EA"/>
+    <text x="80" y="226" fill="#3F7D68" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing=".25">CONTEXT READY</text>
+    <circle cx="287" cy="216" r="31" fill="#E6E0FF"/>
+    <path d="M272 216L282 226L302 205" stroke="#7166C7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="1.1">
+    <text x="64" y="366" fill="#7787A3">BRIEF</text>
+    <path d="M117 361H163" stroke="#9AA9E8" stroke-width="2"/>
+    <text x="179" y="366" fill="#7787A3">WORK</text>
+    <path d="M225 361H271" stroke="#9AA9E8" stroke-width="2"/>
+    <text x="287" y="366" fill="#7787A3">REMEMBER</text>
+    <path d="M390 361H436" stroke="#9AA9E8" stroke-width="2"/>
+    <text x="452" y="366" fill="#7787A3">CONTINUE</text>
+  </g>
+</svg>
